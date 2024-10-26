@@ -1,0 +1,268 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Style for frontmatter in CodeMirror/EasyMDE */
+.cm-frontmatter {
+  color: #888 !important;
+  font-style: italic !important;
+  background: #f8f8f8 !important;
+  font-size: 1em !important;
+  font-weight: normal !important;
+}
+
+/* Remove bold/large/italic from frontmatter even if combined with markdown classes */
+.cm-frontmatter.cm-header,
+.cm-frontmatter.cm-strong,
+.cm-frontmatter.cm-em {
+  font-size: 1em !important;
+  font-weight: normal !important;
+  font-style: italic !important;
+}
+
+/* Content styling for #content and .editor-preview */
+#content, .editor-preview {
+  h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    margin-bottom: 1rem;
+  }
+  
+  ul, ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  li {
+    margin-bottom: 0.5rem;
+    position: relative;
+    padding-left: 1rem;
+  }
+  
+  ul > li::before {
+    content: "";
+    position: absolute;
+    background-color: #9ca3af;
+    border-radius: 50%;
+    width: 0.375em;
+    height: 0.375em;
+    top: 0.6em;
+    left: 0;
+  }
+  
+  ol {
+    counter-reset: list-counter;
+  }
+  
+  ol > li {
+    counter-increment: list-counter;
+  }
+  
+  ol > li::before {
+    content: counter(list-counter) ".";
+    position: absolute;
+    left: 0;
+    color: #6b7280;
+  }
+  
+  a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  
+  strong {
+    font-weight: 700;
+  }
+  
+  em {
+    font-style: italic;
+  }
+  
+  blockquote {
+    border-left-width: 4px;
+    border-left-color: #d1d5db;
+    padding-left: 1rem;
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+  
+  code {
+    background-color: #f3f4f6;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  pre {
+    padding: 1rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+  
+  pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+  }
+  
+  hr {
+    border-color: #e5e7eb;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  
+  th, td {
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+  }
+  
+  th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+  }
+}
+
+/* Heading link functionality */
+.heading-container {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
+.heading-link-icon {
+  opacity: 0;
+  /* margin-right: 8px; */
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  text-decoration: none;
+  font-size: 0.9rem;
+  position: absolute;
+  left: -1.2rem;
+  top: 40%;
+  transform: translateY(-50%)
+}
+
+.heading-container:hover .heading-link-icon {
+  opacity: 1;
+}
+
+.heading-container h1,
+.heading-container h2,
+.heading-container h3,
+.heading-container h4,
+.heading-container h5,
+.heading-container h6 {
+  margin-left: 0;
+  flex: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  #content code,
+  .editor-preview code {
+    background-color: #23272e;
+    color: #f8f8f2;
+  }
+  #content pre,
+  .editor-preview pre {
+    background-color: #23272e;
+    color: #f8f8f2;
+  }
+  #content th,
+  .editor-preview th {
+    background-color: #23272e;
+    color: #f8f8f2;
+  }
+  #content td,
+  .editor-preview td {
+    background-color: #23272e;
+    color: #f8f8f2;
+  }
+  
+
+  .cm-frontmatter {
+    background: #353535 !important;
+  }
+  .EasyMDEContainer .CodeMirror {
+    color: #ccc;
+    border-color: #333;
+    background-color: #1d232a;
+  }
+  .EasyMDEContainer .cm-s-easymde .CodeMirror-cursor {
+      border-color: #ccc;
+  }
+
+  .EasyMDEContainer .editor-toolbar > * {
+      color: #ccc;
+  }
+
+  .EasyMDEContainer .editor-toolbar > .active, .editor-toolbar > button:hover, .editor-preview pre, .cm-s-easymde {
+      background-color: #444;
+  }
+
+  .editor-toolbar > .active, .editor-toolbar > button:hover, .editor-preview pre {
+      background-color: #444 !important;
+  }
+
+  .cm-comment {
+      background-color: #444 !important;
+  }
+
+  .EasyMDEContainer .CodeMirror-fullscreen {
+      background: #000;
+  }
+
+  .editor-toolbar {
+      border-top: 1px solid #333;
+      border-left: 1px solid #333;
+      border-right: 1px solid #333;
+  }
+
+  .editor-toolbar.fullscreen {
+      background: #000;
+  }
+
+  .editor-preview {
+      background: #000;
+  }
+}
+

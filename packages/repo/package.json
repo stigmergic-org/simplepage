@@ -1,0 +1,28 @@
+{
+  "name": "@simplepg/repo",
+  "version": "0.1.0",
+  "description": "SimplePage repository",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "lint": "eslint src/*.js"
+  },
+  "keywords": [
+    "simplepage",
+    "web3",
+    "decentralized"
+  ],
+  "author": "Joel Thorstensson",
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "jest": "^30.0.3",
+    "jest-environment-jsdom": "^30.0.2"
+  },
+  "dependencies": {
+    "@simplepg/common": "workspace:*",
+    "it-all": "^3.0.9",
+    "multiformats": "^13.3.7",
+    "viem": "^2.31.4"
+  }
+}

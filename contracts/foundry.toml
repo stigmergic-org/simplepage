@@ -1,0 +1,10 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+evm_version = "cancun"
+remappings = [
+    "@chainlink/=lib/chainlink-brownie-contracts"
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

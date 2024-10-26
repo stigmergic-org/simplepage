@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test-packages:
+    strategy:
+      fail-fast: true
+
+    name: Test Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Ensure kubo binary is available
+        run: |
+          echo "=== Ensuring kubo binary is available ==="
+          # Run kubo postinstall to ensure binary is available
+          cd node_modules/.pnpm/kubo@0.35.0/node_modules/kubo
+          npm run postinstall
+          echo "Kubo binary should now be available"
+
+      - name: Run package tests
+        run: pnpm test
+
+  test-contracts:
+    strategy:
+      fail-fast: true
+
+    name: Test Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Run Forge fmt
+        run: |
+          cd contracts
+          make format
+        id: fmt
+
+      - name: Run Forge build
+        run: |
+          cd contracts
+          make build
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          cd contracts
+          make test
+        id: test
