@@ -1159,6 +1159,156 @@ This is a test.`;
       // /baz/ should throw or be undefined
       await expect(newRepo.getMarkdown('/baz/')).rejects.toThrow();
     });
+
+    it('should update all pages to latest version when staging with template update', async () => {
+      // Create initial pages at different depths
+      const pages = {
+        root: {
+          path: '/',
+          markdown: '# Home Page\n\nWelcome to the home page.',
+          body: '<h1>Home Page</h1><p>Welcome to the home page.</p>'
+        },
+        about: {
+          path: '/about/',
+          markdown: '# About\n\nAbout page content.',
+          body: '<h1>About</h1><p>About page content.</p>'
+        },
+        docs: {
+          path: '/docs/',
+          markdown: '# Documentation\n\nMain documentation.',
+          body: '<h1>Documentation</h1><p>Main documentation.</p>'
+        },
+        docsGuides: {
+          path: '/docs/guides/',
+          markdown: '# Guides\n\nUser guides.',
+          body: '<h1>Guides</h1><p>User guides.</p>'
+        },
+        docsGuidesGettingStarted: {
+          path: '/docs/guides/getting-started/',
+          markdown: '# Getting Started\n\nGetting started guide.',
+          body: '<h1>Getting Started</h1><p>Getting started guide.</p>'
+        },
+        docsGuidesAdvanced: {
+          path: '/docs/guides/advanced/',
+          markdown: '# Advanced\n\nAdvanced guide.',
+          body: '<h1>Advanced</h1><p>Advanced guide.</p>'
+        },
+        blog: {
+          path: '/blog/',
+          markdown: '# Blog\n\nBlog index page.',
+          body: '<h1>Blog</h1><p>Blog index page.</p>'
+        },
+        blogPost1: {
+          path: '/blog/post-1/',
+          markdown: '# Blog Post 1\n\nFirst blog post content.',
+          body: '<h1>Blog Post 1</h1><p>First blog post content.</p>'
+        },
+        blogPost2: {
+          path: '/blog/post-2/',
+          markdown: '# Blog Post 2\n\nSecond blog post content.',
+          body: '<h1>Blog Post 2</h1><p>Second blog post content.</p>'
+        },
+        contact: {
+          path: '/contact/',
+          markdown: '# Contact\n\nContact information.',
+          body: '<h1>Contact</h1><p>Contact information.</p>'
+        }
+      };
+
+      // Set page edits for all pages
+      for (const page of Object.values(pages)) {
+        await repo.setPageEdit(page.path, page.markdown, page.body);
+      }
+
+      // Stage and commit initial version without template update
+      const initialResult = await repo.stage('test.eth', false);
+      expect(initialResult).toHaveProperty('cid');
+      expect(initialResult.cid instanceof CID).toBe(true);
+
+      // Verify all pages are staged correctly with version 0.4.0
+      for (const page of Object.values(pages)) {
+        const markdown = await cat(testEnv.kubo.kuboApi, `/ipfs/${initialResult.cid.toString()}${page.path}index.md`);
+        expect(markdown).toBe(page.markdown);
+
+        const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${initialResult.cid.toString()}${page.path}index.html`);
+        expect(html).toContain(page.body);
+
+        // Verify version is 0.4.0 for all pages
+        const doc = parser.parseFromString(html, 'text/html');
+        checkMeta(doc, 'version', '0.4.0');
+      }
+
+      // Commit the initial version
+      const hash1 = await walletClient.writeContract(initialResult.prepTx);
+      expect(hash1).toBeDefined();
+      const transaction1 = await client.waitForTransactionReceipt({ hash: hash1 });
+      expect(transaction1.status).toBe('success');
+      await repo.finalizeCommit(initialResult.cid);
+
+      // Create a new Repo instance to simulate a fresh start
+      const newStorage = new MockStorage();
+      const newRepo = new Repo('test.eth', newStorage);
+      await newRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      // Make a simple change to the root page
+      const updatedRootMarkdown = '# Updated Home Page\n\nThis is the updated home page content.';
+      const updatedRootBody = '<h1>Updated Home Page</h1><p>This is the updated home page content.</p>';
+      
+      await newRepo.setPageEdit('/', updatedRootMarkdown, updatedRootBody);
+
+      // Stage and commit with template update (should update all pages to version 0.5.0)
+      const updateResult = await newRepo.stage('test.eth', true);
+      expect(updateResult).toHaveProperty('cid');
+      expect(updateResult.cid instanceof CID).toBe(true);
+
+      // Verify the root page is updated with new content
+      const updatedRootMarkdownContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}/index.md`);
+      expect(updatedRootMarkdownContent).toBe(updatedRootMarkdown);
+
+      const updatedRootHtmlContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}/index.html`);
+      expect(updatedRootHtmlContent).toContain(updatedRootBody);
+
+      // Verify all other pages are updated to version 0.5.0 but keep their original content
+      for (const [key, page] of Object.entries(pages)) {
+        if (key === 'root') continue // ignore root as it has been changed
+
+        const markdown = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}${page.path}index.md`);
+        expect(markdown).toBe(page.markdown);
+
+        const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}${page.path}index.html`);
+        expect(html).toContain(page.body);
+
+        // Verify all pages now use version 0.5.0
+        const doc = parser.parseFromString(html, 'text/html');
+        checkMeta(doc, 'version', '0.5.0');
+      }
+
+      // Verify template is updated to version 0.5.0
+      const templateContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}/_template.html`);
+      expect(templateContent).toBeDefined();
+      const templateDoc = parser.parseFromString(templateContent, 'text/html');
+      checkMeta(templateDoc, 'version', '0.5.0');
+
+      // Verify _assets and _js folders are updated
+      const assetsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}/_assets`);
+      expect(assetsContent).toBe('folder-updated');
+
+      const jsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${updateResult.cid.toString()}/_js`);
+      expect(jsContent).toBe('folder-updated');
+
+      // Commit the final version
+      const hash2 = await walletClient.writeContract(updateResult.prepTx);
+      expect(hash2).toBeDefined();
+      const transaction2 = await client.waitForTransactionReceipt({ hash: hash2 });
+      expect(transaction2.status).toBe('success');
+
+      // Verify the final state through ENS resolution
+      const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
+      expect(finalRoot.toString()).toBe(updateResult.cid.toString());
+    });
   });
 
   describe('Error Handling Tests', () => {

@@ -29,6 +29,7 @@ export const CHANGE_TYPE = Object.freeze({
   EDIT: 'edit',
   DELETE: 'delete',
   NEW: 'new',
+  UPGRADE: 'upgrade'
 })
 
 /**
@@ -133,16 +134,20 @@ export class Repo {
    * @param {string} path - The path of the page.
    * @param {string} markdown - The markdown for the page.
    * @param {string} body - The html body for the page.
+   * @param {string} type - the type of the change (optional).
    */
-  async setPageEdit(path, markdown, body) {
+  async setPageEdit(path, markdown, body, type) {
     assert(path.startsWith('/'), 'Path must start with /')
     assert(path.endsWith('/'), 'Path must end with /')
     await this.#initPromise;
+    if (!type) {
+      type = await this.#pageExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW
+    }
     this.storage.setItem(`spg_edit_${path}`, JSON.stringify({
       markdown,
       body,
       root: this.repoRoot.cid.toString(),
-      type: await this.#pageExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW,
+      type
     }));
   }
 
@@ -344,7 +349,7 @@ export class Repo {
    */
   async stage(targetDomain, updateTemplate = false) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
-    const edits = await this.getChanges()
+    let edits = await this.getChanges()
     assert(edits.length > 0, 'No edits to stage')
 
     // Puts the content of the current repoRoot into
@@ -359,21 +364,21 @@ export class Repo {
     const newRootWithoutPrev = await this.unixfs.rm(rootToUse, '_prev')
     let rootPointer = await this.unixfs.cp(zeroDir, newRootWithoutPrev, '_prev')
 
-    // Add all content from the current repo root 
     if (updateTemplate) {
-      console.log('repo: updateTemplate')
-      console.log(`repo: copying from ${this.repoRoot.cid} to ${rootPointer}`)
-      const currentRootFiles = await ls(this.blockstore, this.repoRoot.cid)
-      for (const [name, cid] of currentRootFiles) {
-        if (name.startsWith('_')) continue
-        console.log('repo: cp file', name)
-        rootPointer = await this.unixfs.cp(cid, rootPointer, name, { force: true })
+      // add upgrades to pending edits
+      const allPages = await this.getAllPages()
+      for (const path of allPages) {
+        if (!edits.find(edit => edit.path === path)) {
+          const markdown = await this.getMarkdown(path)
+          const html = await this.getHtmlBody(path)
+          await this.setPageEdit(path, markdown, html, CHANGE_TYPE.UPGRADE)
+        }
       }
+      edits = await this.getChanges()
     }
 
     // Add the edits to the new root
     for (const { path, type } of edits) {
-      console.log('repo: add edit', path)
       const mdPath = path + 'index.md'
       const htmlPath = path + 'index.html'
       switch (type) {
@@ -383,6 +388,7 @@ export class Repo {
           break
         case CHANGE_TYPE.EDIT:
         case CHANGE_TYPE.NEW:
+        case CHANGE_TYPE.UPGRADE:
           const data = await this.#getPageEdit(path)
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, data.markdown)
           const html = await this.#renderHtml(data, targetDomain, path, rootPointer)
