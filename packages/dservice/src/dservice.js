@@ -1,6 +1,7 @@
 import { IpfsService } from './services/ipfs.js'
 import { IndexerService } from './services/indexer.js'
 import { createApi } from './api.js'
+import { createLogger } from './logger.js'
 import packageJson from '../package.json' assert { type: 'json' }
 
 export class DService {
@@ -9,32 +10,63 @@ export class DService {
     if (!this.config.version) {
       this.config.version = packageJson.version
     }
+    
     this.ipfs = null
     this.indexer = null
     this.app = null
     this.server = null
+    this.logger = null
+  }
+
+  async initialize() {
+    // Create logger instance
+    this.logger = await createLogger({
+      level: this.config.logLevel || 'info',
+      silent: this.config.silent || false,
+      logDir: this.config.logDir
+    })
   }
 
   async start() {
     try {
+      // Initialize logger if not already done
+      if (!this.logger) {
+        await this.initialize()
+      }
+      
+      this.logger.info('Starting DService', { version: this.config.version })
+      
       // Initialize IPFS service
-      this.ipfs = new IpfsService(this.config.ipfs)
+      this.logger.info('Initializing IPFS service')
+      this.ipfs = new IpfsService({ ...this.config.ipfs, logger: this.logger })
       const healthy = await this.ipfs.healthCheck()
       if (!healthy) {
+        this.logger.error('IPFS health check failed')
         throw new Error('Cannot connect to IPFS node')
       }
+      this.logger.info('IPFS service initialized successfully')
 
       // Initialize Indexer service
-      this.indexer = new IndexerService({ ...this.config.blockchain, ipfsService: this.ipfs })
+      this.logger.info('Initializing Indexer service')
+      this.indexer = new IndexerService({ 
+        ...this.config.blockchain, 
+        ipfsService: this.ipfs,
+        logger: this.logger 
+      })
       if (!this.config.blockchain.disableIndexing) {
         this.indexer.start()
+        this.logger.info('Indexer service started')
+      } else {
+        this.logger.info('Indexer service disabled')
       }
       
       // Create API app
+      this.logger.info('Creating API application')
       this.app = createApi({ 
         ipfs: this.ipfs, 
         indexer: this.indexer, 
-        version: this.config.version 
+        version: this.config.version,
+        logger: this.logger
       })
 
       // Start server
@@ -44,21 +76,30 @@ export class DService {
         
         this.server = this.app.listen(this.config.api.port, bindHost, (error) => {
           if (error) {
+            this.logger.error('Failed to start server', { error: error.message })
             reject(error)
             return
           }
+          
+          this.logger.info('Server started successfully', {
+            host: this.config.api.host,
+            port: this.config.api.port,
+            swaggerUrl: `http://${this.config.api.host}:${this.config.api.port}/docs`
+          })
+          
           if (!this.config.silent) {
-            delete this.config.ipfs.ipfsClient
-            console.log(`Server listening at http://${this.config.api.host}:${this.config.api.port}`)
-            console.log(`Swagger UI: http://${this.config.api.host}:${this.config.api.port}/docs`)
-            console.log(`Config: ${JSON.stringify(this.config, null, 2)}`)
+            const configForLog = { ...this.config }
+            delete configForLog.ipfs.ipfsClient
+            this.logger.debug('DService configuration', configForLog)
           }
           resolve()
         })
       })
     } catch (error) {
-      console.log('error', error)
-      console.error('Failed to start DService:', error.message)
+      this.logger.error('Failed to start DService', { 
+        error: error.message, 
+        stack: error.stack 
+      })
       throw error
     }
     await this.serverPromise
@@ -66,25 +107,35 @@ export class DService {
 
   async stop() {
     try {
+      this.logger.info('Stopping DService')
+      
       if (this.server) {
         await this.serverPromise
         await new Promise((resolve, reject) => {
           this.server.close((err) => {
             if (err) {
-              console.error('Error stopping server:', err)
+              this.logger.error('Error stopping server', { error: err.message })
               reject(err)
             } else {
-              console.log('Server stopped successfully')
+              this.logger.info('Server stopped successfully')
               resolve()
             }
           })
         })
       }
+      
       if (this.indexer) {
+        this.logger.info('Stopping Indexer service')
         await this.indexer.stop()
+        this.logger.info('Indexer service stopped')
       }
+      
+      this.logger.info('DService stopped successfully')
     } catch (error) {
-      console.error('Failed to stop DService:', error.message)
+      this.logger.error('Failed to stop DService', { 
+        error: error.message, 
+        stack: error.stack 
+      })
       throw error
     }
   }

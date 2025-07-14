@@ -36,14 +36,17 @@ const dataTypeToCidDecodeFn = dataType => {
 }
 
 export class IpfsService {
-  constructor({ api, ipfsClient, maxStagedAge = 60 * 60 }) { // Default 1 hour
+  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
     assert(api || ipfsClient, 'api or ipfsClient must be provided')
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
+    this.logger = logger
   }
 
   async writeCar(fileBuffer, stageDomain) {
     try {
+      this.logger.info('Writing CAR file', { stageDomain, bufferSize: fileBuffer.length })
+      
       let rootCid
       
       // Create an AsyncIterable that yields CAR files as Uint8Arrays
@@ -60,11 +63,19 @@ export class IpfsService {
 
       // Pin the content recursively with the label
       await this.client.pin.add(rootCid, { recursive: true, name: label })
-      console.log(`Staged ${rootCid} with label: ${label}`)
+      this.logger.info('Staged CAR file successfully', { 
+        rootCid: rootCid.toString(), 
+        label, 
+        stageDomain 
+      })
 
       return rootCid
     } catch (error) {
-      console.error('Error importing CAR file:', error)
+      this.logger.error('Error importing CAR file', { 
+        error: error.message, 
+        stageDomain,
+        stack: error.stack 
+      })
       throw error
     }
   }
@@ -72,9 +83,13 @@ export class IpfsService {
   async healthCheck() {
     try {
       await this.client.id()
+      this.logger.debug('IPFS health check passed')
       return true
     } catch (error) {
-      console.error('Error checking IPFS health:', error)
+      this.logger.error('IPFS health check failed', { 
+        error: error.message, 
+        stack: error.stack 
+      })
       return false
     }
   }
@@ -130,11 +145,20 @@ export class IpfsService {
   async finalizePage(cid, domain, blockNumber) {
     assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
     try {
+      this.logger.info('Finalizing page', { 
+        cid: cid.toString(), 
+        domain, 
+        blockNumber 
+      })
+      
       // Create new final pin first
       const finalLabel = `spg_final_${domain}_${blockNumber}`
 
       await this.client.pin.add(cid, { recursive: true, name: finalLabel })
-      console.log(`Finalized ${cid} with label: ${finalLabel}`)
+      this.logger.info('Page finalized successfully', { 
+        cid: cid.toString(), 
+        label: finalLabel 
+      })
       
       // Remove all staged pins
       const stagedPins = await this.client.pin.ls({
@@ -142,9 +166,19 @@ export class IpfsService {
       })
       for await (const pin of stagedPins) {
         await this.client.pin.rm(pin.cid, { recursive: true })
+        this.logger.debug('Removed staged pin', { 
+          pinName: pin.name, 
+          pinCid: pin.cid.toString() 
+        })
       }
     } catch (error) {
-      console.error('Error finalizing DAG:', error)
+      this.logger.error('Error finalizing page', { 
+        error: error.message, 
+        cid: cid.toString(),
+        domain,
+        blockNumber,
+        stack: error.stack 
+      })
       throw error
     }
   }
@@ -156,6 +190,8 @@ export class IpfsService {
 
   async nukePage(domain) {
     try {
+      this.logger.info('Nuking page', { domain })
+      
       // Get all final pins for the domain
       const pinRoots = await all(await this.client.pin.ls({
         name: `spg_final_${domain}`
@@ -171,7 +207,10 @@ export class IpfsService {
       // Remove all final pins for this domain
       for (const pin of pinRoots) {
         await this.client.pin.rm(pin.cid, { recursive: true })
-        console.log(`Removed pin ${pin.name}: ${pin.cid}`)
+        this.logger.info('Removed pin', { 
+          pinName: pin.name, 
+          pinCid: pin.cid.toString() 
+        })
       }
 
       const cidsWithOtherDomainPins = []
@@ -191,14 +230,26 @@ export class IpfsService {
       for (const cid of cidsToNuke) {
         try {
           await all(this.client.block.rm(cid))
-          console.log(`Removed block: ${cid}`)
+          this.logger.debug('Removed block', { cid: cid.toString() })
         } catch (error) {
           // Block might already be removed or not exist
-          console.log(`Block ${cid} already removed or doesn't exist`)
+          this.logger.debug('Block already removed or doesn\'t exist', { 
+            cid: cid.toString() 
+          })
         }
       }
+      
+      this.logger.info('Page nuked successfully', { 
+        domain, 
+        pinsRemoved: pinRoots.length,
+        blocksRemoved: cidsToNuke.length 
+      })
     } catch (error) {
-      console.error('Error pruning page:', error)
+      this.logger.error('Error nuking page', { 
+        error: error.message, 
+        domain,
+        stack: error.stack 
+      })
       throw error
     }
   }
@@ -209,18 +260,24 @@ export class IpfsService {
       const cids = await all(car.blocks.cids())
       return cids
     } catch (error) {
-      console.log(`Could not collect children for CID ${rootCid}:`, error.message)
+      this.logger.warn('Could not collect children for CID', { 
+        rootCid: rootCid.toString(), 
+        error: error.message 
+      })
     }
   }
 
   async pruneStaged() {
     try {
+      this.logger.debug('Starting staged pin pruning')
+      
       // Get all pins with spg_staged_ prefix
       const stagedPins = await this.client.pin.ls({
         name: 'spg_staged_'
       })
       
       const now = Math.floor(Date.now() / 1000)
+      let prunedCount = 0
       
       for await (const pin of stagedPins) {
         // Extract timestamp from pin name
@@ -232,13 +289,25 @@ export class IpfsService {
             const age = now - timestamp
             if (age > this.maxStagedAge) {
               await this.client.pin.rm(pin.cid, { recursive: true })
-              console.log(`Pruned old staged pin: ${pin.name}`)
+              this.logger.info('Pruned old staged pin', { 
+                pinName: pin.name, 
+                pinCid: pin.cid.toString(),
+                age: age 
+              })
+              prunedCount++
             }
           }
         }
       }
+      
+      if (prunedCount > 0) {
+        this.logger.info('Staged pin pruning completed', { prunedCount })
+      }
     } catch (error) {
-      console.error('Error pruning staged pins:', error)
+      this.logger.error('Error pruning staged pins', { 
+        error: error.message, 
+        stack: error.stack 
+      })
       throw error
     }
   }
@@ -262,15 +331,23 @@ export class IpfsService {
 
     if (!list.includes(value)) {
         await this.client.pin.add(itemCid, { name: `spg_list_${name}`, recursive: false })
+        this.logger.info('Added item to list', { name, dataType, value })
+    } else {
+        this.logger.debug('Item already in list', { name, dataType, value })
     }
   }
 
   async removeFromList(name, dataType, value) {
+    this.logger.debug('Removing from list', { name, dataType, value })
+    
     const list = await this._getList(name, dataType)
 
     if (list.includes(value)) {
       const itemCid = dataTypeToCidEncodeFn(dataType)(value)
       await this.client.pin.rm(itemCid, { name: `spg_list_${name}` })
+      this.logger.info('Removed item from list', { name, dataType, value })
+    } else {
+      this.logger.debug('Item not in list', { name, dataType, value })
     }
   }
 
@@ -283,13 +360,18 @@ export class IpfsService {
   async getLatestBlockNumber() {
     const cid = await this._getLatestBlockNumberCid()
     if (!cid) {
+      this.logger.debug('No latest block number found, returning 0')
       return 0
     }
     // Decode the CID to get the block number
-    return dataTypeToCidDecodeFn('number')(cid)
+    const blockNumber = dataTypeToCidDecodeFn('number')(cid)
+    this.logger.debug('Retrieved latest block number', { blockNumber })
+    return blockNumber
   }
 
   async setLatestBlockNumber(blockNumber) {
+    this.logger.debug('Setting latest block number', { blockNumber })
+    
     // get current latest block number cid
     const latestBlockNumberCid = await this._getLatestBlockNumberCid()
     // generate given block number cid
@@ -297,8 +379,15 @@ export class IpfsService {
 
     if (!latestBlockNumberCid) {
       await this.client.pin.add(newBlockNumberCid, { name: 'spg_latest_block_number' })
+      this.logger.info('Created new latest block number pin', { blockNumber })
     } else if (!latestBlockNumberCid.equals(newBlockNumberCid)) {
       await this.client.pin.update(latestBlockNumberCid, newBlockNumberCid)
+      this.logger.info('Updated latest block number pin', { 
+        oldBlockNumber: dataTypeToCidDecodeFn('number')(latestBlockNumberCid),
+        newBlockNumber: blockNumber 
+      })
+    } else {
+      this.logger.debug('Latest block number unchanged', { blockNumber })
     }
   }
 }

@@ -39,7 +39,7 @@ class HTTPError extends Error {
  * @property {string} file.required - The CAR file to upload - binary
  */
 
-export function createApi({ ipfs, indexer, version }) {
+export function createApi({ ipfs, indexer, version, logger }) {
   const app = express()
   const upload = multer()
 
@@ -90,6 +90,36 @@ export function createApi({ ipfs, indexer, version }) {
   // Setup middleware
   app.use(express.json())
   
+  // Request logging middleware
+  app.use((req, res, next) => {
+    const clientIP = req.ip || req.socket.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown'
+    const userAgent = req.get('User-Agent') || 'unknown'
+    const startTime = Date.now()
+    
+    logger.info('Incoming request', {
+      method: req.method,
+      url: req.url,
+      ip: clientIP,
+      userAgent: userAgent,
+      timestamp: new Date().toISOString()
+    })
+    
+    // Log response when it completes
+    res.on('finish', () => {
+      const duration = Date.now() - startTime
+      logger.info('Request completed', {
+        method: req.method,
+        url: req.url,
+        ip: clientIP,
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      })
+    })
+    
+    next()
+  })
+  
   // Setup Swagger generation
   const options = {
     info: {
@@ -133,15 +163,23 @@ export function createApi({ ipfs, indexer, version }) {
     try {
       const { cid } = req.query
       if (!cid) {
+        logger.warn('Missing CID parameter in GET /page request')
         throw new HTTPError(400, 'Missing cid parameter')
       }
 
+      logger.info('Retrieving page', { cid })
       const carFile = await ipfs.readCarLite(cid)
+      logger.info('Page CAR retrieved successfully', { cid, fileSize: carFile.length })
       res.setHeader('Content-Type', 'application/vnd.ipld.car')
       res.send(carFile)
     } catch (err) {
       // Only send error response if headers haven't been sent yet
       if (!res.headersSent) {
+        logger.error('Error retrieving page', { 
+          cid: req.query.cid, 
+          error: err.message,
+          stack: err.stack 
+        })
         if (err instanceof HTTPError) {
           res.status(err.statusCode).json({ detail: err.message })
         } else {
@@ -167,19 +205,26 @@ export function createApi({ ipfs, indexer, version }) {
       const file = req.file
 
       if (!domain) {
+        logger.warn('Missing domain parameter in POST /page request')
         return res.status(400).json({ detail: 'Missing domain parameter' })
       }
       if (!file) {
+        logger.warn('Missing file upload in POST /page request')
         return res.status(400).json({ detail: 'Missing file upload' }) 
       }
 
-      console.log('writing car')
+      logger.info('Uploading CAR file', { domain, fileSize: file.buffer.length })
       const cid = await ipfs.writeCar(file.buffer, domain)
-      console.log('wrote car', cid)
+      logger.info('CAR file uploaded successfully', { domain, cid: cid.toString() })
       res.json({ cid: cid.toString() })
     } catch (err) {
       // Only send error response if headers haven't been sent yet
       if (!res.headersSent) {
+        logger.error('Error uploading page', { 
+          domain: req.query.domain, 
+          error: err.message,
+          stack: err.stack 
+        })
         res.status(500).json({ detail: err.message })
       }
     }

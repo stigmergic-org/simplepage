@@ -17,6 +17,7 @@ export class IndexerService {
     this.simplePageContract = config.simplePageAddress || contracts.deployments[config.chainId].SimplePage
     this.universalResolver = config.universalResolver || contracts.universalResolver[config.chainId]
     this.ipfsService = config.ipfsService
+    this.logger = config.logger
     this.isRunning = false
     this.currentBlock = this.startBlock
     this.blockInterval = config.blockInterval || 100
@@ -25,6 +26,11 @@ export class IndexerService {
   async start() {
     if (this.isRunning) return
     this.isRunning = true
+    
+    this.logger.info('Indexer service started', { 
+      startBlock: this.startBlock,
+      chainId: this.chainId 
+    })
     
     // Start polling loop
     this.pollLoop()
@@ -42,6 +48,7 @@ export class IndexerService {
   async stop() {
     this.isRunning = false
     await this.currentPoll
+    this.logger.info('Indexer service stopped')
   }
 
   async poll() {
@@ -65,12 +72,15 @@ export class IndexerService {
       await this.ipfsService.pruneStaged()
 
     } catch (error) {
-      console.error('Error in poll loop:', error)
+      this.logger.error('Error in poll loop', { 
+        error: error.message, 
+        stack: error.stack 
+      })
     }
   }
 
   async processBlockRange(fromBlock, toBlock) {
-    console.log(`Processing block range ${fromBlock} to ${toBlock}`)
+    this.logger.debug('Processing block range', { fromBlock, toBlock })
     const logs = await this.client.getLogs({
       address: this.simplePageContract,
       event: contracts.abis.SimplePage.find(abi => abi.name === 'Transfer'),
@@ -79,7 +89,7 @@ export class IndexerService {
       toBlock: BigInt(toBlock)
     })
     if (logs.length > 0) {
-      console.log(`Processing ${logs.length} new SimplePage registrations`)
+      this.logger.info('Processing new SimplePage registrations', { count: logs.length })
     }
     const pagesData = await Promise.all(logs.map(log => {
       return this.fetchPageData(log.args.tokenId, log.blockNumber)
@@ -94,7 +104,7 @@ export class IndexerService {
     // Track contenthash updates
     const resolvers = await this.ipfsService.getList('resolvers', 'address')
     if (resolvers.length > 0) {
-      console.log('Tracking contenthash updates for known resolvers')
+      this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolvers.length })
     }
     const chLogs = []
     for (const resolver of resolvers) {
@@ -128,6 +138,8 @@ export class IndexerService {
   }
 
   async fetchPageData(tokenId, blockNumber) {
+    this.logger.debug('Fetching page data', { tokenId: tokenId.toString(), blockNumber })
+    
     const pageData = await this.client.readContract({
       address: this.simplePageContract,
       abi: contracts.abis.SimplePage,
@@ -141,10 +153,19 @@ export class IndexerService {
       universalResolverAddress: this.universalResolver,
       blockNumber: BigInt(blockNumber)
     })
+    
+    this.logger.debug('Page data fetched', { 
+      domain: pageData.domain, 
+      resolver: resolver,
+      blockNumber 
+    })
+    
     return { pageData, resolver }
   }
 
   async syncPages() {
+    this.logger.debug('Starting page synchronization')
+    
     const domains = await this.ipfsService.getList('domains', 'string')
     // filter out blocked domains
     const blockedDomains = await this.ipfsService.getList('block', 'string')
@@ -155,6 +176,13 @@ export class IndexerService {
     if (allowOnlyDomains.length > 0) {
       domainsToSync = allowOnlyDomains
     }
+
+    this.logger.debug('Page sync configuration', { 
+      totalDomains: domains.length,
+      blockedDomains: blockedDomains.length,
+      allowOnlyDomains: allowOnlyDomains.length,
+      domainsToSync: domainsToSync.length
+    })
 
     for (const domain of domainsToSync) {
       const hashUpdates = await this.ipfsService.getList(`contenthash_${domain}`, 'string')
@@ -170,10 +198,22 @@ export class IndexerService {
       }, { blockNumber: 0, cid: null })
 
       if (latestCid.cid && !await this.ipfsService.isPageFinalized(latestCid.cid, domain, latestCid.blockNumber)) {
-        console.log(`Finalizing ${domain} at block ${latestCid.blockNumber}, with CID ${latestCid.cid}`)
+        this.logger.info('Finalizing page', { 
+          domain, 
+          blockNumber: latestCid.blockNumber.toString(), 
+          cid: latestCid.cid 
+        })
         this.ipfsService.finalizePage(latestCid.cid, domain, latestCid.blockNumber)
+      } else if (latestCid.cid) {
+        this.logger.debug('Page already finalized', { 
+          domain, 
+          blockNumber: latestCid.blockNumber.toString(), 
+          cid: latestCid.cid 
+        })
       }
     }
+    
+    this.logger.debug('Page synchronization completed')
   }
 
   async checkAndNukePages() {
@@ -181,7 +221,7 @@ export class IndexerService {
     const blockedDomains = await this.ipfsService.getList('block', 'string')
     const domainsToNuke = domains.filter(domain => blockedDomains.includes(domain))
     if (domainsToNuke.length > 0) {
-      console.log(`Nuking ${domainsToNuke.length} domains`)
+      this.logger.info('Nuking blocked domains', { count: domainsToNuke.length, domains: domainsToNuke })
     }
     for (const domain of domainsToNuke) {
       await this.ipfsService.nukePage(domain)

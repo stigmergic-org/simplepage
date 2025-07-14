@@ -34,7 +34,9 @@
     "multiformats": "^13.3.7",
     "swagger-ui-express": "^5.0.1",
     "varint": "^6.0.0",
-    "viem": "^2.31.4"
+    "viem": "^2.31.4",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@ipld/dag-cbor": "^9.2.4",
