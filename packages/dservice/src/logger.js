@@ -9,14 +9,22 @@ const __dirname = path.dirname(__filename)
 // Default logs directory
 const defaultLogsDir = path.join(__dirname, '..', 'logs')
 
+const sanitizeBigInts = (_, v) => typeof v === 'bigint' ? v.toString() : v
+
 // Custom format for console output
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+  winston.format.printf(({ timestamp, level, message, error, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`
+
+    if (meta.stack) {
+      log += `\n${meta.stack}`
+      delete meta.stack
+    }
+
     if (Object.keys(meta).length > 0) {
-      log += ` ${JSON.stringify(meta)}`
+      log += ` ${JSON.stringify(meta, sanitizeBigInts)}`
     }
     return log
   })

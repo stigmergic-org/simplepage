@@ -5,14 +5,21 @@ import { identity } from 'multiformats/hashes/identity'
 import varint from 'varint'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
-import assert from 'assert'
-import { carFromBytes, emptyCar } from '@simplepg/common'
+import { assert, carFromBytes, emptyCar } from '@simplepg/common'
+import { FinalizationMap } from './finalization-map.js'
+import { LRUCache } from 'lru-cache'
+
+const BLOCK_NUMBER_LABEL = 'spg_latest_block_number'
+
 
 const dataTypeToCidEncodeFn = dataType => {
   if (dataType === 'string') {
     return s => CID.create(1, 0x55, identity.digest(u8a.fromString(s, 'utf8')))
   } else if (dataType === 'address') {
-    return a => CID.create(1, 0x55, identity.digest(u8a.fromString(a.slice(2), 'hex')))
+    return a => {
+      const hexAddr = a.slice(2).toLowerCase()
+      return CID.create(1, 0x55, identity.digest(u8a.fromString(hexAddr, 'hex')))
+    }
   } else if (dataType === 'number') {
     return n => {
       const encoded = new Uint8Array(varint.encode(n))
@@ -40,7 +47,10 @@ export class IpfsService {
     assert(api || ipfsClient, 'api or ipfsClient must be provided')
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
-    this.logger = logger
+    this.logger = logger || { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} }
+    this.finalizations = new FinalizationMap(this.client, this.logger)
+    this._listCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 5 }) // 5 min TTL
+    this._lastPruneStaged = 0
   }
 
   async writeCar(fileBuffer, stageDomain) {
@@ -128,18 +138,11 @@ export class IpfsService {
     return car.bytes
   }
 
+
+
   async isPageFinalized(cid, domain, blockNumber) {
     assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
-    const finalLabel = `spg_final_${domain}_${blockNumber}`
-    const finalPins = await all(await this.client.pin.ls({
-      name: finalLabel
-    }))
-    if (finalPins.length === 0) {
-      return false
-    }
-    assert(finalPins[0].cid.equals(cid), `Finalized CID does not match: ${finalPins[0].cid.toString()} !== ${cid}`)
-    assert(finalPins.length === 1, 'Expected exactly one final pin, got ' + finalPins.length)
-    return true
+    return this.finalizations.isFinalized(domain, blockNumber, cid)
   }
 
   async finalizePage(cid, domain, blockNumber) {
@@ -151,13 +154,13 @@ export class IpfsService {
         blockNumber 
       })
       
-      // Create new final pin first
-      const finalLabel = `spg_final_${domain}_${blockNumber}`
-
-      await this.client.pin.add(cid, { recursive: true, name: finalLabel })
+      // Add finalization using the FinalizationMap
+      await this.finalizations.push(domain, blockNumber, cid)
+      
       this.logger.info('Page finalized successfully', { 
         cid: cid.toString(), 
-        label: finalLabel 
+        domain,
+        blockNumber 
       })
       
       // Remove all staged pins
@@ -184,34 +187,35 @@ export class IpfsService {
   }
 
   async listFinalizedPages() {
-    const pins = await all(await this.client.pin.ls({ name: 'spg_final_' }))
-    return pins.map(pin => pin.name.split('_')[2])
+    return this.finalizations.list()
   }
 
   async nukePage(domain) {
     try {
       this.logger.info('Nuking page', { domain })
       
-      // Get all final pins for the domain
-      const pinRoots = await all(await this.client.pin.ls({
-        name: `spg_final_${domain}`
-      }))
+      // Get current finalizations for the domain
+      const domainFinalizations = await this.finalizations.getAll(domain)
+      
+      if (domainFinalizations.length === 0) {
+        this.logger.debug('No finalizations found for domain', { domain })
+        return
+      }
       
       // Collect all CIDs that need to be checked for removal
       const cidsToCheck = []
-      for (const pin of pinRoots) {
-        const recursiveCids = await this.#collectChildCids(pin.cid)
+      for (const { cid } of domainFinalizations) {
+        const recursiveCids = await this.#collectChildCids(cid)
         cidsToCheck.push(...recursiveCids)
       }
       
-      // Remove all final pins for this domain
-      for (const pin of pinRoots) {
-        await this.client.pin.rm(pin.cid, { recursive: true })
-        this.logger.info('Removed pin', { 
-          pinName: pin.name, 
-          pinCid: pin.cid.toString() 
-        })
-      }
+      // Remove domain from finalizations
+      await this.finalizations.remove(domain)
+      
+      this.logger.info('Removed domain from finalizations', { 
+        domain,
+        finalizationsRemoved: domainFinalizations.length 
+      })
 
       const cidsWithOtherDomainPins = []
       for (const cid of cidsToCheck) {
@@ -229,7 +233,7 @@ export class IpfsService {
 
       for (const cid of cidsToNuke) {
         try {
-          await all(this.client.block.rm(cid))
+          await all(await this.client.block.rm(cid))
           this.logger.debug('Removed block', { cid: cid.toString() })
         } catch (error) {
           // Block might already be removed or not exist
@@ -241,7 +245,7 @@ export class IpfsService {
       
       this.logger.info('Page nuked successfully', { 
         domain, 
-        pinsRemoved: pinRoots.length,
+        finalizationsRemoved: domainFinalizations.length,
         blocksRemoved: cidsToNuke.length 
       })
     } catch (error) {
@@ -268,17 +272,19 @@ export class IpfsService {
   }
 
   async pruneStaged() {
+    const now = Math.floor(Date.now() / 1000)
+    if (this._lastPruneStaged && (now - this._lastPruneStaged < 60)) {
+      this.logger && this.logger.debug && this.logger.debug('pruneStaged: Skipping, called too soon')
+      return
+    }
+    this._lastPruneStaged = now
     try {
       this.logger.debug('Starting staged pin pruning')
-      
       // Get all pins with spg_staged_ prefix
       const stagedPins = await this.client.pin.ls({
         name: 'spg_staged_'
       })
-      
-      const now = Math.floor(Date.now() / 1000)
       let prunedCount = 0
-      
       for await (const pin of stagedPins) {
         // Extract timestamp from pin name
         // Format is spg_staged_domain_timestamp
@@ -299,7 +305,6 @@ export class IpfsService {
           }
         }
       }
-      
       if (prunedCount > 0) {
         this.logger.info('Staged pin pruning completed', { prunedCount })
       }
@@ -313,10 +318,14 @@ export class IpfsService {
   }
 
   async _getList(name, dataType) {
+    if (this._listCache.has(name)) {
+      return this._listCache.get(name)
+    }
     const pins = await all(await this.client.pin.ls({ name: `spg_list_${name}` }))
-
     const decodeFn = dataTypeToCidDecodeFn(dataType)
-    return pins.map(pin => decodeFn(pin.cid))
+    const result = pins.map(pin => decodeFn(pin.cid))
+    this._listCache.set(name, result)
+    return result
   }
 
   async getList(name, dataType) {
@@ -325,27 +334,25 @@ export class IpfsService {
 
   async addToList(name, dataType, value) {
     const list = await this._getList(name, dataType)
-
     const encodeFn = dataTypeToCidEncodeFn(dataType)
     const itemCid = encodeFn(value)
-
     if (!list.includes(value)) {
-        await this.client.pin.add(itemCid, { name: `spg_list_${name}`, recursive: false })
-        this.logger.info('Added item to list', { name, dataType, value })
+      await this.client.pin.add(itemCid, { name: `spg_list_${name}`, recursive: false })
+      this.logger.info('Added item to list', { name, dataType, value })
+      this._listCache.delete(name)
     } else {
-        this.logger.debug('Item already in list', { name, dataType, value })
+      this.logger.debug('Item already in list', { name, dataType, value })
     }
   }
 
   async removeFromList(name, dataType, value) {
     this.logger.debug('Removing from list', { name, dataType, value })
-    
     const list = await this._getList(name, dataType)
-
     if (list.includes(value)) {
       const itemCid = dataTypeToCidEncodeFn(dataType)(value)
       await this.client.pin.rm(itemCid, { name: `spg_list_${name}` })
       this.logger.info('Removed item from list', { name, dataType, value })
+      this._listCache.delete(name)
     } else {
       this.logger.debug('Item not in list', { name, dataType, value })
     }
@@ -358,34 +365,39 @@ export class IpfsService {
   }
 
   async getLatestBlockNumber() {
+    if (this._listCache.has(BLOCK_NUMBER_LABEL)) {
+      return this._listCache.get(BLOCK_NUMBER_LABEL);
+    }
     const cid = await this._getLatestBlockNumberCid()
     if (!cid) {
       this.logger.debug('No latest block number found, returning 0')
+      this._listCache.set(BLOCK_NUMBER_LABEL, 0);
       return 0
     }
     // Decode the CID to get the block number
     const blockNumber = dataTypeToCidDecodeFn('number')(cid)
     this.logger.debug('Retrieved latest block number', { blockNumber })
+    this._listCache.set(BLOCK_NUMBER_LABEL, blockNumber);
     return blockNumber
   }
 
   async setLatestBlockNumber(blockNumber) {
     this.logger.debug('Setting latest block number', { blockNumber })
-    
     // get current latest block number cid
     const latestBlockNumberCid = await this._getLatestBlockNumberCid()
     // generate given block number cid
     const newBlockNumberCid = dataTypeToCidEncodeFn('number')(blockNumber)
-
     if (!latestBlockNumberCid) {
       await this.client.pin.add(newBlockNumberCid, { name: 'spg_latest_block_number' })
       this.logger.info('Created new latest block number pin', { blockNumber })
+      this._listCache.delete(BLOCK_NUMBER_LABEL);
     } else if (!latestBlockNumberCid.equals(newBlockNumberCid)) {
       await this.client.pin.update(latestBlockNumberCid, newBlockNumberCid)
       this.logger.info('Updated latest block number pin', { 
         oldBlockNumber: dataTypeToCidDecodeFn('number')(latestBlockNumberCid),
         newBlockNumber: blockNumber 
       })
+      this._listCache.delete(BLOCK_NUMBER_LABEL);
     } else {
       this.logger.debug('Latest block number unchanged', { blockNumber })
     }

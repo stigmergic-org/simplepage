@@ -15,6 +15,13 @@ describe('IpfsService', () => {
   let ipfsService
   let kuboApi
 
+  const mockLogger = {
+    info: () => {},
+    debug: () => {},
+    error: () => {},
+    warn: () => {},
+  }
+
   function stat(cid) {
     return kuboApi.block.stat(cid, { offline: true })
   }
@@ -23,7 +30,7 @@ describe('IpfsService', () => {
     testEnvKubo = new TestEnvironmentKubo()
     kuboApi = await testEnvKubo.start()
     
-    ipfsService = new IpfsService({ ipfsClient: kuboApi })
+    ipfsService = new IpfsService({ ipfsClient: kuboApi, logger: mockLogger })
     // ipfsService.client = kuboApi
   }, 30000)
 
@@ -181,7 +188,7 @@ describe('IpfsService', () => {
     }
   })
 
-  it('finalizePage: should create and preserve pins for each block number', async () => {
+  it('finalizePage: should create and preserve finalizations for each block number', async () => {
     const domain = 'test-domain2.eth'
     const blockNumbers = [12345, 12346, 12347]
     const cids = []
@@ -237,23 +244,31 @@ describe('IpfsService', () => {
       cids.push(stagedCid)
     }
     
-    // Verify all pins exist
-    const finalPins = await kuboApi.pin.ls({ name: `spg_final_${domain}` })
-    const pins = []
-    for await (const pin of finalPins) {
-      pins.push(pin)
+    // Verify finalizations DAG exists
+    const finalizationsPins = await kuboApi.pin.ls({ name: 'spg_finalizations' })
+    const finalizationsPinResults = []
+    for await (const pin of finalizationsPins) {
+      finalizationsPinResults.push(pin)
     }
-    expect(pins.length).toBe(blockNumbers.length)
+    expect(finalizationsPinResults.length).toBe(1)
     
-    // Verify each pin exists with correct label and CID
+    // Get the finalizations DAG
+    const finalizationsCid = finalizationsPinResults[0].cid
+    const finalizationsNode = await kuboApi.dag.get(finalizationsCid)
+    const finalizations = finalizationsNode.value
+    
+    // Verify domain exists in finalizations
+    expect(finalizations[domain]).toBeTruthy()
+    expect(finalizations[domain].length).toBe(blockNumbers.length)
+    
+    // Verify each finalization exists with correct block number and CID
     for (let i = 0; i < blockNumbers.length; i++) {
       const blockNumber = blockNumbers[i]
       const expectedCid = cids[i]
       
-      const pin = pins.find(p => p.name === `spg_final_${domain}_${blockNumber}`)
-      expect(pin).toBeTruthy()
-      expect(pin.type).toBe('recursive')
-      expect(pin.cid.toString()).toBe(expectedCid.toString())
+      const finalization = finalizations[domain].find(f => f.blockNumber === blockNumber)
+      expect(finalization).toBeTruthy()
+      expect(finalization.cid).toEqual(expectedCid)
       
       // Verify content is accessible
       const block = await kuboApi.block.get(expectedCid)
@@ -298,7 +313,8 @@ describe('IpfsService', () => {
     // Create service with 1 hour max age
     const ipfsServiceWithPrune = new IpfsService({ 
       ipfsClient: kuboApi,
-      maxStagedAge: 60 * 60 // 1 hour in seconds
+      maxStagedAge: 60 * 60, // 1 hour in seconds
+      logger: mockLogger
     })
     ipfsServiceWithPrune.client = kuboApi
     
@@ -352,12 +368,12 @@ describe('IpfsService', () => {
     
     // Check with wrong CID
     const wrongCid = CID.create(1, 0x55, identity.digest(new Uint8Array([0x01, 0x02, 0x03])))
-    await expect(ipfsService.isPageFinalized(wrongCid, domain, blockNumber))
-      .rejects.toThrow('Finalized CID does not match')
+    const isWrongFinalized = await ipfsService.isPageFinalized(wrongCid, domain, blockNumber)
+    expect(isWrongFinalized).toBe(false)
   })
 
   describe('nukePage', () => {
-    it('should remove all spg_final pins for the given domain', async () => {
+    it('should remove all finalizations for the given domain', async () => {
       const domain = 'test-prune-domain.eth'
       const blockNumbers = [100, 101, 102]
       
@@ -379,18 +395,17 @@ describe('IpfsService', () => {
         finalizedCids.push(stagedCid)
       }
       
-      // Verify all final pins exist before pruning
-      const finalPinsBefore = await kuboApi.pin.ls({ name: `spg_final_${domain}` })
-      const pinsBefore = await all(finalPinsBefore)
-      expect(pinsBefore.length).toBe(blockNumbers.length)
+      // Verify finalizations exist before pruning
+      const finalizationsBefore = await ipfsService.finalizations.getAll(domain)
+      expect(finalizationsBefore).toBeTruthy()
+      expect(finalizationsBefore.length).toBe(blockNumbers.length)
       
       // Prune the page
       await ipfsService.nukePage(domain)
       
-      // Verify all final pins are removed
-      const finalPinsAfter = await kuboApi.pin.ls({ name: `spg_final_${domain}` })
-      const pinsAfter = await all(finalPinsAfter)
-      expect(pinsAfter.length).toBe(0)
+      // Verify finalizations are removed
+      const finalizationsAfter = await ipfsService.finalizations.getAll(domain)
+      expect(finalizationsAfter.length).toBe(0)
     })
 
     it('should remove all blocks under the finalized CIDs', async () => {
@@ -490,21 +505,13 @@ describe('IpfsService', () => {
       // Verify shared content is preserved (still pinned by domain2)
       expect(await stat(sharedCid)).toBeTruthy()
       
-      // Verify domain1's final pins are removed
-      const domain1Pins = await kuboApi.pin.ls({ name: `spg_final_${domain1}` })
-      const domain1PinResults = []
-      for await (const pin of domain1Pins) {
-        domain1PinResults.push(pin)
-      }
-      expect(domain1PinResults.length).toBe(0)
+      // Verify domain1's final cids are removed
+      const finalizations1 = await ipfsService.finalizations.getAll(domain1)
+      expect(finalizations1.length).toBe(0)
       
-      // Verify domain2's final pins are preserved
-      const domain2Pins = await kuboApi.pin.ls({ name: `spg_final_${domain2}` })
-      const domain2PinResults = []
-      for await (const pin of domain2Pins) {
-        domain2PinResults.push(pin)
-      }
-      expect(domain2PinResults.length).toBe(1)
+      // Verify domain2's final cids are preserved
+      const finalizations2 = await ipfsService.finalizations.getAll(domain2)
+      expect(finalizations2.length).toBe(1)
     })
 
     it('should handle recursive pins correctly', async () => {

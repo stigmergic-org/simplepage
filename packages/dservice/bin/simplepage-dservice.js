@@ -3,6 +3,7 @@
 import { Command, Option } from 'commander'
 import { DService } from '../src/dservice.js'
 import { handleListCommand } from '../src/listCommand.js'
+import { handleIndexerDataCommand } from '../src/indexerDataCommand.js'
 import packageJson from '../package.json' assert { type: 'json' }
 
 
@@ -108,5 +109,15 @@ program
   .argument('<action>', 'Action to perform (show|add|rm)')
   .argument('[name]', 'ENS domain to add or remove (e.g., example.eth)')
   .action((action, name) => handleListCommand('block', action, name, program.opts().ipfsApi))
+
+// Add indexer-data command
+program
+  .command('indexer-data')
+  .description('Show or reset indexing-related data (domains, resolvers, contenthash_{domain} lists)')
+  .argument('<action>', 'Action to perform (show|reset)')
+  .action((action) => {
+    const opts = program.opts();
+    handleIndexerDataCommand(action, opts.ipfsApi);
+  });
 
 program.parse()

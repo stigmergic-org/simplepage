@@ -109,13 +109,22 @@ describe('Pages Indexer', () => {
       jest.spyOn(ipfsMock, 'finalizePage');
       jest.spyOn(ipfsMock, 'nukePage');
       
-      // Initialize indexer with the deployed addresses
+      // Create a mock logger
+      const mockLogger = {
+        info: jest.fn(),
+        debug: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+      };
+      
+      // Initialize indexer with the deployed addresses and mock logger
       indexer = new IndexerService({
         rpcUrl: testEnv.url,
         simplePageAddress: deployments.simplepage,
         universalResolver: deployments.universalResolver,
         startBlock: 1,
-        ipfsService: ipfsMock
+        ipfsService: ipfsMock,
+        logger: mockLogger
       })
     });
 

@@ -2,6 +2,7 @@ import { createPublicClient, http } from 'viem'
 import { ensContentHashToCID, contracts } from '@simplepg/common'
 import { getBlockNumber } from 'viem/actions'
 import { namehash } from 'viem/ens'
+import { CID } from 'multiformats/cid'
 
 const START_BLOCKS = {
   1: 1,
@@ -20,7 +21,7 @@ export class IndexerService {
     this.logger = config.logger
     this.isRunning = false
     this.currentBlock = this.startBlock
-    this.blockInterval = config.blockInterval || 100
+    this.blockInterval = config.blockInterval || 1000
   }
 
   async start() {
@@ -57,7 +58,8 @@ export class IndexerService {
       
       // Process any new blocks
       while (this.currentBlock <= latestBlock) {
-        const toBlock = Math.min(this.currentBlock + this.blockInterval, latestBlock)
+        if (!this.isRunning) return
+        const toBlock = Math.min(this.currentBlock + this.blockInterval - 1, latestBlock)
         await this.processBlockRange(this.currentBlock, toBlock)
         this.currentBlock = toBlock + 1
       }
@@ -189,8 +191,8 @@ export class IndexerService {
 
       const sanitizedHashUpdates = hashUpdates.map(data => {
         const [blockNumberStr, cid] = data.split('-')
-        const blockNumber = BigInt(blockNumberStr)
-        return { blockNumber, cid }
+        const blockNumber = parseInt(blockNumberStr)
+        return { blockNumber, cid: CID.parse(cid) }
       })
 
       const latestCid = sanitizedHashUpdates.reduce((max, update) => {

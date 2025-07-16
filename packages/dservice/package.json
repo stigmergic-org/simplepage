@@ -30,6 +30,7 @@
     "express-jsdoc-swagger": "^1.8.0",
     "it-all": "^3.0.9",
     "kubo-rpc-client": "^5.2.0",
+    "lru-cache": "^11.1.0",
     "multer": "^2.0.1",
     "multiformats": "^13.3.7",
     "swagger-ui-express": "^5.0.1",

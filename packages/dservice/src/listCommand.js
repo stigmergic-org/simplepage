@@ -4,7 +4,8 @@ import { IpfsService } from './services/ipfs.js'
 const ENS_DOMAIN_REGEX = /^[a-z0-9-]+\.eth$/
 
 export async function handleListCommand(type, action, name, ipfsApiUrl) {
-  const ipfs = new IpfsService({ api: ipfsApiUrl })
+  const logger = { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} };
+  const ipfs = new IpfsService({ api: ipfsApiUrl, logger });
   const healthy = await ipfs.healthCheck()
   if (!healthy) {
     console.error('Cannot connect to IPFS node, exiting...')
