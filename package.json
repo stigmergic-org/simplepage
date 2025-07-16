@@ -9,6 +9,10 @@
     "lint": "pnpm -r lint"
   },
   "workspaces": [
-    "packages/*"
-  ]
-} 
+    "packages/*",
+    "frontend"
+  ],
+  "devDependencies": {
+    "@changesets/cli": "^2.29.5"
+  }
+}

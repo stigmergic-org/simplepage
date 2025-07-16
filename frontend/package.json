@@ -1,5 +1,5 @@
 {
-  "name": "simplepage",
+  "name": "@simplepg/frontend",
   "version": "0.7.7",
   "private": true,
   "scripts": {
