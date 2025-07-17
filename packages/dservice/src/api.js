@@ -45,46 +45,10 @@ export function createApi({ ipfs, indexer, version, logger }) {
 
   // Setup CORS middleware
   const corsOptions = {
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true)
-      
-      // Allow localhost
-      if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
-        return callback(null, true)
-      }
-      // allow ipfs gateway like *.ipfs.localhost:8082 where * is an arbitrary cid
-      const ipfsGatewayPattern = /\.ipfs\.localhost:8082$/
-      if (ipfsGatewayPattern.test(origin)) {
-        return callback(null, true)
-      }
-      const ipfsGatewayPattern2 = /\.ipfs\.inbrowser\.link$/
-      if (ipfsGatewayPattern2.test(origin)) {
-        return callback(null, true)
-      }
-      
-      // Allow ENS domains
-      const ensPatterns = [
-        /\.eth\.link$/,
-        /\.eth\.limo$/,
-        /\.eth$/,
-        /\.eth\.ac$/,
-        /\.eth\.sucks$/
-      ]
-      
-      const isEnsDomain = ensPatterns.some(pattern => pattern.test(origin))
-      if (isEnsDomain) {
-        return callback(null, true)
-      }
-      
-      // Reject other origins
-      callback(new Error('Not allowed by CORS'))
-    },
-    credentials: true,
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }
-  
   app.use(cors(corsOptions))
 
   // Setup middleware
