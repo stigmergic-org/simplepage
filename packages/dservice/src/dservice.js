@@ -5,6 +5,7 @@ import { createLogger } from './logger.js'
 import packageJson from '../package.json' assert { type: 'json' }
 import http from 'http'
 import https from 'https'
+import fs from 'fs'
 
 export class DService {
   constructor(config) {
@@ -83,7 +84,6 @@ export class DService {
         if (tls && tls.key && tls.cert) {
           // Read TLS files from disk
           try {
-            const fs = require('fs')
             tlsOptions = {
               key: fs.readFileSync(tls.key),
               cert: fs.readFileSync(tls.cert)
