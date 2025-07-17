@@ -20,6 +20,14 @@ const startServer = () => {
   }
   
   const opts = program.opts()
+  // Pass TLS file paths if provided
+  let tls = undefined
+  if (opts.tlsKey && opts.tlsCert) {
+    tls = {
+      key: opts.tlsKey,
+      cert: opts.tlsCert
+    }
+  }
   const config = {
     version: packageJson.version,
     ipfs: {
@@ -27,7 +35,8 @@ const startServer = () => {
     },
     api: {
       port: parseInt(opts.apiPort),
-      host: opts.apiHost
+      host: opts.apiHost,
+      tls // Pass TLS file paths if present
     },
     blockchain: {
       rpcUrl: opts.rpc,
@@ -90,6 +99,8 @@ program
   .option('-l, --log-level <level>', 'Log level (error, warn, info, debug)', 'debug')
   .option('--silent', 'Disable console logging')
   .option('--log-dir <path>', 'Log directory path', './logs')
+  .option('--tls-key <path>', 'Path to TLS private key (PEM)')
+  .option('--tls-cert <path>', 'Path to TLS certificate (PEM)')
   .addOption(new Option('-u, --universal-resolver <address>', 'ENS Universal Resolver address (optional)').hideHelp())
   .addOption(new Option('-s, --simplepage <address>', 'SimplePage address (optional)').hideHelp())
   .action(startServer)
