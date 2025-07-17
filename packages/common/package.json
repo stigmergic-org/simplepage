@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/common",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Common utilities for SimplePage packages",
   "main": "src/index.js",
   "type": "module",
@@ -16,6 +16,9 @@
   ],
   "author": "Joel Thorstensson",
   "license": "GPL-3.0-only",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "jest": "^30.0.3",
     "jest-fetch-mock": "^3.0.3"

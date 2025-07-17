@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A simple tool for publishing apps on ENS.",
   "main": "index.js",
   "type": "module",
@@ -26,6 +26,9 @@
     "commander": "^14.0.0",
     "it-all": "^3.0.9",
     "viem": "^2.31.4"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "jest": "^30.0.3"
