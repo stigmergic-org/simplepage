@@ -5,7 +5,7 @@ import { namehash } from 'viem/ens'
 import { CID } from 'multiformats/cid'
 
 const START_BLOCKS = {
-  1: 1,
+  1: 22939230,
   11155111: 8720518,
 }
 
