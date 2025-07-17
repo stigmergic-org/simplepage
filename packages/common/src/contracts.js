@@ -1,9 +1,9 @@
 export const contracts = {
   deployments: {
     "1": {
-      "SimplePage": "",
-      "SimplePageManager": "",
-      "TokenRenderer": "",
+      "SimplePage": "0x99acdb2946b7240aac9aeb290cc0af145c48007e",
+      "SimplePageManager": "0x17d02345c9f5949fb1c8262c210d51e81e1d78d6",
+      "TokenRenderer": "0x4b337aa91996a5af014a8a715546fa16d1dc604a",
     },
     "11155111": {
       "SimplePage": "0x4f1320c42383376a8215290df819c5a35327996d",

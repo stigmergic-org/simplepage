@@ -46,13 +46,13 @@ make snapshot
 ### Local Development
 Deploy to local network (requires running Anvil):
 ```bash
-make deploy-dev <beneficiary_address> <price_feed_address> <private_key>
+make deploy-dev <beneficiary_address> <price_feed_address>
 ```
 
 ### Sepolia Testnet
 Deploy to Sepolia testnet:
 ```bash
-make deploy-sepolia <beneficiary_address> <price_feed_address> <private_key>
+make deploy-sepolia <beneficiary_address> <price_feed_address>
 ```
 Where
 - `beneficiary_address` is the address that recieves subscription fees
@@ -62,7 +62,7 @@ Where
 ### Mainnet
 Deploy to Ethereum mainnet:
 ```bash
-make deploy <beneficiary_address> <price_feed_address> <private_key>
+make deploy <beneficiary_address> <price_feed_address>
 ```
 Where
 - `beneficiary_address` is the address that recieves subscription fees

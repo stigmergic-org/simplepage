@@ -24,36 +24,36 @@ snapshot:
 	forge snapshot
 
 # Deploy to local hardhat node
-# Usage: make deploy-dev <beneficiary> <priceFeed> <privateKey>
+# Usage: make deploy-dev <beneficiary> <priceFeed>
 deploy-dev:
-	@if [ "$(words $(MAKECMDGOALS))" -ne "4" ]; then \
-		echo "Error: Three arguments required"; \
-		echo "Usage: make deploy-dev <beneficiary> <priceFeed> <privateKey>"; \
+	@if [ "$(words $(MAKECMDGOALS))" -ne "3" ]; then \
+		echo "Error: Two arguments required"; \
+		echo "Usage: make deploy-dev <beneficiary> <priceFeed>"; \
 		exit 1; \
 	fi
-	forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --private-key $(word 4,$(MAKECMDGOALS))
+	forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --account simplepage-deploy
 # node script/updateContracts.cjs 31337
 
 # Deploy script and save deployments
-# Usage: make deploy-sepolia <beneficiary> <priceFeed> <privateKey>
+# Usage: make deploy-sepolia <beneficiary> <priceFeed>
 deploy-sepolia:
-	@if [ "$(words $(MAKECMDGOALS))" -ne "4" ]; then \
-		echo "Error: Three arguments required"; \
-		echo "Usage: make deploy-sepolia <beneficiary> <priceFeed> <privateKey>"; \
+	@if [ "$(words $(MAKECMDGOALS))" -ne "3" ]; then \
+		echo "Error: Two arguments required"; \
+		echo "Usage: make deploy-sepolia <beneficiary> <priceFeed>"; \
 		exit 1; \
 	fi
-	forge script script/Setup.s.sol:SetupScript --rpc-url https://sepolia.gateway.tenderly.co --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --private-key $(word 4,$(MAKECMDGOALS))
+	forge script script/Setup.s.sol:SetupScript --rpc-url https://sepolia.gateway.tenderly.co --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --account simplepage-deploy
 	node script/updateContracts.cjs 11155111
 
 # Deploy to mainnet
-# Usage: make deploy <beneficiary> <priceFeed> <privateKey>
+# Usage: make deploy <beneficiary> <priceFeed>
 deploy:
-	@if [ "$(words $(MAKECMDGOALS))" -ne "4" ]; then \
-		echo "Error: Three arguments required"; \
-		echo "Usage: make deploy <beneficiary> <priceFeed> <privateKey>"; \
+	@if [ "$(words $(MAKECMDGOALS))" -ne "3" ]; then \
+		echo "Error: Two arguments required"; \
+		echo "Usage: make deploy <beneficiary> <priceFeed>"; \
 		exit 1; \
 	fi
-	forge script script/Setup.s.sol:SetupScript --rpc-url https://mainnet.gateway.tenderly.co --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --private-key $(word 4,$(MAKECMDGOALS))
+	forge script script/Setup.s.sol:SetupScript --rpc-url https://mainnet.gateway.tenderly.co --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --account simplepage-deploy
 	node script/updateContracts.cjs 1
 
 # Clean build artifacts
