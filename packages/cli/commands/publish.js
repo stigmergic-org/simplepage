@@ -40,7 +40,7 @@ async function checkSubscription(domain, rpcUrl, simplepage) {
   } catch (error) {
     console.error('\nNo active subscription found.')
     console.error(`\nTo subscribe, visit:`)
-    console.error(`https://simplepage.eth.link/spg-subscription?domain=${domain}`)
+    console.error(`https://simplepage.eth.link/spg-subscription/?domain=${domain}`)
     process.exit(1)
   }
 }

@@ -6,6 +6,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r dev",
     "test": "pnpm -r test",
+    "stage": "cd frontend; pnpm run stage",
     "lint": "pnpm -r lint"
   },
   "workspaces": [

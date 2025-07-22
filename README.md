@@ -120,15 +120,15 @@ We use [Changesets](https://github.com/changesets/changesets) for versioning and
    ```bash
    pnpm run build
    ```
-3. **Stage the release (if your package provides a `stage` script):**
+3. **Build and publish to npm:**
+   ```bash
+   pnpm changeset publish
+   ```
+4. **Stage the frontend release:**
    ```bash
    pnpm run stage
    ```
    _This step prepares the release for publishing and may generate a content hash._
-4. **Publish to npm:**
-   ```bash
-   pnpm changeset publish
-   ```
 5. **Publish the resulting hash on ENS:**
    - After publishing, update your ENS domain's contenthash record with the new hash (e.g., via the ENS Manager or CLI).
    - https://app.ens.domains/new.simplepage.eth?tab=records

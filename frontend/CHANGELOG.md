@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.1.1
+
+### Patch Changes
+
+- a2d1661: fix(frontend): can now subscribe to new.simplepage.eth
+
 ## 1.1.0
 
 ### Minor Changes

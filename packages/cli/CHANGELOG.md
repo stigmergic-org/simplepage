@@ -1,5 +1,11 @@
 # @simplepg/cli
 
+## 1.0.2
+
+### Patch Changes
+
+- c1eea7b: Fix incorrect subscription link
+
 ## 1.0.1
 
 ### Patch Changes
