@@ -133,11 +133,11 @@ describe('Repo Integration Tests', () => {
       expect(repo.dservice).toBeDefined();
     });
 
-    it('should fail initialization if new.simplepage.eth has no contenthash', async () => {
+    it('should fail initialization if test.eth has no contenthash', async () => {
       await expect(repo.init(client, {
         chainId: parseInt(testEnv.evm.chainId),
         universalResolver: addresses.universalResolver
-      })).rejects.toThrow('Template root not found');
+      })).rejects.toThrow('Repo root not found for test.eth');
     });
 
     it('should fail to initialize repo with viem client when test domain has no contenthash', async () => {
@@ -150,8 +150,7 @@ describe('Repo Integration Tests', () => {
     });
 
     it('should initialize repo with viem client when test domain has contenthash', async () => {
-      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
-      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', templateCid.toString());
+      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
       
       await repo.init(client, {
         chainId: parseInt(testEnv.evm.chainId),
@@ -1331,18 +1330,28 @@ This is a test.`;
       await expect(uninitializedRepo.stage('test.eth', false)).rejects.toThrow();
     });
 
-    it('should handle missing template domain gracefully', async () => {
+    it('should throw error when staging with update=true and missing template', async () => {
+      // Set up test domain with content
+      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
+      
       // Clear template domain contenthash
       testEnv.evm.clearContenthash(addresses.resolver1, 'new.simplepage.eth');
       
-      const repoWithoutTemplate = new Repo('test.eth', storage, {
+      const repo = new Repo('test.eth', storage, {
         apiEndpoint: testEnv.dserviceUrl
       });
-      
-      await expect(repoWithoutTemplate.init(client, {
+
+      // Initialize repo (should succeed since test.eth has content)
+      await repo.init(client, {
         chainId: parseInt(testEnv.evm.chainId),
         universalResolver: addresses.universalResolver
-      })).rejects.toThrow();
+      });
+
+      // Make an edit so we can stage
+      await repo.setPageEdit('/', '# Test', '<h1>Test</h1>');
+
+      // Attempt to stage with update=true should fail
+      await expect(repo.stage('test.eth', true)).rejects.toThrow('Template root not found');
     });
   });
 }); 

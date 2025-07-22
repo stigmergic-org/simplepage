@@ -80,7 +80,6 @@ export class Repo {
       (this.repoRoot = await resolveEnsDomain(this.viemClient, this.domain, this.universalResolver)),
       (this.templateRoot = await resolveEnsDomain(this.viemClient, TEMPLATE_DOMAIN, this.universalResolver))
     ])
-    assert(this.templateRoot.cid, 'Template root not found')
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
 
     await Promise.all([
@@ -107,6 +106,9 @@ export class Repo {
 
   async #ensureRepoData(template = false) {
     await this.#initPromise;
+    if (template) {
+      assert(this.templateRoot.cid, 'Template root not found')
+    }
     const cid = template ? this.templateRoot.cid : this.repoRoot.cid
     if (!(await cidInFs(this.unixfs, cid))) {
       await this.#importRepoData(cid);
@@ -316,7 +318,6 @@ export class Repo {
    * The template version, the current version, and if an update can happen.
    */
   async isNewVersionAvailable() {
-    await this.#ensureRepoData(true)
     const getVersion = async (cid) => {
       const html = await cat(this.unixfs, cid, '_template.html')
       const parser = new DOMParser()
@@ -324,8 +325,13 @@ export class Repo {
       const version = doc.querySelector('meta[name="version"]').getAttribute('content');
       return version
     }
-    const templateVersion = await getVersion(this.templateRoot.cid)
     const currentVersion = await getVersion(this.repoRoot.cid)
+    // if we don't have a template root, we can't update. So we use the current version.
+    let templateVersion = currentVersion
+    if (this.templateRoot.cid) {
+      await this.#ensureRepoData(true)
+      templateVersion = await getVersion(this.templateRoot.cid)
+    }
     return {
       templateVersion,
       currentVersion,
