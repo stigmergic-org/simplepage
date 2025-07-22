@@ -191,8 +191,7 @@ const Subscribe = () => {
               className="btn btn-primary w-full"
               disabled={status === 'pending' || 
                        isWaiting || 
-                       isFeeLoading || 
-                       domain === 'new.simplepage.eth'}
+                       isFeeLoading}
             >
               {status === 'pending' ? 'Confirming...' : (pageData?.until > 0 ? 'Extend' : 'Subscribe')}
             </button>
