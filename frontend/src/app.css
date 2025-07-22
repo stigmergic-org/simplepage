@@ -196,6 +196,34 @@
   flex: 1;
 }
 
+.rainbow-fork {
+  background: linear-gradient(90deg, #ff005a, #ffbe00, #00ff94, #00cfff, #a259ff, #ff005a 100%);
+  background-size: 300% 300%;
+  animation: rainbowShift 6s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent !important;
+  font-weight: bold;
+  text-shadow: none;
+}
+
+.rainbow-fork:hover, .rainbow-fork:focus {
+  filter: brightness(1.1) saturate(1.2);
+}
+
+@keyframes rainbowShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   #content code,
   .editor-preview code {

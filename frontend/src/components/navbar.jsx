@@ -130,7 +130,7 @@ const Navbar = ({
           )}
           {buttons.editLabel && (
             <button 
-              className="btn btn-ghost btn-sm"
+              className={`btn btn-ghost btn-sm${buttons.editLabel === 'Fork' ? ' rainbow-fork' : ''}`}
               onClick={() => { goToEdit(path) }}
             >
               {buttons.editLabel}
