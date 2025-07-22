@@ -1,5 +1,14 @@
 # @simplepg/repo
 
+## 1.0.1
+
+### Patch Changes
+
+- a2ba72a: fix(repo): should initialize without template root
+
+- Updated dependencies [a2ba72a]
+  - @simplepg/common@1.1.0
+
 ## 1.0.0
 
 ### Major Changes

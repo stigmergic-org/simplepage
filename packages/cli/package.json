@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple tool for publishing apps on ENS.",
   "main": "index.js",
   "type": "module",

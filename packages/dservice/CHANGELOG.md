@@ -1,5 +1,12 @@
 # @simplepg/dservice
 
+## 1.1.4
+
+### Patch Changes
+
+- Updated dependencies [a2ba72a]
+  - @simplepg/common@1.1.0
+
 ## 1.1.0
 
 ### Minor Changes
