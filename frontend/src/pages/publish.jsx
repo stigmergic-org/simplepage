@@ -4,7 +4,7 @@ import { useAccount, useEnsName, useEnsAddress, useWriteContract, useWaitForTran
 import { normalize } from 'viem/ens';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
-import { resolveEnsDomain, contracts } from '@simplepg/common';
+import { resolveEnsDomain, contracts, resolveEnsOwner } from '@simplepg/common';
 import { useNavigation } from '../hooks/useNavigation';
 import { useRepo } from '../hooks/useRepo';
 import { useDomain } from '../hooks/useDomain';
@@ -110,10 +110,6 @@ const Publish = () => {
     }
   };
 
-  const { data: domainOwner } = useEnsAddress({ 
-    name: normalize(newDomain),
-  });
-
   const handleNewDomainChange = (e) => {
     const value = e.target.value;
     if (value.endsWith('.eth')) {
@@ -124,8 +120,9 @@ const Publish = () => {
     }
   };
 
-  const handleAddDomain = () => {
-    if (newDomain && isValidDomain && domainOwner === address) {
+  const handleAddDomain = async () => { 
+    const owner = await resolveEnsOwner(viemClient, newDomain, chainId);
+    if (newDomain && isValidDomain && owner === address) {
       setOwnedDomains(prevDomains => [...prevDomains, newDomain]);
       setSelectedDomain(newDomain);
       setNewDomain('');

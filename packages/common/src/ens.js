@@ -86,7 +86,6 @@ function dnsEncodeName(name) {
 async function callUniversalResolver(viemClient, ensName, universalResolver, calldata) {
     // DNS encode the ENS name
     const dnsEncodedName = dnsEncodeName(ensName);
-
     try {
         // Call Universal Resolver's resolve function
         const [resolveResult, resolverAddress] = await viemClient.readContract({
@@ -180,4 +179,34 @@ export async function resolveEnsTextRecord(viemClient, ensName, universalResolve
     }
     
     return result;
+}
+
+// Function to resolve the owner of an ENS name by calling the ENS registry directly
+export async function resolveEnsOwner(viemClient, ensName, chainId) {
+    // Define the minimal ENS registry ABI for the owner(bytes32) function
+    const ownerAbi = [{
+        name: 'owner',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [ { name: 'node', type: 'bytes32' } ],
+        outputs: [ { name: '', type: 'address' } ]
+    }];
+
+    const registryAddress = contracts.ensRegistry[String(chainId)];
+    if (!registryAddress) throw new Error('ENS registry address not configured for this chain');
+
+    try {
+        const owner = await viemClient.readContract({
+            address: registryAddress,
+            abi: ownerAbi,
+            functionName: 'owner',
+            args: [namehash(ensName)]
+        });
+        if (owner && owner !== '0x0000000000000000000000000000000000000000') {
+            return owner;
+        }
+    } catch (e) {
+        // Optionally log or handle error
+    }
+    return null;
 }
