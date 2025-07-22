@@ -48,7 +48,8 @@ const View = ({ existingContent }) => {
         logo={!isVirtual}
         label={isVirtual ? "preview" : null}
         buttons={{
-          editLabel: isVirtual ? 'Edit' : 'Fork'
+          editLabel: isVirtual ? 'Edit' : 'Fork',
+          publish: isVirtual
         }}
       />
       <div id="content" className="min-h-70 flex items-center justify-center pt-6">

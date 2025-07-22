@@ -128,20 +128,20 @@ const Navbar = ({
               Preview
             </button>
           )}
-          {buttons.publish && (
-            <button 
-              className="btn btn-ghost btn-sm"
-              onClick={() => { goToPublish() }}
-            >
-              Publish
-            </button>
-          )}
           {buttons.editLabel && (
             <button 
               className="btn btn-ghost btn-sm"
               onClick={() => { goToEdit(path) }}
             >
               {buttons.editLabel}
+            </button>
+          )}
+          {buttons.publish && (
+            <button 
+              className="btn btn-ghost btn-sm"
+              onClick={() => { goToPublish() }}
+            >
+              Publish
             </button>
           )}
         </div>
