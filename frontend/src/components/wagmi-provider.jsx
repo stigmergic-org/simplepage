@@ -32,41 +32,58 @@ const getNetwork = () => {
 
 const networks = getNetwork();
 
-// Create RPC transport configuration
-const createTransports = () => {
+/**
+ * Create RPC transport configuration
+ * @param {Object} rpcOverrides - { [chainId: number]: string } mapping of chainId to custom RPC URL
+ */
+const createTransports = (rpcOverrides = {}) => {
   const transports = {};
-  
   const chainId = process.env.CHAIN_ID;
 
-  switch (chainId) {
-    case '11155111':
-      transports[sepolia.id] = http(process.env.SEPOLIA_RPC_URL);
-      break;
-    case '1':
-      transports[mainnet.id] = http(process.env.MAINNET_RPC_URL);
-      break;
-    case '1337':
-      transports[localhost.id] = http(process.env.LOCAL_RPC_URL);
-      break;
-    default:
-      console.warn(`Unsupported chainId: ${chainId}, defaulting to Sepolia`);
-      transports[sepolia.id] = http(process.env.SEPOLIA_RPC_URL);
+  // Always check for override first
+  if (rpcOverrides[sepolia.id]) {
+    transports[sepolia.id] = http(rpcOverrides[sepolia.id]);
+  } else if (chainId === '11155111') {
+    transports[sepolia.id] = http(process.env.SEPOLIA_RPC_URL);
+  }
+
+  if (rpcOverrides[mainnet.id]) {
+    transports[mainnet.id] = http(rpcOverrides[mainnet.id]);
+  } else if (chainId === '1') {
+    transports[mainnet.id] = http(process.env.MAINNET_RPC_URL);
+  }
+
+  if (rpcOverrides[localhost.id]) {
+    transports[localhost.id] = http(rpcOverrides[localhost.id]);
+  } else if (chainId === '1337') {
+    transports[localhost.id] = http(process.env.LOCAL_RPC_URL);
+  }
+
+  // Fallback: if no env or override, warn and use Sepolia
+  if (!transports[sepolia.id]) {
+    transports[sepolia.id] = http(process.env.SEPOLIA_RPC_URL);
   }
 
   return transports;
 };
 
 // Create wagmi config with injected and safe connectors
-const config = createConfig({
+const getConfig = (rpcOverrides) => createConfig({
   chains: networks,
   connectors: [
     injected(),
     safe(),
   ],
-  transports: createTransports(),
-})
+  transports: createTransports(rpcOverrides),
+});
 
-const WagmiConfigProvider = ({ children }) => {
+/**
+ * WagmiConfigProvider
+ * @param {Object} props
+ * @param {Object} [props.rpcOverrides] - { [chainId: number]: string } mapping of chainId to custom RPC URL
+ */
+const WagmiConfigProvider = ({ children, rpcOverrides }) => {
+  const config = getConfig(rpcOverrides);
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

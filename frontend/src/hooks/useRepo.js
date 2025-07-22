@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePublicClient, useChainId } from 'wagmi';
 import { Repo } from '@simplepg/repo';
 import { useDomain } from './useDomain';
+import { useDserviceParam } from './useDserviceParam';
 
 // Global singleton instance
 let repoInstance = null;
@@ -44,14 +45,15 @@ export const useRepo = () => {
   const viemClient = usePublicClient();
   const chainId = useChainId();
   const domain = useDomain();
+  const customDserviceUrl = useDserviceParam('new.simplepage.eth');
 
   // Create singleton instance if it doesn't exist
   if (!repoInstance) {
-    repoInstance = new Repo(domain, localStorage);
+    const repoOptions = { apiEndpoint: customDserviceUrl };
+    repoInstance = new Repo(domain, localStorage, repoOptions);
   }
 
   useEffect(() => {
-
     const initializeRepo = async () => {
       // Only initialize once when we have both viemClient and chainId
       if (viemClient && chainId && !repoInstance.initialized) {
@@ -59,7 +61,6 @@ export const useRepo = () => {
       }
     };
     initializeRepo();
-
   }, [viemClient, chainId]);
 
   return {

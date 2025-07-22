@@ -4,6 +4,9 @@ import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
 import { BrowserRouter as Router, Routes, Route } from 'react-router';
 import { useBasename } from './hooks/useBasename';
+import OverridesBanner from './components/OverridesBanner';
+import { useDserviceParam } from './hooks/useDserviceParam';
+import { useRpcOverride } from './hooks/useRpcOverride';
 
 import View from './pages/view';
 import Edit from './pages/edit';
@@ -15,9 +18,16 @@ import { ROUTES } from './config/routes';
 
 const App = (props) => {
   const basename = useBasename();
+  // Get custom dservice url for new.simplepage.eth
+  const customDserviceUrl = useDserviceParam('new.simplepage.eth');
+  // Get custom rpc overrides
+  const rpcOverrides = useRpcOverride();
 
   return (
-    <WagmiConfigProvider>
+    <WagmiConfigProvider rpcOverrides={rpcOverrides}>
+      {(customDserviceUrl || Object.keys(rpcOverrides).length > 0) && (
+        <OverridesBanner dserviceUrl={customDserviceUrl} rpcOverrides={rpcOverrides} />
+      )}
       <Router basename={basename}>
         <Routes>
           <Route path={ROUTES.VIEW} element={<View existingContent={props.existingContent} />} />
