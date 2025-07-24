@@ -94,6 +94,7 @@ const Navbar = ({
                 {isConnected && 
                   <li><a onClick={handleDisconnect}>Disconnect ({ensName || `${address?.slice(0,6)}...${address?.slice(-6)}`})</a></li>
                 }
+                <li><a onClick={() => { goToView(); }}>Quit editor</a></li>
               </ul>
           </div>
           :
