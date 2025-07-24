@@ -5,7 +5,7 @@ import { identity } from 'multiformats/hashes/identity'
 import varint from 'varint'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
-import { assert, carFromBytes, emptyCar } from '@simplepg/common'
+import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
 import { FinalizationMap } from './finalization-map.js'
 import { LRUCache } from 'lru-cache'
 
@@ -119,7 +119,6 @@ export class IpfsService {
           if (isRoot && entry.name.startsWith('_')) continue
           neededCids.add(entry.cid.toString())
           await collectFiles(entry.cid, path + entry.name + '/', false)
-        // } else if (["index.html", "index.md", "_template.html"].includes(entry.name)) {
         } else if (["index.html", "index.md", "_template.html", "manifest.webmanifest"].includes(entry.name)) {
           neededCids.add(entry.cid.toString())
         }
@@ -145,6 +144,36 @@ export class IpfsService {
     return this.finalizations.isFinalized(domain, blockNumber, cid)
   }
 
+  async providePage(cid) {
+    // Recursively walk the DAG from cid, skipping any path containing '_prev'
+    const cids = new CidSet();
+    const self = this;
+    async function walk(currentCid, path = '') {
+      cids.add(currentCid);
+      for await (const entry of self.client.ls(currentCid)) {
+        const entryPath = `${path}/${entry.name}`;
+        // Skip any entry under a _prev directory at any level
+        if (entry.name === '_prev') continue;
+        cids.add(entry.cid);
+        if (entry.type === 'dir') {
+          await walk(entry.cid, entryPath);
+        }
+      }
+    }
+    await walk(cid, '');
+    // Provide all collected CIDs in a batch
+    try {
+      await all(await this.client.routing.provide(Array.from(cids)))
+      this.logger.info('Provided all CIDs for page', { root: cid.toString(), count: cids.size });
+    } catch (error) {
+      this.logger.error('Error providing page', {
+        error: error.message,
+        cid: cid.toString(),
+        stack: error.stack
+      })
+    }
+  }
+
   async finalizePage(cid, domain, blockNumber) {
     assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
     try {
@@ -163,6 +192,9 @@ export class IpfsService {
         blockNumber 
       })
       
+      // Reprovide all new CIDs of the published page
+      await this.providePage(cid)
+
       // Remove all staged pins
       const stagedPins = await this.client.pin.ls({
         name: `spg_staged_${domain}`
