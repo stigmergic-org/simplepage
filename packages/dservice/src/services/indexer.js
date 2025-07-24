@@ -20,19 +20,24 @@ export class IndexerService {
     this.ipfsService = config.ipfsService
     this.logger = config.logger
     this.isRunning = false
-    this.currentBlock = this.startBlock
+    this.currentBlock = null // will be set in start()
     this.blockInterval = config.blockInterval || 1000
   }
 
   async start() {
     if (this.isRunning) return
     this.isRunning = true
-    
-    this.logger.info('Indexer service started', { 
+
+    // On startup, get the highest block number we've already indexed
+    const storedBlock = await this.ipfsService.getLatestBlockNumber()
+    this.currentBlock = Math.max(this.startBlock, storedBlock)
+
+    this.logger.info('Indexer service started', {
       startBlock: this.startBlock,
-      chainId: this.chainId 
+      usedBlock: this.currentBlock,
+      chainId: this.chainId
     })
-    
+
     // Start polling loop
     this.pollLoop()
   }
@@ -55,28 +60,29 @@ export class IndexerService {
   async poll() {
     try {
       const latestBlock = Number(await getBlockNumber(this.client))
-      
+      let processedAny = false;
       // Process any new blocks
       while (this.currentBlock <= latestBlock) {
         if (!this.isRunning) return
         const toBlock = Math.min(this.currentBlock + this.blockInterval - 1, latestBlock)
         await this.processBlockRange(this.currentBlock, toBlock)
         this.currentBlock = toBlock + 1
+        processedAny = true;
       }
-
+      // Persist the highest block number we've processed
+      if (processedAny) {
+        await this.ipfsService.setLatestBlockNumber(this.currentBlock - 1)
+      }
       // We caught up so sync pages on IPFS
       await this.syncPages()
-
       // Check and nuke pages
       await this.checkAndNukePages()
-
       // Prune old staged pins
       await this.ipfsService.pruneStaged()
-
     } catch (error) {
-      this.logger.error('Error in poll loop', { 
-        error: error.message, 
-        stack: error.stack 
+      this.logger.error('Error in poll loop', {
+        error: error.message,
+        stack: error.stack
       })
     }
   }
@@ -155,11 +161,11 @@ export class IndexerService {
       universalResolverAddress: this.universalResolver,
       blockNumber: BigInt(blockNumber)
     })
-    
-    this.logger.debug('Page data fetched', { 
-      domain: pageData.domain, 
+
+    this.logger.debug('Page data fetched', {
+      domain: pageData.domain,
       resolver: resolver,
-      blockNumber 
+      blockNumber
     })
     
     return { pageData, resolver }
@@ -179,7 +185,7 @@ export class IndexerService {
       domainsToSync = allowOnlyDomains
     }
 
-    this.logger.debug('Page sync configuration', { 
+    this.logger.debug('Page sync configuration', {
       totalDomains: domains.length,
       blockedDomains: blockedDomains.length,
       allowOnlyDomains: allowOnlyDomains.length,
@@ -200,17 +206,17 @@ export class IndexerService {
       }, { blockNumber: 0, cid: null })
 
       if (latestCid.cid && !await this.ipfsService.isPageFinalized(latestCid.cid, domain, latestCid.blockNumber)) {
-        this.logger.info('Finalizing page', { 
-          domain, 
-          blockNumber: latestCid.blockNumber.toString(), 
-          cid: latestCid.cid 
+        this.logger.info('Finalizing page', {
+          domain,
+          blockNumber: latestCid.blockNumber.toString(),
+          cid: latestCid.cid
         })
         this.ipfsService.finalizePage(latestCid.cid, domain, latestCid.blockNumber)
       } else if (latestCid.cid) {
-        this.logger.debug('Page already finalized', { 
-          domain, 
-          blockNumber: latestCid.blockNumber.toString(), 
-          cid: latestCid.cid 
+        this.logger.debug('Page already finalized', {
+          domain,
+          blockNumber: latestCid.blockNumber.toString(),
+          cid: latestCid.cid
         })
       }
     }

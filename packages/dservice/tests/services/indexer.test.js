@@ -2,6 +2,8 @@ import { TestEnvironmentEvm } from '@simplepg/test-utils';
 import { IndexerService } from '../../src/services/indexer.js';
 import { namehash } from 'viem/ens';
 import { jest } from '@jest/globals';
+import { createPublicClient, http } from 'viem';
+import { getBlockNumber } from 'viem/actions';
 
 
 const TEST_DATA = [
@@ -443,4 +445,33 @@ describe('Pages Indexer', () => {
       const finalizedPages = await ipfsMock.listFinalizedPages();
       expect(finalizedPages).toContain(allowedDomain);
     }, 10000);
+
+    it('should skip blocks below the stored block number and persist the new highest block', async () => {
+      // Set a record for old.eth
+      testEnv.setResolver(deployments.universalResolver, 'old.eth', deployments.resolver1);
+      testEnv.mintPage('old.eth', 1000, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+      testEnv.setContenthash(deployments.resolver1, 'old.eth', 'bafybeieffej45qo3hqi3eggqoqwgjihscmij42hmhqy3u7se7vzgi7h2zm');
+
+      // Get the actual current block number from the chain
+      const client = createPublicClient({ transport: http(testEnv.url) });
+      const currentBlock = Number(await getBlockNumber(client));
+
+      // Mint and set record for new.eth at a higher block
+      testEnv.setResolver(deployments.universalResolver, 'new.eth', deployments.resolver1);
+      testEnv.mintPage('new.eth', currentBlock + 1, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+      testEnv.setContenthash(deployments.resolver1, 'new.eth', 'bafybeicijwrpp5exzlbqpyqcmkbcmnrqxdouyremgq3eod23qufugk5ina');
+
+      // Set the block number on the ipfs mock to the current block
+      await ipfsMock.setLatestBlockNumber(currentBlock);
+
+      await indexer.start();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await indexer.stop();
+
+      // Should only finalize new.eth
+      const finalizedPages = await ipfsMock.listFinalizedPages();
+      console.log('finalizedPages', finalizedPages)
+      expect(finalizedPages).toContain('new.eth');
+      expect(finalizedPages).not.toContain('old.eth');
+    });
 }); 
