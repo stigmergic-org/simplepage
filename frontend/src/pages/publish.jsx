@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router';
-import { useAccount, useEnsName, useEnsAddress, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId } from 'wagmi';
-import { normalize } from 'viem/ens';
+import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId } from 'wagmi';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { resolveEnsDomain, contracts, resolveEnsOwner } from '@simplepg/common';
@@ -11,6 +10,7 @@ import { useDomain } from '../hooks/useDomain';
 import { useDomainQueryParam } from '../hooks/useDomainQueryParam';
 import Navbar from '../components/navbar';
 import WalletInfo from '../components/WalletInfo';
+import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
 
 const Publish = () => {
   const viemClient = usePublicClient();
@@ -32,7 +32,6 @@ const Publish = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isValidDomain, setIsValidDomain] = useState(false);
   const { goToSubscription } = useNavigation();
-  const location = useLocation();
   const { address } = useAccount();
   const [errorMessage, setErrorMessage] = useState(null);
   const [versionInfo, setVersionInfo] = useState({});
@@ -46,6 +45,7 @@ const Publish = () => {
   const [progress, setProgress] = useState(0);
 
   const { subscriptionValid } = useGetSubscription(selectedDomain);
+  const { isOwner } = useIsEnsOwner(selectedDomain);
 
   useEffect(() => {
     if (isConfirmed && stagedRoot) {
@@ -269,6 +269,7 @@ const Publish = () => {
             <h2 className="text-xl font-semibold mb-2">Pages being {publishOrFork.toLowerCase()}ed:</h2>
             <ul className="list-inside">
               {unstagedEdits.map((change, index) => (
+                console.log('change', change),
                 <li key={index}>
                   {selectedDomain + change.path} 
                   <span className="ml-2 text-sm text-gray-500">({change.type})</span>
@@ -311,7 +312,7 @@ const Publish = () => {
               disabled={!selectedDomain || showAddForm || 
                        selectedDomain === 'new.simplepage.eth' || 
                        (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
-                       unstagedEdits.length === 0 || !address}
+                       unstagedEdits.length === 0 || !address || !isOwner}
               className="btn btn-primary"
             >
               {publishOrFork}
