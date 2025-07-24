@@ -318,6 +318,7 @@ export class Repo {
    * The template version, the current version, and if an update can happen.
    */
   async isNewVersionAvailable() {
+    await this.#initPromise;
     const getVersion = async (cid) => {
       const html = await cat(this.unixfs, cid, '_template.html')
       const parser = new DOMParser()
