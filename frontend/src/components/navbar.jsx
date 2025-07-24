@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import useDarkMode from '../hooks/useDarkMode';
-import { useAccount, usePublicClient, useEnsAvatar, useDisconnect, useEnsName, useChainId } from 'wagmi'
-import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
+import { useAccount, useEnsAvatar, useDisconnect, useEnsName } from 'wagmi'
 import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
+
 
 const Navbar = ({ 
   logo = false, 
@@ -63,6 +62,8 @@ const Navbar = ({
         
         // Check if domain text would overflow
         const domainWidth = domainElement.scrollWidth;
+        console.log('domainWidth:', domainWidth);
+        console.log('availableWidth:', availableWidth);
         setShowDomain(domainWidth <= availableWidth);
       }
     };
@@ -105,15 +106,13 @@ const Navbar = ({
         }
       </div>
       <div className="navbar-center flex items-center justify-center h-full">
-        {showDomain && (
-          <span 
-            ref={domainRef}
-            className="text-2xl font-bold cursor-pointer" 
-            onClick={goToRoot}
-          >
-            {domain}
-          </span>
-        )}
+        <span 
+          ref={domainRef}
+          className="text-base font-bold cursor-pointer" 
+          onClick={goToRoot}
+        >
+          {showDomain ? domain : '~'}
+        </span>
         {label && (
           <span className="text-xs text-gray-500 mr-2 ml-2 italic">({label})</span>
         )}
