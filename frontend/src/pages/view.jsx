@@ -48,7 +48,7 @@ const View = ({ existingContent }) => {
         logo={!isVirtual}
         label={isVirtual ? "preview" : null}
         buttons={{
-          editLabel: isVirtual ? 'Edit' : 'Fork',
+          editLabel: isVirtual ? 'Edit' : 'fork',
           publish: isVirtual
         }}
       />
