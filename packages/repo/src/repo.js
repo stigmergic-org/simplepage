@@ -405,7 +405,7 @@ export class Repo {
     }
     const { title, description } = await this.getMetadata('/')
     const manifest = populateManifest(targetDomain, { title, description })
-    rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.json', manifest)
     const pages = await this.getAllPages(rootPointer)
     const redirects = populateRedirects(pages)
     rootPointer = await addFile(this.unixfs, rootPointer, '_redirects', redirects)

@@ -1039,7 +1039,7 @@ This is a test page with custom title and description.`;
       await expect(repo.stage('test.eth', false)).rejects.toThrow('No edits to stage');
     });
 
-    it('should include manifest.webmanifest and _redirects files during staging', async () => {
+    it('should include manifest.json and _redirects files during staging', async () => {
       const testMarkdown = `---
 title: My Custom Title
 description: This is a custom description for the page
@@ -1058,8 +1058,8 @@ This is a test.`;
       expect(result).toHaveProperty('cid');
       expect(result.cid instanceof CID).toBe(true);
 
-      // verify the manifest.webmanifest file is included
-      const manifest = await cat(testEnv.kubo.kuboApi, '/ipfs/' + result.cid.toString() + '/manifest.webmanifest');
+      // verify the manifest.json file is included
+      const manifest = await cat(testEnv.kubo.kuboApi, '/ipfs/' + result.cid.toString() + '/manifest.json');
       expect(manifest).toBeDefined();
       
       // parse and verify manifest content

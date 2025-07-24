@@ -201,7 +201,10 @@ module.exports = (env, argv) => {
         patterns: [
           { from: 'public/index.md', to: 'index.md' },
           { from: 'public/_redirects', to: '.' },
-          { from: 'public/images', to: '_assets/images' }
+          { from: 'public/images', to: '_assets/images' },
+          // Copy manifest.json or manifest.webmanifest if present
+          { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
+          { from: 'public/manifest.webmanifest', to: 'manifest.webmanifest', noErrorOnMissing: true },
         ],
       }),
       new MiniCssExtractPlugin({

@@ -4,7 +4,7 @@
   "description": "SimplePage is a censorship resistant markdown based CMS platform and protocol.",
   "icons": [
     {
-      "src": "/_assets/images/favicon.ico",
+      "src": "/_assets/images/logo.svg",
       "sizes": "192x192",
       "type": "image/x-icon"
     }
