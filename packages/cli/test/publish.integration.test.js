@@ -157,7 +157,7 @@ describe('simplepage publish CLI', () => {
     expect(output.code).toBe(1);
     expect(output.stderr).toMatch(/No active subscription found/);
     expect(output.stderr).toMatch(/To subscribe, visit:/);
-    expect(output.stderr).toMatch(/https:\/\/simplepage\.eth\.limo\/spg-subscribe\?domain=expired-subscription\.eth/);
+    expect(output.stderr).toMatch(/https:\/\/simplepage\.eth\.link\/spg-subscription\/\?domain=expired-subscription\.eth/);
     expect(output.stdout).toBe('');
   });
 }); 
