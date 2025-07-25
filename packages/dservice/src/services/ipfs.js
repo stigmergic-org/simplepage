@@ -119,7 +119,7 @@ export class IpfsService {
           if (isRoot && entry.name.startsWith('_')) continue
           neededCids.add(entry.cid.toString())
           await collectFiles(entry.cid, path + entry.name + '/', false)
-        } else if (["index.html", "index.md", "_template.html", "manifest.webmanifest"].includes(entry.name)) {
+        } else if (["index.html", "index.md", "_template.html", "manifest.webmanifest", "manifest.json"].includes(entry.name)) {
           neededCids.add(entry.cid.toString())
         }
       }
