@@ -1,5 +1,6 @@
-import { useReadContract, useChainId, useEstimateGas } from 'wagmi';
+import { useReadContract, useEstimateGas } from 'wagmi';
 import { contracts } from '@simplepg/common';
+import { useChainId } from './useChainId';
 
 const SECONDS_PER_YEAR = 31536000; // 365 days * 24 hours * 60 minutes * 60 seconds
 const MARGIN_MONTHS = 1; // Additional month for price fluctuations

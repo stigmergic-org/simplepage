@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router';
-import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId } from 'wagmi';
+import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { resolveEnsDomain, contracts, resolveEnsOwner } from '@simplepg/common';
@@ -11,6 +11,7 @@ import { useDomainQueryParam } from '../hooks/useDomainQueryParam';
 import Navbar from '../components/navbar';
 import WalletInfo from '../components/WalletInfo';
 import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
+import { useChainId } from '../hooks/useChainId';
 
 const Publish = () => {
   const viemClient = usePublicClient();
@@ -32,7 +33,7 @@ const Publish = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isValidDomain, setIsValidDomain] = useState(false);
   const { goToSubscription } = useNavigation();
-  const { address } = useAccount();
+  const { address, chainId: accountChainId } = useAccount();
   const [errorMessage, setErrorMessage] = useState(null);
   const [versionInfo, setVersionInfo] = useState({});
   const [stagedRoot, setStagedRoot] = useState(null);
@@ -311,6 +312,7 @@ const Publish = () => {
               onClick={handlePublish}
               disabled={!selectedDomain || showAddForm || 
                        selectedDomain === 'new.simplepage.eth' || 
+                       accountChainId !== chainId ||
                        (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
                        unstagedEdits.length === 0 || !address || !isOwner}
               className="btn btn-primary"

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { usePublicClient, useChainId } from 'wagmi';
+import { usePublicClient } from 'wagmi';
 import { Repo } from '@simplepg/repo';
 import { useDomain } from './useDomain';
 import { useDserviceParam } from './useDserviceParam';
+import { useChainId } from './useChainId';
 
 // Global singleton instance
 let repoInstance = null;

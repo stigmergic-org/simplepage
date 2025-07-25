@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useLocation } from 'react-router';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { useGetSubscriptionFee } from '../hooks/useGetSubscriptionFee';
@@ -12,12 +12,13 @@ import { useDomainQueryParam } from '../hooks/useDomainQueryParam';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import WalletInfo from '../components/WalletInfo';
+import { useChainId } from '../hooks/useChainId';
 
 const Subscribe = () => {
   const [duration, setDuration] = useState(1);
   const [progress, setProgress] = useState(0);
   const chainId = useChainId();
-  const { address } = useAccount();
+  const { chainId: accountChainId } = useAccount();
   const { data: hash, status, error, reset, writeContract } = useWriteContract();
   const { isLoading: isWaiting, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ 
     hash,
@@ -80,21 +81,15 @@ const Subscribe = () => {
 
   const handleSubscribe = async () => {
     try {
-      console.log('Subscribing to domain:', domain, 'for', duration, 'years');
-      
       const durationInSeconds = duration * 365 * 24 * 60 * 60;
-
-      console.log('chainId', chainId);
-      console.log('fee', fee);
-      console.log('fee with margin', feeWithMargin);
-      console.log('simplepage manager address', contracts.deployments[chainId]?.SimplePageManager)
 
       const subscribeCall = {
         address: contracts.deployments[chainId]?.SimplePageManager,
         abi: contracts.abis.SimplePageManager,
         functionName: 'subscribe',
         args: [normalize(domain), durationInSeconds],
-        value: feeWithMargin
+        value: feeWithMargin,
+        chainId
       };
 
       console.log('Full contract call:', subscribeCall);
@@ -190,6 +185,7 @@ const Subscribe = () => {
               onClick={handleSubscribe}
               className="btn btn-primary w-full"
               disabled={status === 'pending' || 
+                       accountChainId !== chainId ||
                        isWaiting || 
                        isFeeLoading}
             >

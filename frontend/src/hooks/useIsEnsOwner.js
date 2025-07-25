@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useAccount, usePublicClient, useChainId } from 'wagmi';
+import { useAccount, usePublicClient } from 'wagmi';
 import { resolveEnsOwner } from '@simplepg/common';
+import { useChainId } from './useChainId';
 
 export const useIsEnsOwner = (domain) => {
   const [isOwner, setIsOwner] = useState(false);

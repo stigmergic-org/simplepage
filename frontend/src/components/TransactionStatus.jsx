@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '../config/routes';
-import { useChainId } from 'wagmi';
+import { useChainId } from '../hooks/useChainId';
 
 function getExplorerUrl(hash, chainId) {
   if (chainId === 11155111) {
