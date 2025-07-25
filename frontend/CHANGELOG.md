@@ -1,5 +1,22 @@
 # @simplepg/frontend
 
+## 1.2.0
+
+### Minor Changes
+
+- 1da69e9: feat(frontend): add quit editor menu option
+
+### Patch Changes
+
+- 1f7dec1: fix(repo,frontend): webmanifest safe.global app compatibility
+- 6e3088f: fix(frontend): disable publish when not ENS owner
+- ae9fcb0: fix(frontend): increase fork button size
+- 1da69e9: fix(frontend): improved handling of url in navbar
+- 70c8e83: fix(frontend): only allow transactions on correct network
+- Updated dependencies [b22e128]
+- Updated dependencies [1f7dec1]
+  - @simplepg/repo@1.0.2
+
 ## 1.1.1
 
 ### Patch Changes

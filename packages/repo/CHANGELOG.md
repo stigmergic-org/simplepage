@@ -1,5 +1,12 @@
 # @simplepg/repo
 
+## 1.0.2
+
+### Patch Changes
+
+- b22e128: fix(repo): new version check needs to await initialization
+- 1f7dec1: fix(repo,frontend): webmanifest safe.global app compatibility
+
 ## 1.0.1
 
 ### Patch Changes
