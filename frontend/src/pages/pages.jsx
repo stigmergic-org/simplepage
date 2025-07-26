@@ -131,14 +131,14 @@ const Pages = () => {
     }
   };
 
-  const handleRevertDelete = async (path) => {
+  const handleRestore = async (path) => {
     try {
       await repo.restorePage(path);
       await loadPages();
       setError(null);
     } catch (err) {
-      console.error('Error reverting delete:', err);
-      setError('Failed to revert delete');
+      console.error('Error restoring page:', err);
+      setError('Failed to restore page');
     }
   };
 
@@ -319,11 +319,11 @@ const Pages = () => {
                                     </button>
                                   </>
                                 )}
-                                {status === 'deleted' && (
+                                {(status !== 'published' || status === 'deleted') && (
                                   <button
                                     className="btn btn-sm btn-ghost btn-success"
-                                    onClick={() => handleRevertDelete(path)}
-                                    title="Revert delete"
+                                    onClick={() => handleRestore(path)}
+                                    title={status === 'deleted' ? 'Revert delete' : 'Restore to published'}
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>

@@ -186,7 +186,7 @@ export class Repo {
   }
 
   /**
-   * Restores a deleted page.
+   * Restores a deleted page, or restores changes.
    * @param {string} path - The path of the page to restore.
    */
   async restorePage(path) {

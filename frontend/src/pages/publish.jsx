@@ -50,7 +50,7 @@ const Publish = () => {
 
   useEffect(() => {
     if (isConfirmed && stagedRoot) {
-      console.log('finalizing commit', stagedRoot);
+      console.log('finalized commit:', stagedRoot.toString());
       repo.finalizeCommit(stagedRoot);
     }
   }, [isConfirmed, stagedRoot]);
@@ -102,8 +102,6 @@ const Publish = () => {
     try {
       const { prepTx, cid } = await repo.stage(selectedDomain, updateTemplate);
       setStagedRoot(cid);
-      console.log('stagedRoot', cid.toString());
-      console.log('prepTx', prepTx);
       writeContract(prepTx);
     } catch (error) {
       console.error('Error publishing content:', error);
@@ -270,7 +268,6 @@ const Publish = () => {
             <h2 className="text-xl font-semibold mb-2">Pages being {publishOrFork.toLowerCase()}ed:</h2>
             <ul className="list-inside">
               {unstagedEdits.map((change, index) => (
-                console.log('change', change),
                 <li key={index}>
                   {selectedDomain + change.path} 
                   <span className="ml-2 text-sm text-gray-500">({change.type})</span>
