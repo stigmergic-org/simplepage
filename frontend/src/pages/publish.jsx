@@ -307,11 +307,14 @@ const Publish = () => {
           <div className="flex justify-end space-x-4">
             <button
               onClick={handlePublish}
-              disabled={!selectedDomain || showAddForm || 
-                       selectedDomain === 'new.simplepage.eth' || 
-                       accountChainId !== chainId ||
-                       (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
-                       unstagedEdits.length === 0 || !address || !isOwner}
+              disabled={
+                !selectedDomain || showAddForm ||
+                !address || !isOwner ||
+                selectedDomain === 'new.simplepage.eth' ||
+                accountChainId !== chainId ||
+                (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
+                (unstagedEdits.length === 0 && !updateTemplate)
+              }
               className="btn btn-primary"
             >
               {publishOrFork}
