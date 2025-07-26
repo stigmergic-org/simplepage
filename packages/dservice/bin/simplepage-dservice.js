@@ -96,7 +96,7 @@ program
   .option('-b, --start-block <number>', 'Starting block number for indexing')
   .option('-c, --chain-id <number>', 'Chain ID')
   .option('-d, --disable-indexing', 'Disable indexing')
-  .option('-l, --log-level <level>', 'Log level (error, warn, info, debug)', 'debug')
+  .option('-l, --log-level <level>', 'Stdout log level (error, warn, info, debug)', 'info')
   .option('--silent', 'Disable console logging')
   .option('--log-dir <path>', 'Log directory path', './logs')
   .option('--tls-key <path>', 'Path to TLS private key (PEM)')

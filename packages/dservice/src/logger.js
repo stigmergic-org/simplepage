@@ -40,7 +40,7 @@ const fileFormat = winston.format.combine(
 // Create the logger
 const createLogger = async (options = {}) => {
   const {
-    level = 'debug', // Default to debug level
+    level = 'info', // Default to debug level
     silent = false,
     logDir = defaultLogsDir
   } = options
@@ -71,7 +71,7 @@ const createLogger = async (options = {}) => {
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d',
-      level,
+      level: 'debug',
       format: fileFormat
     }),
     // Error log file
