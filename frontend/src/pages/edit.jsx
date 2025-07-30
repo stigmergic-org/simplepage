@@ -132,10 +132,7 @@ const Edit = () => {
     return (
       <>
         <Navbar 
-          buttons={{
-            preview: true,
-            publish: true
-          }}
+          activeTab="Edit"
         />
         <div className="flex justify-center items-center h-[calc(100vh-8rem)] w-full">
           <span className="loading loading-infinity loading-lg"></span>
@@ -147,10 +144,7 @@ const Edit = () => {
   return (
     <>
       <Navbar 
-        buttons={{
-          preview: true,
-          publish: true
-        }}
+        activeTab="Edit"
       />
       <div className="min-h-70 flex items-center justify-center pt-6">
         <div className="w-full max-w-3xl">

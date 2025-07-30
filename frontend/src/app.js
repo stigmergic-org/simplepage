@@ -7,6 +7,7 @@ import { useBasename } from './hooks/useBasename';
 import OverridesBanner from './components/OverridesBanner';
 import { useDserviceParam } from './hooks/useDserviceParam';
 import { useRpcOverride } from './hooks/useRpcOverride';
+import { ScrollProvider } from './contexts/ScrollContext';
 
 import View from './pages/view';
 import Edit from './pages/edit';
@@ -29,14 +30,16 @@ const App = (props) => {
         <OverridesBanner dserviceUrl={customDserviceUrl} rpcOverrides={rpcOverrides} />
       )}
       <Router basename={basename}>
-        <Routes>
-          <Route path={ROUTES.VIEW} element={<View existingContent={props.existingContent} />} />
-          <Route path={ROUTES.EDIT} element={<Edit />} />
-          <Route path={ROUTES.PUBLISH} element={<Publish />} />
-          <Route path={ROUTES.SUBSCRIPTION} element={<Subscription />} />
-          <Route path={ROUTES.PAGES} element={<Pages />} />
-          <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
-        </Routes>
+        <ScrollProvider>
+          <Routes>
+            <Route path={ROUTES.VIEW} element={<View existingContent={props.existingContent} />} />
+            <Route path={ROUTES.EDIT} element={<Edit />} />
+            <Route path={ROUTES.PUBLISH} element={<Publish />} />
+            <Route path={ROUTES.SUBSCRIPTION} element={<Subscription />} />
+            <Route path={ROUTES.PAGES} element={<Pages />} />
+            <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
+          </Routes>
+        </ScrollProvider>
       </Router>
     </WagmiConfigProvider>
   );

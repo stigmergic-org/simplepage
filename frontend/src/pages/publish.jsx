@@ -93,6 +93,7 @@ const Publish = () => {
     getChanges();
   }, [repo]);
 
+
   const handlePublish = async () => {
     if (!subscriptionValid) {
       goToSubscription(selectedDomain, 'publish');
@@ -206,7 +207,7 @@ const Publish = () => {
   return (
     <>
       <Navbar 
-        buttons={{}}
+        activeTab="Publish"
       />
       <div className="container mx-auto max-w-3xl px-4 py-6">
         <WalletInfo />

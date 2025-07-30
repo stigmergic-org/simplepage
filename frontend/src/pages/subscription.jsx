@@ -7,7 +7,6 @@ import { formatEther } from 'viem';
 import { normalize } from 'viem/ens';
 import TransactionStatus from '../components/TransactionStatus';
 import { contracts } from '@simplepg/common';
-import { useNavigation } from '../hooks/useNavigation';
 import { useDomainQueryParam } from '../hooks/useDomainQueryParam';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
@@ -107,11 +106,9 @@ const Subscribe = () => {
   return (
     <>
       <Navbar 
-        buttons={{
-          editLabel: 'Edit',
-        }}
+        activeTab="Subscription"
       />
-      <div className="max-w-3xl mx-auto pt-6">
+      <div className="max-w-3xl mx-auto px-4 pt-6">
         <WalletInfo />
         <TransactionStatus
           status={status}

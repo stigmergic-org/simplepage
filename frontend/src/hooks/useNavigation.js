@@ -5,35 +5,33 @@ export const useNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Helper function to create URL with query parameters
+  const createUrlWithParams = (baseRoute, params = {}) => {
+    const urlParams = new URLSearchParams();
+    // Add all non-null/undefined parameters
+    Object.entries(params).forEach(([key, value]) => {
+      if (value != null) {
+        urlParams.set(key, value);
+      }
+    });
+    const queryString = urlParams.toString();
+    return `${baseRoute}${queryString ? `?${queryString}` : ''}`;
+  };
+
   const goToView = () => navigate(ROUTES.VIEW);
-  const goToViewWithPreview = (previewPath) => {
-    const params = new URLSearchParams();
-    if (previewPath) params.set('path', previewPath);
-    const queryString = params.toString();
-    navigate(`${ROUTES.VIEW}${queryString ? `?${queryString}` : ''}`);
-  };
-  const goToEdit = (path = null) => {
-    const params = new URLSearchParams();
-    if (path) params.set('path', path);
-    const queryString = params.toString();
-    navigate(`${ROUTES.EDIT}${queryString ? `?${queryString}` : ''}`);
-  };
+
+  const goToViewWithPreview = (path) => navigate(createUrlWithParams(ROUTES.VIEW, { path }));
+
+  const goToEdit = (path = null) => navigate(createUrlWithParams(ROUTES.EDIT, { path }));
+
   const goToPublish = () => navigate(ROUTES.PUBLISH);
-  const goToSubscription = (domain = null, from = null) => {
-    const params = new URLSearchParams();
-    if (domain) params.set('domain', domain);
-    if (from) params.set('from', from);
-    const queryString = params.toString();
-    navigate(`${ROUTES.SUBSCRIPTION}${queryString ? `?${queryString}` : ''}`);
-  };
-  const goToPages = () => navigate(ROUTES.PAGES);
-  const goToNotFound = (path = null) => {
-    const params = new URLSearchParams();
-    if (path) params.set('path', path);
-    const queryString = params.toString();
-    navigate(`${ROUTES.NOT_FOUND}${queryString ? `?${queryString}` : ''}`);
-  };
-  
+
+  const goToSubscription = (domain = null, from = null) => navigate(createUrlWithParams(ROUTES.SUBSCRIPTION, { domain, from }));
+
+  const goToPages = (path = null) => navigate(createUrlWithParams(ROUTES.PAGES, { path }));
+
+  const goToNotFound = (path = null) => navigate(createUrlWithParams(ROUTES.NOT_FOUND, { path }));
+
   const goToRoot = () => {
     // Navigate to the actual page root URL, ignoring React Router's basename
     const rootUrl = window.location.origin;

@@ -191,7 +191,7 @@ const Pages = () => {
       <>
         <Navbar 
           logo={false}
-          buttons={{ publish: true}}
+          activeTab="Pages"
         />
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-center items-center h-64">
@@ -208,7 +208,7 @@ const Pages = () => {
     <>
       <Navbar 
         logo={false}
-        buttons={{ publish: true}}
+        activeTab="Pages"
       />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -216,9 +216,7 @@ const Pages = () => {
           
           {error && (
             <div className="alert alert-error mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <img src="/images/icons/error.svg" alt="Error" className="stroke-current shrink-0 h-6 w-6" />
               <span>{error}</span>
             </div>
           )}
@@ -230,9 +228,7 @@ const Pages = () => {
               {allItems.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <img src="/images/icons/document.svg" alt="Document" className="mx-auto h-12 w-12" />
                   </div>
                   <p className="text-gray-600">No pages found</p>
                   <p className="text-sm text-gray-500 mt-2">Create a new page below to get started</p>
@@ -263,33 +259,25 @@ const Pages = () => {
                             <td>
                               {status === 'new' && (
                                 <span className="badge badge-success gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-3 h-3 stroke-current">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                  </svg>
+                                  <img src="/images/icons/plus.svg" alt="New" className="w-3 h-3" />
                                   New
                                 </span>
                               )}
                               {status === 'edited' && (
                                 <span className="badge badge-warning gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-3 h-3 stroke-current">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                                  </svg>
+                                  <img src="/images/icons/warning.svg" alt="Edited" className="w-3 h-3" />
                                   Edited
                                 </span>
                               )}
                               {status === 'deleted' && (
                                 <span className="badge badge-error gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-3 h-3 stroke-current">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
+                                  <img src="/images/icons/trash.svg" alt="Deleted" className="w-3 h-3" />
                                   Deleted
                                 </span>
                               )}
                               {status === 'published' && (
                                 <span className="badge badge-info gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-3 h-3 stroke-current">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                  </svg>
+                                  <img src="/images/icons/check.svg" alt="Published" className="w-3 h-3" />
                                   Published
                                 </span>
                               )}
@@ -303,19 +291,14 @@ const Pages = () => {
                                       onClick={() => goToViewWithPreview(path)}
                                       title="Preview page"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                      </svg>
+                                      <img src="/images/icons/preview.svg" alt="Preview" className="w-4 h-4" />
                                     </button>
                                     <button
                                       className="btn btn-sm btn-ghost"
                                       onClick={() => goToEdit(path)}
                                       title="Edit page"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                      </svg>
+                                      <img src="/images/icons/edit.svg" alt="Edit" className="w-4 h-4" />
                                     </button>
                                   </>
                                 )}
@@ -325,9 +308,7 @@ const Pages = () => {
                                     onClick={() => handleRestore(path)}
                                     title={status === 'deleted' ? 'Revert delete' : 'Restore to published'}
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
-                                    </svg>
+                                    <img src="/images/icons/restore.svg" alt="Restore" className="w-4 h-4" />
                                   </button>
                                 )}
                                 {path !== '/' && status !== 'deleted' && (
@@ -336,9 +317,7 @@ const Pages = () => {
                                     onClick={() => handleDeleteFile(path)}
                                     title="Delete page"
                                   >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
+                                    <img src="/images/icons/trash.svg" alt="Delete" className="w-4 h-4" />
                                   </button>
                                 )}
                               </div>
@@ -359,17 +338,7 @@ const Pages = () => {
               <h2 className="card-title">Create New Page</h2>
               <div className="form-control">
                 <label className="input validator">
-                  <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <g
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      strokeWidth="2.5"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </g>
-                  </svg>
+                  <img src="/images/icons/document.svg" alt="Document" className="h-[1em] opacity-50" />
                   <input
                     type="text"
                     required

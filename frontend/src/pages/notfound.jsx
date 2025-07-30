@@ -23,12 +23,7 @@ const NotFound = () => {
 
   return (
     <>
-      <Navbar 
-        logo={true}
-        buttons={{
-          // editLabel: 'Create Page'
-        }}
-      />
+      <Navbar />
       <div id="content" className="min-h-70 flex items-center justify-center pt-6">
         <div className="w-full max-w-3xl px-20 text-center">
           <div className="mb-8">
