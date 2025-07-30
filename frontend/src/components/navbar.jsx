@@ -17,9 +17,6 @@ const Navbar = ({
   const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToViewWithPreview, goToRoot } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
-  const [showDomain, setShowDomain] = useState(true);
-  const domainRef = useRef(null);
-  const navbarRef = useRef(null);
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -87,32 +84,6 @@ const Navbar = ({
     }
   }, [ensAvatar]);
 
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (domainRef.current && navbarRef.current) {
-        const domainElement = domainRef.current;
-        const navbarElement = navbarRef.current;
-
-        // Get the available width for the center section
-        const navbarWidth = navbarElement.offsetWidth;
-        const startWidth = navbarElement.querySelector('.navbar-start').offsetWidth;
-        const endWidth = navbarElement.querySelector('.navbar-end').offsetWidth;
-        const availableWidth = navbarWidth - startWidth - endWidth - 40; // 40px for padding/margins
-
-        // Check if domain text would overflow
-        const domainWidth = domainElement.scrollWidth;
-        console.log('domainWidth:', domainWidth);
-        console.log('availableWidth:', availableWidth);
-        setShowDomain(domainWidth <= availableWidth);
-      }
-    };
-
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [domain]);
-
   // Set up scroll listeners for tabs
   useEffect(() => {
     if (showTabs && tabsContainerRef.current) {
@@ -144,7 +115,7 @@ const Navbar = ({
 
   return (
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
-      <div ref={navbarRef} className="navbar z-[100] relative">
+      <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
           <img
             src={ensAvatar || "/_assets/images/logo.svg"}
@@ -155,11 +126,10 @@ const Navbar = ({
         </div>
         <div className="navbar-center flex items-center justify-center h-full">
           <span
-            ref={domainRef}
             className="text-base font-bold cursor-pointer"
             onClick={goToRoot}
           >
-            {showDomain ? domain : '~'}
+            {domain}
           </span>
         </div>
         <div className="navbar-end mr-4">
