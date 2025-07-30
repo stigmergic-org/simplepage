@@ -60,21 +60,21 @@ const TransactionStatus = ({
   return (
     <div>
       {showModal && (status === 'pending' || status === 'success') && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex flex-col items-center justify-center z-10">
+        <div className="absolute inset-0 bg-base-200 bg-opacity-75 dark:bg-base-300 dark:bg-opacity-75 flex flex-col items-center justify-center z-10">
           {status === 'pending' ? (
             <>
               <span className="loading loading-infinity loading-lg"></span>
-              <p className="mt-4 text-lg font-semibold">Confirm in wallet</p>
+              <p className="mt-4 text-lg font-semibold text-base-content">Confirm in wallet</p>
             </>
           ) : (
             <>
-              <p className="text-lg font-semibold mb-4">Transaction {isConfirmed ? 'confirmed' : 'pending'}</p>
+              <p className="text-lg font-semibold mb-4 text-base-content">Transaction {isConfirmed ? 'confirmed' : 'pending'}</p>
               <progress className="progress progress-info w-56" value={progress} max="100"></progress>
               <a 
                 href={getExplorerUrl(hash, chainId)} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="mt-4 text-blue-600 hover:text-blue-800"
+                className="mt-4 text-primary hover:text-primary-focus"
               >
                 Track transaction
               </a>

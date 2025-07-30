@@ -43,23 +43,28 @@ const Navbar = ({
   const availableTabs = {
     'Preview': {
       onClick: () => goToViewWithPreview(path),
-      icon: <img src="/images/icons/preview.svg" alt="👁️" className="w-4 h-4" />
+      iconSrc: "/images/icons/preview.svg",
+      alt: "👁️"
     },
     'Edit': {
       onClick: () => goToEdit(path),
-      icon: <img src="/images/icons/edit.svg" alt="✏️" className="w-4 h-4" />
+      iconSrc: "/images/icons/edit.svg",
+      alt: "✏️"
     },
     'Pages': {
       onClick: () => goToPages(path),
-      icon: <img src="/images/icons/document.svg" alt="📄" className="w-4 h-4" />
+      iconSrc: "/images/icons/document.svg",
+      alt: "📄"
     },
     'Subscription': {
       onClick: () => goToSubscription(),
-      icon: <img src="/images/icons/credit-card.svg" alt="💳" className="w-4 h-4" />
+      iconSrc: "/images/icons/credit-card.svg",
+      alt: "💳"
     },
     'Publish': {
       onClick: () => goToPublish(),
-      icon: <img src="/images/icons/upload.svg" alt="️⬆️" className="w-4 h-4" />
+      iconSrc: "/images/icons/upload.svg",
+      alt: "️⬆️"
     }
   };
 
@@ -138,8 +143,8 @@ const Navbar = ({
   }, [showTabs, saveScrollPosition, getScrollPosition]);
 
   return (
-    <div className="relative z-[100] border-b border-base-300">
-      <div ref={navbarRef} className="navbar bg-base-100 z-[100] relative">
+    <div className="relative z-[100] border-b bg-base-100 border-base-300">
+      <div ref={navbarRef} className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
           <img
             src={ensAvatar || "/_assets/images/logo.svg"}
@@ -191,10 +196,16 @@ const Navbar = ({
                 <a
                   key={tab}
                   role="tab"
-                  className={`tab ${activeTab === tab ? 'tab-active' : ''}`}
+                  className={`tab group ${activeTab === tab ? 'tab-active' : ''}`}
                   onClick={() => availableTabs[tab].onClick()}
                 >
-                  <span className="mr-1">{availableTabs[tab].icon}</span>
+                  <span className="mr-1">
+                    <img
+                      src={availableTabs[tab].iconSrc}
+                      alt={availableTabs[tab].alt}
+                      className={`w-4 h-4 dark:invert opacity-${activeTab === tab ? '100' : '50'} group-hover:opacity-100`}
+                    />
+                  </span>
                   {tab}
                 </a>
               ))}

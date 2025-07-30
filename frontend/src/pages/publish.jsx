@@ -278,9 +278,9 @@ const Publish = () => {
           </div>
           
           {versionInfo.canUpdate && (
-            <div className="mb-6 border border-gray-300 rounded-md p-2 bg-gray-50">
+            <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
               <label className="inline-flex items-center justify-between w-full">
-                <span className="text-gray-500">Update SimplePage (v{versionInfo.currentVersion} -&gt; v{versionInfo.templateVersion})</span>
+                <span className="text-base-content/70">Update SimplePage (v{versionInfo.currentVersion} -&gt; v{versionInfo.templateVersion})</span>
                 <input
                   type="checkbox"
                   checked={updateTemplate}

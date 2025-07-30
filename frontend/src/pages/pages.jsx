@@ -228,7 +228,7 @@ const Pages = () => {
               {allItems.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <img src="/images/icons/document.svg" alt="Document" className="mx-auto h-12 w-12" />
+                    <img src="/images/icons/document.svg" alt="Document" className="mx-auto h-12 w-12 dark:invert" />
                   </div>
                   <p className="text-gray-600">No pages found</p>
                   <p className="text-sm text-gray-500 mt-2">Create a new page below to get started</p>
@@ -291,14 +291,14 @@ const Pages = () => {
                                       onClick={() => goToViewWithPreview(path)}
                                       title="Preview page"
                                     >
-                                      <img src="/images/icons/preview.svg" alt="Preview" className="w-4 h-4" />
+                                      <img src="/images/icons/preview.svg" alt="Preview" className="w-4 h-4 dark:invert" />
                                     </button>
                                     <button
                                       className="btn btn-sm btn-ghost"
                                       onClick={() => goToEdit(path)}
                                       title="Edit page"
                                     >
-                                      <img src="/images/icons/edit.svg" alt="Edit" className="w-4 h-4" />
+                                      <img src="/images/icons/edit.svg" alt="Edit" className="w-4 h-4 dark:invert" />
                                     </button>
                                   </>
                                 )}
@@ -308,7 +308,7 @@ const Pages = () => {
                                     onClick={() => handleRestore(path)}
                                     title={status === 'deleted' ? 'Revert delete' : 'Restore to published'}
                                   >
-                                    <img src="/images/icons/restore.svg" alt="Restore" className="w-4 h-4" />
+                                    <img src="/images/icons/restore.svg" alt="Restore" className="w-4 h-4 dark:invert" />
                                   </button>
                                 )}
                                 {path !== '/' && status !== 'deleted' && (
@@ -317,7 +317,7 @@ const Pages = () => {
                                     onClick={() => handleDeleteFile(path)}
                                     title="Delete page"
                                   >
-                                    <img src="/images/icons/trash.svg" alt="Delete" className="w-4 h-4" />
+                                    <img src="/images/icons/trash.svg" alt="Delete" className="w-4 h-4 dark:invert" />
                                   </button>
                                 )}
                               </div>
@@ -338,7 +338,7 @@ const Pages = () => {
               <h2 className="card-title">Create New Page</h2>
               <div className="form-control">
                 <label className="input validator">
-                  <img src="/images/icons/document.svg" alt="Document" className="h-[1em] opacity-50" />
+                  <img src="/images/icons/document.svg" alt="Document" className="h-[1em] opacity-50 dark:invert" />
                   <input
                     type="text"
                     required
