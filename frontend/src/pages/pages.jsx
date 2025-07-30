@@ -17,6 +17,8 @@ const Pages = () => {
   const [error, setError] = useState(null);
   const { goToEdit, goToViewWithPreview } = useNavigation();
 
+  document.title = `Pages - ${domain}`;
+
   useEffect(() => {
     loadPages();
   }, [repo]);

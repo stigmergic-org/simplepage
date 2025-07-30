@@ -69,6 +69,8 @@ const Edit = () => {
       
       const content = await repo.getMarkdown(path);
       setOriginalContent(content);
+      const { title } = await repo.getMetadata(path);
+      document.title = title
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading content:', error);
@@ -120,7 +122,11 @@ const Edit = () => {
         cleanedMarkdown = markdownSplit.slice(2).join('---');
       }
       const renderedHTML = editor.markdown(cleanedMarkdown).replace('<head></head><body>', '').replace('</body>', '');
-      repo.setPageEdit(path, markdownContent, renderedHTML);
+      repo.setPageEdit(path, markdownContent, renderedHTML).then(() => {
+        repo.getMetadata(path).then(({ title }) => {
+          document.title = title
+        });
+      });
     });
 
     return () => {
