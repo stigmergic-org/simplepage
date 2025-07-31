@@ -154,6 +154,46 @@ export function createApi({ ipfs, indexer, version, logger }) {
   })
 
   /**
+   * GET /file
+   * @tags File Operations
+   * @summary Get raw IPFS block by CID
+   * @param {string} cid.query.required - The CID of the IPFS block to retrieve
+   * @produces application/vnd.ipld.raw
+   * @returns {string} 200 - Raw IPFS block data - application/vnd.ipld.raw
+   * @returns {ErrorResponse} 404 - Not found error - application/json
+   * @returns {ErrorResponse} 400 - Bad request error - application/json
+   */
+  app.get('/file', async (req, res, next) => {
+    try {
+      const { cid } = req.query
+      if (!cid) {
+        logger.warn('Missing CID parameter in GET /file request')
+        throw new HTTPError(400, 'Missing cid parameter')
+      }
+
+      logger.debug('Retrieving raw IPFS block', { cid })
+      const blockData = await ipfs.readBlock(cid)
+      logger.debug('Raw IPFS block retrieved successfully', { cid, blockSize: blockData.length })
+      res.setHeader('Content-Type', 'application/vnd.ipld.raw')
+      res.send(blockData)
+    } catch (err) {
+      // Only send error response if headers haven't been sent yet
+      if (!res.headersSent) {
+        logger.error('Error retrieving raw IPFS block', {
+          cid: req.query.cid,
+          error: err.message,
+          stack: err.stack
+        })
+        if (err instanceof HTTPError) {
+          res.status(err.statusCode).json({ detail: err.message })
+        } else {
+          res.status(404).json({ detail: err.message })
+        }
+      }
+    }
+  })
+
+  /**
    * POST /page
    * @tags Page Operations
    * @summary Upload a new page

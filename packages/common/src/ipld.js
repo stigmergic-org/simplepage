@@ -41,7 +41,16 @@ export async function addFile(fs, root, path, content) {
   // Split the path into parts to handle intermediate directories
   const pathParts = path.split('/')
   let fileName = pathParts.pop() // Remove the filename from the path parts
-  let pointer = await fs.addBytes(new TextEncoder().encode(content))
+
+  let bytes
+  if (typeof content === 'string') {
+    bytes = new TextEncoder().encode(content)
+  } else if (content instanceof Uint8Array) {
+    bytes = content
+  } else {
+    throw new Error('Content must be a string or Uint8Array')
+  }
+  let pointer = await fs.addBytes(bytes)
 
   // Create intermediate directories if needed
   while (pathParts.length > 0) {
@@ -222,4 +231,19 @@ export async function tree(blockstore, cid, path = '/') {
   }
 
   return output
+}
+
+// returns all child cids of a DAG
+export async function getChildCids(blockstore, cid) {
+  let cids = new CidSet([cid])
+  // If it's a directory (dag-pb), walk its links
+  if (cid.code === dagPb.code) {
+    const bytes = await blockstore.get(cid)
+    const node = dagPb.decode(bytes)
+    for (const link of node.Links) {
+      const childCids = await getChildCids(blockstore, link.Hash)
+      cids = new CidSet([...cids, ...childCids])
+    }
+  }
+  return cids
 }

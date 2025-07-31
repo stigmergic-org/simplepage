@@ -68,7 +68,7 @@ const { cid, prepTx } = await repo.stage('mydomain.eth', false);
 const hash = await wallet.sendTransaction(prepTx);
 
 // Finalize the commit after transaction confirmation
-repo.finalizeCommit(cid);
+await repo.finalizeCommit(cid);
 ```
 
 ### Template Management
@@ -154,6 +154,7 @@ Stage changes for commit.
 Finalize a commit after transaction confirmation.
 
 - `cid` (string): CID of the new repository root
+- Returns: `Promise<void>`
 
 ##### `isNewVersionAvailable()`
 

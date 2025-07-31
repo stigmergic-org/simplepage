@@ -111,15 +111,16 @@ export class IpfsService {
   async readCarLite(cid) {
     // Helper to recursively collect needed CIDs
     const neededCids = new Set([cid])
+    const filesToCollect = ["index.html", "index.md", "_template.html", "manifest.webmanifest", "manifest.json"]
     const self = this
     async function collectFiles(currentCid, path = '', isRoot = false) {
       for await (const entry of self.client.ls(currentCid)) {
         // Only descend into directories that don't start with _ if at root
         if (entry.type === 'dir') {
-          if (isRoot && entry.name.startsWith('_')) continue
+          if (isRoot && entry.name.startsWith('_') && entry.name !== '_files') continue
           neededCids.add(entry.cid.toString())
           await collectFiles(entry.cid, path + entry.name + '/', false)
-        } else if (["index.html", "index.md", "_template.html", "manifest.webmanifest", "manifest.json"].includes(entry.name)) {
+        } else if (filesToCollect.includes(entry.name) && !path.includes('_files')) {
           neededCids.add(entry.cid.toString())
         }
       }
@@ -135,6 +136,22 @@ export class IpfsService {
     // Add the root CID to the CAR
     car.roots.push(CID.parse(cid))
     return car.bytes
+  }
+
+  async readBlock(cid) {
+    try {
+      this.logger.debug('Reading raw IPFS block', { cid })
+      const blockData = await this.client.block.get(cid)
+      this.logger.debug('Raw IPFS block read successfully', { cid, blockSize: blockData.length })
+      return blockData
+    } catch (error) {
+      this.logger.error('Error reading raw IPFS block', {
+        cid,
+        error: error.message,
+        stack: error.stack
+      })
+      throw error
+    }
   }
 
 

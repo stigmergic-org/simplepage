@@ -19,13 +19,16 @@
     "access": "public"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.0.1",
     "jest": "^30.0.3",
     "jest-environment-jsdom": "^30.0.2"
   },
   "dependencies": {
     "@simplepg/common": "workspace:*",
+    "idb-keyval": "^6.2.2",
     "it-all": "^3.0.9",
     "multiformats": "^13.3.7",
+    "uint8arrays": "^5.1.0",
     "viem": "^2.31.4"
   }
 }

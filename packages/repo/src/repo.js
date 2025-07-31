@@ -22,15 +22,11 @@ import {
 } from '@simplepg/common'
 
 import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
+import { Files } from './files.js'
+import { CHANGE_TYPE } from './constants.js'
 
 
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
-export const CHANGE_TYPE = Object.freeze({
-  EDIT: 'edit',
-  DELETE: 'delete',
-  NEW: 'new',
-  UPGRADE: 'upgrade'
-})
 
 /**
  * A class for managing a SimplePage repository.
@@ -55,6 +51,7 @@ export class Repo {
     const { fs, blockstore } = emptyUnixfs()
     this.blockstore = blockstore;
     this.unixfs = fs;
+    this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData());
     
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
@@ -86,6 +83,7 @@ export class Repo {
       this.#importRepoData(this.repoRoot.cid),
       // this.#importRepoData(this.templateRoot.cid)
     ])
+    await this.files.unsafeSetRepoRoot(this.repoRoot.cid)
     this.#resolveInitPromise()
   }
 
@@ -357,7 +355,8 @@ export class Repo {
   async stage(targetDomain, updateTemplate = false) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     let edits = await this.getChanges()
-    assert(edits.length > 0, 'No edits to stage')
+    const fileEdits = (await this.files.tree()).filter(file => Boolean(file.type))
+    assert(edits.length > 0 || fileEdits.length > 0, 'No edits to stage')
 
     // Puts the content of the current repoRoot into
     // the '_prev/0/' directory of the new root.
@@ -370,6 +369,10 @@ export class Repo {
     }
     const newRootWithoutPrev = await this.unixfs.rm(rootToUse, '_prev')
     let rootPointer = await this.unixfs.cp(zeroDir, newRootWithoutPrev, '_prev')
+
+    // updates files
+    const { cid: newFilesRoot, unchangedCids: unchangedFileCids } = await this.files.stage()
+    rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, '_files', { force: true })
 
     if (updateTemplate) {
       // add upgrades to pending edits
@@ -406,20 +409,24 @@ export class Repo {
     const { title, description } = await this.getMetadata('/')
     const manifest = populateManifest(targetDomain, { title, description })
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.json', manifest)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
     const pages = await this.getAllPages(rootPointer)
     const redirects = populateRedirects(pages)
     rootPointer = await addFile(this.unixfs, rootPointer, '_redirects', redirects)
 
     // create car file with staged changes
     // ignore previous repo root and all files starting with _, except _prev and _redirects
+    // as well as all unchanged files from _files
     const newRootFiles = await ls(this.blockstore, rootPointer)
     const seen = new CidSet([
       this.repoRoot.cid,
       ...newRootFiles.filter(([key]) => Boolean(
         key.startsWith('_') &&
         key !== '_prev' &&
-        key !== '_redirects'
+        key !== '_redirects' &&
+        key !== '_files'
       )).map(([_, cid]) => cid),
+      ...unchangedFileCids,
     ])
     const blocks = await walkDag(this.blockstore, rootPointer, seen)
     const car = emptyCar()
@@ -460,9 +467,9 @@ export class Repo {
   /**
    * Finalizes a commit.
    * Clears out all edits and updates the repo state.
-   * @param {string} cid - The CID of the new repo root.
+   * @param {CID} cid - The CID of the new repo root.
    */
-  finalizeCommit(cid) {
+  async finalizeCommit(cid) {
     // clear out all edits
     for (let i = 0; i < this.storage.length; i++) {
       const key = this.storage.key(i)
@@ -471,6 +478,8 @@ export class Repo {
       }
     }
     this.repoRoot.cid = cid;
+    const filesRoot = (await ls(this.blockstore, cid)).find(([name]) => name === '_files')[1]
+    await this.files.finalizeCommit(filesRoot)
   }
 
 

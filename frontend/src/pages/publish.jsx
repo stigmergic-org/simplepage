@@ -51,7 +51,7 @@ const Publish = () => {
   useEffect(() => {
     if (isConfirmed && stagedRoot) {
       console.log('finalized commit:', stagedRoot.toString());
-      repo.finalizeCommit(stagedRoot);
+      repo.finalizeCommit(stagedRoot).catch(console.error);
     }
   }, [isConfirmed, stagedRoot]);
 
