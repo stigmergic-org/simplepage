@@ -3,12 +3,12 @@ import * as dagCbor from '@ipld/dag-cbor'
 import * as dagJson from '@ipld/dag-json'
 import * as dagPb from '@ipld/dag-pb'
 import * as raw from 'multiformats/codecs/raw'
-import { MemoryBlockstore } from 'blockstore-core/memory'
 import { CARFactory, CarBlock } from "cartonne";
 import all from 'it-all'
 import { concat } from 'uint8arrays/concat'
 import { CID } from 'multiformats/cid'
 import { assert } from './utils.js'
+import { HybridBlockstore } from './blockstore.js'
 
 
 const carFactory = new CARFactory()
@@ -27,8 +27,8 @@ function getCodec(code) {
   }
 }
 
-export function emptyUnixfs() {
-  const blockstore = new MemoryBlockstore()
+export function emptyUnixfs(storage) {
+  const blockstore = new HybridBlockstore(storage)
   const fakeHelia = { blockstore, getCodec }
   const fs = unixfs(fakeHelia)
   return { fs, blockstore }
@@ -98,9 +98,7 @@ async function hasChildren(fs, cid) {
  * @returns {CID} - The new root cid of the tree
  */
 export async function rm(fs, root, path) {
-  assert(!path.endsWith('/'), 'Path must not end with /')
-  path = path.startsWith('/') ? path.slice(1) : path
-  const pathParts = path.split('/')
+  const pathParts = path.split('/').filter(Boolean)
   // If removing from root directory
   if (pathParts.length === 0) {
     return fs.rm(root, path)
@@ -132,15 +130,25 @@ export async function cat(fs, root, path) {
   }
 }
 
-export async function ls(blockstore, cid) {
+export async function lsFull(blockstore, cid) {
   if (cid.code !== dagPb.code) {
     return []
   }
   const bytes = await blockstore.get(cid)
   const node = dagPb.decode(bytes)
-  // return map of name to cid
-  return node.Links.map(link => [link.Name, link.Hash])
+  return node.Links
 }
+
+/**
+ * Lists the contents of a directory.
+ * @param {Blockstore} blockstore - The blockstore to use
+ * @param {CID} cid - The CID of the directory to list
+ * @returns {Promise<[string, CID][]>} Array of [name, CID] tuples for directory contents.
+ */
+export async function ls(blockstore, cid) {
+  return (await lsFull(blockstore, cid)).map(link => [link.Name, link.Hash])
+}
+
 
 export async function cidInFs(fs, cid) {
   try {
