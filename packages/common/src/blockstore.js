@@ -20,6 +20,7 @@ export class HybridBlockstore {
   #idb
   #pendingWrites
   #storage
+  #flushTimer
 
   /**
    * @param {LocalStorage} storage 
@@ -33,7 +34,7 @@ export class HybridBlockstore {
       await this.#idb.open()
       await this.#importWAL()
     })()
-    setInterval(() => {
+    this.#flushTimer = setInterval(() => {
       this.flush().catch(console.error)
     }, 10000) // every 10s
   }
@@ -51,9 +52,9 @@ export class HybridBlockstore {
     }
   }
 
-  async #afterOpen(promise) {
+  async #afterOpen(action) {
     await this.#openPromise
-    return promise
+    return action()
   }
 
   /**
@@ -65,7 +66,7 @@ export class HybridBlockstore {
     
     // For blocks larger than 256KB, await IndexedDB write directly
     const isLargeBlock = bytes.length > 256 * 1024 // 256KB
-    const idbPromise = this.#afterOpen(this.#idb.put(cid, bytes, options))
+    const idbPromise = this.#afterOpen(() => this.#idb.put(cid, bytes, options))
     
     if (isLargeBlock) {
       // Await the IndexedDB write for large blocks
@@ -90,7 +91,7 @@ export class HybridBlockstore {
     } catch (error) {
       if (error.code === 'ERR_NOT_FOUND') {
         // Try IndexedDB
-        const bytes = await this.#afterOpen(this.#idb.get(cid, options))
+        const bytes = await this.#afterOpen(() => this.#idb.get(cid, options))
         // Add to memory for faster subsequent access
         this.#memory.put(cid, bytes, options)
         return bytes
@@ -108,13 +109,12 @@ export class HybridBlockstore {
       return true
     }
     // Check IndexedDB
-    const exists = await this.#afterOpen(this.#idb.has(cid, options))
+    const exists = await this.#afterOpen(() => this.#idb.has(cid, options))
     if (exists) {
       // If it exists in IndexedDB, also add it to memory for faster access
       try {
-        this.#afterOpen(this.#idb.get(cid, options)).then(bytes => {
-          // Ignore errors when adding to memory
-          this.#memory.put(cid, bytes, options).catch(() => {})
+        this.#afterOpen(() => this.#idb.get(cid, options)).then(bytes => {
+          this.#memory.put(cid, bytes, options)
         })
       } catch (error) {
         console.error('Error getting from IndexedDB', error)
@@ -133,7 +133,7 @@ export class HybridBlockstore {
     // Delete from both stores
     await Promise.all([
       this.#memory.delete(cid, options),
-      this.#afterOpen(this.#idb.delete(cid, options))
+      this.#afterOpen(() => this.#idb.delete(cid, options))
     ])
     if (this.#storage) {
       this.#storage.removeItem(`${CID_PREFIX}${cid.toString()}`)
@@ -162,10 +162,8 @@ export class HybridBlockstore {
    * Close both blockstores
    */
   async close() {
+    clearInterval(this.#flushTimer)
     await this.flush()
-    await Promise.all([
-      this.#memory.close(),
-      this.#idb.close()
-    ])
+    await this.#idb.close()
   }
 } 

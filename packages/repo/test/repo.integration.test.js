@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals'
 import 'fake-indexeddb/auto'
+import { IDBFactory } from "fake-indexeddb";
 import { globSource } from '@helia/unixfs'
 import all from 'it-all'
 import { createPublicClient, createWalletClient, http } from 'viem';
@@ -11,13 +12,14 @@ import { resolveEnsDomain } from '@simplepg/common'
 import { TestEnvironmentDservice } from '@simplepg/test-utils';
 
 import { Repo } from '../src/repo.js';
+import { CHANGE_TYPE } from '../src/constants.js';
 
 
 // Mock DOMParser for Node.js environment
 const dom = new JSDOM()
 global.DOMParser = dom.window.DOMParser
 
-
+const resetIDB = () => global.indexedDB = new IDBFactory()
 const checkMeta = (doc, name, content) => {
   const meta = doc.querySelector(`meta[name="${name}"]`)
   expect(meta).toBeDefined()
@@ -125,6 +127,7 @@ describe('Repo Integration Tests', () => {
 
   afterEach(async () => {
     storage.clear();
+    await repo.close()
   });
 
   describe('Constructor and init', () => {
@@ -1158,6 +1161,7 @@ This is a test.`;
 
       // /baz/ should throw or be undefined
       await expect(newRepo.getMarkdown('/baz/')).rejects.toThrow();
+      await newRepo.close()
     });
 
     it('should update all pages to latest version when staging with template update', async () => {
@@ -1308,21 +1312,55 @@ This is a test.`;
       // Verify the final state through ENS resolution
       const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
       expect(finalRoot.toString()).toBe(updateResult.cid.toString());
+      await newRepo.close()
     });
   });
 
   describe('Files Tests', () => {
     beforeAll(async () => {
       testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
-      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
     });
 
     beforeEach(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
       await repo.init(client, {
         chainId: parseInt(testEnv.evm.chainId),
         universalResolver: addresses.universalResolver
       });
     });
+
+    afterEach(async () => {
+      resetIDB()
+      await repo.close()
+    });
+
+    // Helper function to verify file entry properties
+    const verifyFileEntry = (file, basePath, expectedType = 'file') => {
+      expect(file).toHaveProperty('name');
+      expect(file).toHaveProperty('cid');
+      expect(file).toHaveProperty('size');
+      expect(file).toHaveProperty('path');
+      expect(file).toHaveProperty('type');
+      expect(typeof file.name).toBe('string');
+      expect(file.cid).toBeInstanceOf(CID);
+      expect(typeof file.size).toBe('number');
+      expect(typeof file.path).toBe('string');
+      expect(file.path.split('/').filter(Boolean).length).toBe(basePath.split('/').filter(Boolean).length + 1);
+      expect(file.type).toBe(expectedType);
+      // Files should not have change property since they're committed
+      expect(file).not.toHaveProperty('change');
+    };
+
+    // Helper function to verify directory contents and properties
+    const verifyDirectory = async (repoInstance, path, expectedFiles) => {
+      const files = await repoInstance.files.ls(path);
+      for (const file of files) {
+        expect(expectedFiles).toContain(file.name);
+        const expectedType = file.name.split('.').length > 1 ? 'file' : 'directory';
+        verifyFileEntry(file, path, expectedType);
+      }
+      return files;
+    };
 
     it('should add files and stage+commit, should be stored by dservice', async () => {
       // Create files in multiple folders and subfolders
@@ -1347,10 +1385,6 @@ This is a test.`;
         await repo.files.add(path, content);
       }
 
-      // Verify files are staged but not yet committed
-      const treeBeforeCommit = await repo.files.tree();
-      const stagedFiles = treeBeforeCommit.filter(file => file.type === 'new');
-      expect(stagedFiles.length).toBe(Object.keys(files).length);
 
       // Stage and commit the changes
       const result = await repo.stage('test.eth', false);
@@ -1414,7 +1448,79 @@ This is a test.`;
       expect(archiveList).toContain('very-old-file.txt');
     });
 
-    it('files should be retrievable across repo instances', async () => {
+    it('files should be retrieved from dservice when catting from new repo instances', async () => {
+      // Create files in multiple folders and subfolders
+      const files = {
+        'images/logo.png': new TextEncoder().encode('fake-png-data'),
+        'images/icons/favicon.ico': new TextEncoder().encode('fake-ico-data'),
+        'images/icons/apple-touch-icon.png': new TextEncoder().encode('fake-apple-icon-data'),
+        'documents/resume.pdf': new TextEncoder().encode('fake-pdf-data'),
+        'documents/contracts/agreement.pdf': new TextEncoder().encode('fake-agreement-data'),
+        'documents/contracts/terms.pdf': new TextEncoder().encode('fake-terms-data'),
+        'assets/css/style.css': new TextEncoder().encode('body { color: red; }'),
+        'assets/js/app.js': new TextEncoder().encode('console.log("Hello World");'),
+        'assets/js/utils/helper.js': new TextEncoder().encode('function helper() { return true; }'),
+        'data/config.json': new TextEncoder().encode('{"setting": "value"}'),
+        'data/users/profiles.json': new TextEncoder().encode('{"users": []}'),
+        'backups/old-file.txt': new TextEncoder().encode('old content'),
+        'backups/archive/very-old-file.txt': new TextEncoder().encode('very old content')
+      };
+
+      // Add all files to the repo
+      for (const [path, content] of Object.entries(files)) {
+        await repo.files.add(path, content);
+      }
+
+      // Stage and commit the changes
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Commit the changes
+      const hash = await walletClient.writeContract(result.prepTx);
+      expect(hash).toBeDefined();
+      const transaction = await client.waitForTransactionReceipt({ hash });
+      expect(transaction.status).toBe('success');
+      await repo.finalizeCommit(result.cid);
+
+      // Create a new Repo instance with fresh storage
+      resetIDB()
+      const newStorage = new MockStorage();
+      const newRepo = new Repo('test.eth', newStorage);
+      await newRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      // Spy on the dservice logger to track file requests
+      const loggerSpy = jest.spyOn(testEnv.dservice.logger, 'info');
+      let fileEndpointCallCount = 0
+
+      // Intercept logger calls to track file requests
+      const originalInfo = testEnv.dservice.logger.info;
+      testEnv.dservice.logger.info = function(msg, { url, method } = {}) {
+        // Track requests to the /file endpoint
+        if (msg === 'Incoming request' && url && url.includes('/file')) {
+          fileEndpointCallCount++;
+        }
+      };
+
+      // Verify all files can be read via repo.files.cat
+      for (const [path, expectedContent] of Object.entries(files)) {
+        const fileContent = await newRepo.files.cat(path);
+        expect(fileContent).toEqual(expectedContent);
+      }
+
+      // Verify that dservice received file requests for each file
+      expect(fileEndpointCallCount).toBe(Object.keys(files).length);
+
+      // Restore the original logger
+      testEnv.dservice.logger.info = originalInfo;
+      loggerSpy.mockRestore();
+      await newRepo.close()
+    });
+
+    it('files should be ls-able across repo instances', async () => {
       // Create files in multiple folders and subfolders
       const files = {
         'images/logo.png': new TextEncoder().encode('fake-png-data'),
@@ -1457,48 +1563,21 @@ This is a test.`;
         universalResolver: addresses.universalResolver
       });
 
-      // Spy on the dservice logger to track file requests
-      const loggerSpy = jest.spyOn(testEnv.dservice.logger, 'info');
-      let fileEndpointCallCount = 0
+      // Verify the file structure using ls and check all properties
+      await verifyDirectory(newRepo, '/', ['images', 'documents', 'assets', 'data', 'backups']);
+      await verifyDirectory(newRepo, '/images', ['logo.png', 'icons']);
+      await verifyDirectory(newRepo, '/images/icons', ['favicon.ico', 'apple-touch-icon.png']);
+      await verifyDirectory(newRepo, '/documents', ['resume.pdf', 'contracts']);
+      await verifyDirectory(newRepo, '/documents/contracts', ['agreement.pdf', 'terms.pdf']);
+      await verifyDirectory(newRepo, '/assets', ['css', 'js']);
+      await verifyDirectory(newRepo, '/assets/js', ['app.js', 'utils']);
+      await verifyDirectory(newRepo, '/assets/js/utils', ['helper.js']);
+      await verifyDirectory(newRepo, '/data', ['config.json', 'users']);
+      await verifyDirectory(newRepo, '/data/users', ['profiles.json']);
+      await verifyDirectory(newRepo, '/backups', ['old-file.txt', 'archive']);
+      await verifyDirectory(newRepo, '/backups/archive', ['very-old-file.txt']);
 
-      // Intercept logger calls to track file requests
-      const originalInfo = testEnv.dservice.logger.info;
-      testEnv.dservice.logger.info = function(msg, { url, method } = {}) {
-        // Track requests to the /file endpoint
-        if (msg === 'Incoming request' && url && url.includes('/file')) {
-          fileEndpointCallCount++;
-        }
-      };
-
-      // Verify all files can be read via repo.files.cat
-      for (const [path, expectedContent] of Object.entries(files)) {
-        const fileContent = await newRepo.files.cat(path);
-        expect(fileContent).toEqual(expectedContent);
-      }
-
-      // Verify that dservice received file requests for each file
-      expect(fileEndpointCallCount).toBe(Object.keys(files).length);
-      
-      // Verify the file tree structure
-      const tree = await newRepo.files.tree();
-      const filePaths = tree.map(file => file.path).filter(path => path !== '/');
-      expect(filePaths).toContain('/images/logo.png');
-      expect(filePaths).toContain('/images/icons/favicon.ico');
-      expect(filePaths).toContain('/images/icons/apple-touch-icon.png');
-      expect(filePaths).toContain('/documents/resume.pdf');
-      expect(filePaths).toContain('/documents/contracts/agreement.pdf');
-      expect(filePaths).toContain('/documents/contracts/terms.pdf');
-      expect(filePaths).toContain('/assets/css/style.css');
-      expect(filePaths).toContain('/assets/js/app.js');
-      expect(filePaths).toContain('/assets/js/utils/helper.js');
-      expect(filePaths).toContain('/data/config.json');
-      expect(filePaths).toContain('/data/users/profiles.json');
-      expect(filePaths).toContain('/backups/old-file.txt');
-      expect(filePaths).toContain('/backups/archive/very-old-file.txt');
-
-      // Restore the original logger
-      testEnv.dservice.logger.info = originalInfo;
-      loggerSpy.mockRestore();
+      await newRepo.close()
     });
 
     it('should handle file updates and deletions across multiple folders', async () => {
@@ -1572,19 +1651,21 @@ This is a test.`;
       // Verify deleted file is not accessible
       await expect(newRepo.files.cat('/data/config.json')).rejects.toThrow();
 
-      // Verify file tree structure
-      const tree = await newRepo.files.tree();
-      const filePaths = tree.map(file => file.path).filter(path => path !== '/');
-      
-      // Should contain updated and new files
-      expect(filePaths).toContain('/images/logo.png');
-      expect(filePaths).toContain('/images/icons/new-icon.png');
-      expect(filePaths).toContain('/assets/css/style.css');
-      expect(filePaths).toContain('/documents/contracts/new-agreement.pdf');
-      expect(filePaths).toContain('/documents/resume.pdf');
-      
-      // Should not contain deleted file
-      expect(filePaths).not.toContain('/data/config.json');
+      // Verify file structure using ls and check all properties
+      await verifyDirectory(newRepo, '/', ['images', 'documents', 'assets', 'data']);
+      await verifyDirectory(newRepo, '/data', []);
+      await verifyDirectory(newRepo, '/images', ['logo.png', 'icons']);
+      await verifyDirectory(newRepo, '/images/icons', ['new-icon.png']);
+      await verifyDirectory(newRepo, '/documents', ['resume.pdf', 'contracts']);
+      await verifyDirectory(newRepo, '/documents/contracts', ['new-agreement.pdf']);
+      await verifyDirectory(newRepo, '/assets', ['css']);
+      await verifyDirectory(newRepo, '/assets/css', ['style.css']);
+
+      // Verify data directory is empty (config.json was deleted)
+      const dataFiles = await newRepo.files.ls('/data');
+      expect(dataFiles.length).toBe(0);
+
+      await newRepo.close()
     });
 
     it('should handle realistic scenario with files and pages across multiple updates', async () => {
@@ -1815,29 +1896,21 @@ Thoughts and insights about technology and development.`,
       // Verify deleted files are not accessible
       await expect(newRepo.files.cat('/data/site-config.json')).rejects.toThrow();
 
-      // Verify file tree structure
-      const tree = await newRepo.files.tree();
-      const filePaths = tree.map(file => file.path.replace(' (not found)', '')).filter(path => path !== '/');
-      
-      // Should contain all expected files
-      expect(filePaths).toContain('/images/logo.png');
-      expect(filePaths).toContain('/images/profile.jpg');
-      expect(filePaths).toContain('/images/icons/favicon.ico');
-      expect(filePaths).toContain('/images/icons/apple-touch-icon.png');
-      expect(filePaths).toContain('/assets/css/main.css');
-      expect(filePaths).toContain('/assets/css/dark-theme.css');
-      expect(filePaths).toContain('/assets/js/app.js');
-      expect(filePaths).toContain('/assets/js/analytics.js');
-      expect(filePaths).toContain('/documents/resume.pdf');
-      expect(filePaths).toContain('/documents/portfolio.pdf');
-      expect(filePaths).toContain('/data/analytics-config.json');
-      
-      // Should not contain deleted files
-      expect(filePaths).not.toContain('/data/site-config.json');
+      // Verify file structure using ls and check all properties
+      await verifyDirectory(newRepo, '/', ['images', 'assets', 'documents', 'data']);
+      await verifyDirectory(newRepo, '/images', ['logo.png', 'profile.jpg', 'icons']);
+      await verifyDirectory(newRepo, '/images/icons', ['favicon.ico', 'apple-touch-icon.png']);
+      await verifyDirectory(newRepo, '/assets', ['css', 'js']);
+      await verifyDirectory(newRepo, '/assets/css', ['main.css', 'dark-theme.css']);
+      await verifyDirectory(newRepo, '/assets/js', ['app.js', 'analytics.js']);
+      await verifyDirectory(newRepo, '/documents', ['resume.pdf', 'portfolio.pdf']);
+      await verifyDirectory(newRepo, '/data', ['analytics-config.json']);
 
       // Verify the final state through ENS resolution
       const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
       expect(finalRoot.toString()).toBe(secondResult.cid.toString());
+
+      await newRepo.close()
     });
   })
 
@@ -1851,6 +1924,8 @@ Thoughts and insights about technology and development.`,
         chainId: parseInt(testEnv.evm.chainId),
         universalResolver: addresses.universalResolver
       })).rejects.toThrow();
+
+      await invalidRepo.close()
     });
 
     it('should handle staging without initialization', async () => {
@@ -1859,6 +1934,8 @@ Thoughts and insights about technology and development.`,
       });
       
       await expect(uninitializedRepo.stage('test.eth', false)).rejects.toThrow();
+
+      await uninitializedRepo.close()
     });
 
     it('should throw error when staging with update=true and missing template', async () => {
@@ -1883,6 +1960,8 @@ Thoughts and insights about technology and development.`,
 
       // Attempt to stage with update=true should fail
       await expect(repo.stage('test.eth', true)).rejects.toThrow('Template root not found');
+
+      await repo.close()
     });
   });
 }); 

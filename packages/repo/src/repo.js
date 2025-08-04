@@ -8,6 +8,7 @@ import {
   DService,
   carFromBytes,
   emptyUnixfs,
+  browserUnixfs,
   cidInFs,
   cat,
   emptyCar,
@@ -47,15 +48,19 @@ export class Repo {
     this.storage = storage;
     this.dservice = new DService(TEMPLATE_DOMAIN, options)
 
-
-    const { fs, blockstore } = emptyUnixfs()
+    const { fs, blockstore } = browserUnixfs(storage)
     this.blockstore = blockstore;
+
     this.unixfs = fs;
-    this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData());
+    this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
     
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
     });
+  }
+
+  async close() {
+    await this.blockstore.close()
   }
 
   /**
@@ -80,7 +85,8 @@ export class Repo {
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
 
     await Promise.all([
-      this.#importRepoData(this.repoRoot.cid),
+      this.#ensureRepoData(false, true),
+      // this.#importRepoData(this.repoRoot.cid),
       // this.#importRepoData(this.templateRoot.cid)
     ])
     await this.files.unsafeSetRepoRoot(this.repoRoot.cid)
@@ -102,8 +108,8 @@ export class Repo {
     );
   }
 
-  async #ensureRepoData(template = false) {
-    await this.#initPromise;
+  async #ensureRepoData(template = false, force = false) {
+    if (!force) await this.#initPromise;
     if (template) {
       assert(this.templateRoot.cid, 'Template root not found')
     }
@@ -355,8 +361,8 @@ export class Repo {
   async stage(targetDomain, updateTemplate = false) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     let edits = await this.getChanges()
-    const fileEdits = (await this.files.tree()).filter(file => Boolean(file.type))
-    assert(edits.length > 0 || fileEdits.length > 0, 'No edits to stage')
+    const filesChanged = await this.files.hasChanges()
+    assert(edits.length > 0 || filesChanged, 'No edits to stage')
 
     // Puts the content of the current repoRoot into
     // the '_prev/0/' directory of the new root.
@@ -413,6 +419,7 @@ export class Repo {
     const pages = await this.getAllPages(rootPointer)
     const redirects = populateRedirects(pages)
     rootPointer = await addFile(this.unixfs, rootPointer, '_redirects', redirects)
+    const flushPromise = this.blockstore.flush()
 
     // create car file with staged changes
     // ignore previous repo root and all files starting with _, except _prev and _redirects
@@ -440,6 +447,7 @@ export class Repo {
     assert(cid.equals(rootPointer), `Mismatch between returned CID and expected CID: ${cid.toString()} !== ${rootPointer.toString()}`)
 
     const prepTx = await this.#prepareCommitTx(cid, targetDomain)
+    await flushPromise
     return { cid, prepTx }
   }
 

@@ -9,6 +9,7 @@ import { concat } from 'uint8arrays/concat'
 import { CID } from 'multiformats/cid'
 import { assert } from './utils.js'
 import { HybridBlockstore } from './blockstore.js'
+import { MemoryBlockstore } from 'blockstore-core/memory'
 
 
 const carFactory = new CARFactory()
@@ -27,11 +28,19 @@ function getCodec(code) {
   }
 }
 
-export function emptyUnixfs(storage) {
-  const blockstore = new HybridBlockstore(storage)
+function fsFromBs(blockstore) {
   const fakeHelia = { blockstore, getCodec }
-  const fs = unixfs(fakeHelia)
-  return { fs, blockstore }
+  return { fs: unixfs(fakeHelia), blockstore }
+}
+
+export function browserUnixfs(storage) {
+  const blockstore = new HybridBlockstore(storage)
+  return fsFromBs(blockstore)
+}
+
+export function emptyUnixfs() {
+  const blockstore = new MemoryBlockstore()
+  return fsFromBs(blockstore)
 }
 
 export async function addFile(fs, root, path, content) {
@@ -95,9 +104,11 @@ async function hasChildren(fs, cid) {
  * @param {UnixFs} fs - The ipld unixfs filesystem
  * @param {CID} root - The root cid of the tree
  * @param {string} path - The path of the file or directory to remove
+ * @param {Object} options - The options for the rm function
+ * @param {boolean} options.recursive - Whether to remove empty parent directories (default: true)
  * @returns {CID} - The new root cid of the tree
  */
-export async function rm(fs, root, path) {
+export async function rm(fs, root, path, { recursive = true } = {}) {
   const pathParts = path.split('/').filter(Boolean)
   // If removing from root directory
   if (pathParts.length === 0) {
@@ -106,17 +117,33 @@ export async function rm(fs, root, path) {
   let { cid: changePointer } = await fs.stat(root, { path: pathParts.join('/') })
   let currentName // The name of the file/directory to remove
 
+  let isTarget = true
   do {
     currentName = pathParts.pop()
     const parentPath = pathParts.join('/')
     const { cid: parentCid } = await fs.stat(root, { path: parentPath })
     const children = await hasChildren(fs, changePointer)
-    if (children) {
+    if (children || !isTarget) {
       changePointer = await fs.cp(changePointer, parentCid, currentName, { force: true })
     } else {
       changePointer = await fs.rm(parentCid, currentName)
+      if (!recursive) {
+        isTarget = false
+      }
     }
   } while (pathParts.length > 0)
+  return changePointer
+}
+
+export async function cp(fs, itemCid, root, path, { force = true } = {}) {
+  const pathParts = path.split('/').filter(Boolean)
+  let changePointer = itemCid
+
+  while (pathParts.length > 0) {
+    let fileName = pathParts.pop()
+    let { cid: parentCid } = await fs.stat(root, { path: pathParts.join('/') })
+    changePointer = await fs.cp(changePointer, parentCid, fileName, { force })
+  }
   return changePointer
 }
 

@@ -24,6 +24,7 @@
     "jest-environment-jsdom": "^30.0.2"
   },
   "dependencies": {
+    "@ipld/dag-pb": "^4.1.5",
     "@simplepg/common": "workspace:*",
     "idb-keyval": "^6.2.2",
     "it-all": "^3.0.9",

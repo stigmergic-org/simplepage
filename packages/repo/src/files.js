@@ -1,13 +1,14 @@
-import { get, set, del, keys } from 'idb-keyval'
 import { concat } from 'uint8arrays/concat'
+import { code as dagPbCode } from '@ipld/dag-pb'
 import all from 'it-all'
+import { CID } from 'multiformats/cid'
 
-import { tree as treeFiles, addFile, rm, ls, assert, getChildCids } from '@simplepg/common'
+import { addFile, rm, ls, lsFull, assert, getChildCids, cp } from '@simplepg/common'
 import { CHANGE_TYPE } from './constants.js'
 
 export const FILES_ROOT = '_files'
 
-const STORAGE_PREFIX = 'spg_files_'
+const CHANGE_ROOT_KEY = 'spg_files_change_root'
 
 /**
  * A class for managing file operations in a SimplePage repository.
@@ -22,14 +23,18 @@ export class Files {
   #blockstore
   #fs
   #root
+  #changeRoot
   #dservice
+  #storage
 
-  constructor(fs, blockstore, dservice, ensureRepoData) {
+  constructor(fs, blockstore, dservice, ensureRepoData, storage) {
     this.#fs = fs
     this.#blockstore = blockstore
     this.#dservice = dservice
     this.#ensureRepoData = ensureRepoData
+    this.#storage = storage
     this.#root = null
+    this.#changeRoot = null
   }
 
   /**
@@ -38,164 +43,61 @@ export class Files {
    */
   async unsafeSetRepoRoot(root) {
     // Check if /_files exists in the root
-    try {
-      const refs = await ls(this.#blockstore, root)
-      const filesDir = refs.find(([name]) => name === FILES_ROOT)
-      this.#root = filesDir[1]
-      console.log('root', this.#root)
-    } catch (err) {
-      console.log('err', err)
-      // Create empty directory if it doesn't exist
-      const emptyDir = await this.#fs.addDirectory()
-      this.#root = emptyDir
+    const refs = await ls(this.#blockstore, root)
+    const filesCid = refs.find(([name]) => name === FILES_ROOT)?.[1]
+    this.#root = filesCid || (await this.#fs.addDirectory())
+    await this.#initializeChangeRoot()
+  }
+
+  /**
+   * Initializes the changeRoot from storage or creates a new one.
+   */
+  async #initializeChangeRoot() {
+    const storedChangeRoot = JSON.parse(await this.#storage.getItem(CHANGE_ROOT_KEY))
+    if (storedChangeRoot && storedChangeRoot.root === this.#root.toString()) {
+      await this.#setChangeRoot(CID.parse(storedChangeRoot.changeRoot))
+    } else {
+      // Create a new changeRoot based on the current root
+      await this.#setChangeRoot(this.#root)
     }
   }
 
   /**
-   * Gets a change from IndexedDB.
-   * @param {string} path - The file path.
-   * @returns {Promise<object|null>} The change data or null if not found.
+   * Saves the changeRoot to storage.
    */
-  async #getChange(path) {
-    const key = `${STORAGE_PREFIX}${path}`
-    const data = await get(key)
-    if (data) {
-      if (!this.#root || data.root === this.#root.toString()) {
-        return data
-      }
-    }
-    return null
+  async #setChangeRoot(changeRoot) {
+    this.#changeRoot = changeRoot
+    await this.#storage.setItem(CHANGE_ROOT_KEY, JSON.stringify({
+      root: this.#root.toString(),
+      changeRoot: changeRoot.toString()
+    }))
   }
 
   /**
-   * Sets a change in IndexedDB.
+   * Checks if a file or folder exists in the filesystem.
    * @param {string} path - The file path.
-   * @param {object} changeData - The change data to store.
+   * @returns {Promise<CID | undefined>} The file entry CID if found, undefined if not found.
    */
-  async #setChange(path, changeData) {
-    const key = `${STORAGE_PREFIX}${path}`
-    await set(key, {
-      ...changeData,
-      root: this.#root.toString()
-    })
-  }
-
-  /**
-   * Removes a change from IndexedDB.
-   * @param {string} path - The file path.
-   */
-  async #removeChange(path) {
-    const key = `${STORAGE_PREFIX}${path}`
-    await del(key)
-  }
-
-  /**
-   * Checks if a file exists in the filesystem.
-   * @param {string} path - The file path.
-   * @returns {Promise<[string, CID] | undefined>} The file entry [name, CID] if found, undefined if not found.
-   */
-  async #fileExists(path) {
-    if (path.startsWith('/')) {
-      path = path.slice(1)
-    }
-    const split = path.split('/')
-    let ref = ['', this.#root]
+  async #fileExists(path, inChangeRoot = false) {
+    const split = path.split('/').filter(Boolean)
+    let ref = ['', inChangeRoot ? this.#changeRoot : this.#root]
     for (const path of split) {
       const refs = await ls(this.#blockstore, ref[1])
       ref = refs.find(f => f[0] === path)
       if (!ref) return undefined
     }
-    return ref
+    return ref[1]
   }
 
   async #isReady() {
+    await this.#ensureRepoData()
     if (!this.#root) {
       throw new Error('Root not set. Call unsafeSetRoot() first.')
     }
-    await this.#ensureRepoData()
   }
 
-  /**
-   * Lists all files in the filesystem, including staged changes.
-   * @returns {Promise<{ path: string, type?: string }[]>} Array of file objects with path and optional type.
-   */
-  async tree() {
-    await this.#isReady()
-    const files = await treeFiles(this.#blockstore, this.#root)
-
-    // Get staged changes
-    const changes = await this.#getChanges()
-    const stagedFiles = changes.map(change => ({ path: change.path, type: change.type }))
-
-    // Combine files from filesystem and staged changes
-    const allFiles = new Map()
-
-    // Add filesystem files (no type means they're from filesystem)
-    for (const path of files) {
-      allFiles.set(path, { path })
-    }
-
-    // Add or update with staged changes
-    for (const stagedFile of stagedFiles) {
-      allFiles.set(stagedFile.path, stagedFile)
-    }
-
-    return Array.from(allFiles.values())
-  }
-
-  /**
-   * Adds a file to the staging area.
-   * @param {string} path - The path where to add the file.
-   * @param {Uint8Array} content - The file content as a Uint8Array.
-   * @returns {Promise<void>} Resolves when the file is staged.
-   */
-  async add(path, content) {
-    await this.#isReady()
-    path = path.startsWith('/') ? path : `/${path}`
-    const type = await this.#fileExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW
-    await this.#setChange(path, {
-      content,
-      type
-    })
-  }
-
-  /**
-   * Removes a file from the staging area or filesystem.
-   * @param {string} path - The path of the file to remove.
-   * @returns {Promise<void>} Resolves when the file is staged for deletion or removed.
-   */
-  async rm(path) {
-    await this.#isReady()
-    path = path.startsWith('/') ? path : `/${path}`
-    if (await this.#fileExists(path)) {
-      await this.#setChange(path, {
-        type: CHANGE_TYPE.DELETE
-      })
-    } else {
-      await this.#removeChange(path)
-    }
-  }
-
-  /**
-   * Reads the content of a file from the staging area or filesystem.
-   * @param {string} path - The path of the file to read.
-   * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
-   */
-  async cat(path) {
-    await this.#isReady()
-    path = path.startsWith('/') ? path : `/${path}`
-
-    // Check for staged changes first
-    const change = await this.#getChange(path)
-    if (change && change.content) {
-      return change.content
-    }
-    try {
-      return concat(await all(this.#fs.cat(this.#root, { path })))
-    } catch (err) {
-      const fileRef = await this.#fileExists(path)
-      assert(Boolean(fileRef), `File not found: ${path}`)
-      const [_, cid] = fileRef
+  async #ensureContent(cid) {
+    if (!(await this.#blockstore.has(cid))) {
       const response = await this.#dservice.fetch(`/file?cid=${cid.toString()}`)
       if (response.status === 200) {
         const content = new Uint8Array(await response.arrayBuffer())
@@ -207,29 +109,168 @@ export class Files {
   }
 
   /**
-   * Returns a list of all paths with unstaged changes.
-   * @returns {Promise<{ path: string, type: string }[]>} The list of paths with unstaged changes.
+   * Lists the contents of a directory.
+   * @param {string} path - The path of the directory to list.
+   * @returns {Promise<UnixFSEntry[]>} The list of contents of the directory.
    */
-  async #getChanges() {
+  async ls(path) {
     await this.#isReady()
-    const changes = []
-    const allKeys = await keys()
-    const changeKeys = allKeys.filter(key => key.startsWith(STORAGE_PREFIX))
 
-    for (const key of changeKeys) {
-      const path = key.replace(STORAGE_PREFIX, '')
-      const data = await get(key)
-      if (data) {
-        if (data.root === this.#root.toString()) {
-          changes.push({
-            path,
-            type: data.type
-          })
+    const refsByPath = async (pathSplit, refs, inChangeRoot = false) => {
+      for (const path of pathSplit) {
+        const loc = refs.find(({ Name }) => Name === path)
+        assert(!inChangeRoot || loc, `Folder not found: ${path}`)
+        if (!loc) continue // we are calling ls in a folder that hasn't been created in fs yet
+        refs = await lsFull(this.#blockstore, loc.Hash)
+      }
+      return refs
+    }
+    // Get entries from original filesystem
+    const pathSplit = path.split('/').filter(Boolean)
+    let refs = await lsFull(this.#blockstore, this.#root)
+    refs = await refsByPath(pathSplit, refs)
+    
+    // Get entries from change filesystem
+    let changeRefs = await lsFull(this.#blockstore, this.#changeRoot)
+    changeRefs = await refsByPath(pathSplit, changeRefs, true)
+    
+    // Combine entries from both filesystems
+    const allEntries = new Map()
+    
+    const refToEntry = (ref, fullPath, stat, change) => ({
+      name: ref.Name,
+      cid: ref.Hash,
+      size: ref.Tsize,
+      path: fullPath,
+      type: stat.type === 'directory' ? 'directory' : 'file',
+      change: change
+    })
+    // Add original entries
+    for (const ref of refs) {
+      const fullPath = [...pathSplit, ref.Name].join('/')
+      await this.#ensureContent(ref.Hash)
+      const stat = await this.#fs.stat(ref.Hash)
+      // set all changes to delete, next loop will set the correct change if file still exists in changeRoot
+      allEntries.set(ref.Name, refToEntry(ref, fullPath, stat, CHANGE_TYPE.DELETE))
+    }
+    
+    // Add or update with change entries
+    for (const ref of changeRefs) {
+      const fullPath = [...pathSplit, ref.Name].join('/')
+      const entry = allEntries.get(ref.Name)
+      if (entry) {
+        if (entry.cid.equals(ref.Hash)) {
+          delete entry.change
+        } else {
+          entry.change = CHANGE_TYPE.EDIT
         }
+        allEntries.set(ref.Name, entry)
+      } else {
+        const stat = await this.#fs.stat(ref.Hash)
+        allEntries.set(ref.Name, refToEntry(ref, fullPath, stat, CHANGE_TYPE.NEW))
       }
     }
+    
+    return Array.from(allEntries.values())
+  }
 
-    return changes
+  /**
+   * Adds a file to the change filesystem.
+   * @param {string} path - The path where to add the file.
+   * @param {Uint8Array} content - The file content as a Uint8Array.
+   * @returns {Promise<void>} Resolves when the file is staged.
+   */
+  async add(path, content) {
+    await this.#isReady()
+    path = path.startsWith('/') ? path : `/${path}`
+    
+    // Add file to changeRoot
+    await this.#setChangeRoot(await addFile(this.#fs, this.#changeRoot, path, content))
+  }
+
+  /**
+   * Removes a file from the change filesystem or commited filesystem.
+   * @param {string} path - The path of the file to remove.
+   * @returns {Promise<void>} Resolves when the file is staged for deletion or removed.
+   */
+  async rm(path) {
+    await this.#isReady()
+    // Remove from changeRoot
+    await this.#setChangeRoot(await rm(this.#fs, this.#changeRoot, path, { recursive: false }))
+  }
+
+  /**
+   * Creates a directory in the change filesystem.
+   * @param {string} path - The path of the directory to create.
+   * @returns {Promise<void>} Resolves when the directory is created.
+   */
+  async mkdir(path) {
+    await this.#isReady()
+    // filter removes ""
+    const split = path.split('/').filter(Boolean)
+    if (await this.#fileExists(split.join('/'), true)) {
+      throw new Error(`Directory or file already exists: ${path}`)
+    }
+    let changePointer = await this.#fs.addDirectory()
+    do {
+      const name = split.pop()
+      const reminderPath = split.join('/')
+      const parentCid = await this.#fileExists(reminderPath, true)
+      if (parentCid) {
+        changePointer = await this.#fs.cp(changePointer, parentCid, name, { force: true })
+      } else {
+        throw new Error(`Parent directory ${reminderPath} does not exist`)
+      }
+    } while (split.length > 0)
+    await this.#setChangeRoot(changePointer)
+  }
+
+  /**
+   * Restores a file from the change filesystem to its commited state.
+   * @param {string} path - The path of the file to restore.
+   */
+  async restore(path) {
+    await this.#isReady()
+    path = path.startsWith('/') ? path : `/${path}`
+
+    // First check if file exists in root
+    const fileCid = await this.#fileExists(path)
+    if (!fileCid) {
+      // If file doesn't exist in root, just remove it from changeRoot
+      await this.#setChangeRoot(await rm(this.#fs, this.#changeRoot, path))
+    } else {
+      // Copy the file from root to changeRoot
+      const newChangeRoot = await cp(this.#fs, fileCid, this.#changeRoot, path, { force: true })
+      await this.#setChangeRoot(newChangeRoot)
+    }
+  }
+
+  /**
+   * Reads the content of a file from the change filesystem or original filesystem.
+   * @param {string} path - The path of the file to read.
+   * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
+   */
+  async cat(path) {
+    await this.#isReady()
+    path = path.startsWith('/') ? path : `/${path}`
+    // Try to read from changeRoot first
+    try {
+      const res = concat(await all(this.#fs.cat(this.#changeRoot, { path })))
+      return res
+    } catch (err) {
+      // If not found in changeRoot, try original root
+      const fileCid = await this.#fileExists(path)
+      if (fileCid) {
+        await this.#ensureContent(fileCid)
+        return concat(await all(this.#fs.cat(this.#root, { path })))
+      }
+      throw new Error('File not found')
+    }
+  }
+
+  async hasChanges() {
+    await this.#isReady()
+    return !this.#changeRoot.equals(this.#root)
   }
 
   /**
@@ -238,24 +279,9 @@ export class Files {
    */
   async stage() {
     await this.#isReady()
-    const changes = await this.#getChanges()
-    let newRoot = this.#root
-
-    for (const { path, type } of changes) {
-      switch (type) {
-        case CHANGE_TYPE.DELETE:
-          newRoot = await rm(this.#fs, newRoot, path)
-          break
-        case CHANGE_TYPE.EDIT:
-        case CHANGE_TYPE.NEW:
-          const change = await this.#getChange(path)
-          assert(change?.content, 'Change must have content')
-          newRoot = await addFile(this.#fs, newRoot, path, change.content)
-          break
-      }
-    }
+    // The changeRoot already contains all the staged changes
     const unchangedCids = await getChildCids(this.#blockstore, this.#root)
-    return { cid: newRoot, unchangedCids }
+    return { cid: this.#changeRoot, unchangedCids }
   }
 
   /**
@@ -266,13 +292,7 @@ export class Files {
   async finalizeCommit(cid) {
     await this.#isReady()
     this.#root = cid
-    const allKeys = await keys()
-    const changeKeys = allKeys.filter(key =>
-      typeof key === 'string' && key.startsWith(STORAGE_PREFIX)
-    )
-    for (const key of changeKeys) {
-      await del(key)
-    }
+    await this.#setChangeRoot(cid)
   }
 
   /**
@@ -280,20 +300,6 @@ export class Files {
    */
   async clearChanges() {
     await this.#isReady()
-    const allKeys = await keys()
-    const changeKeys = allKeys.filter(key => key.startsWith(STORAGE_PREFIX))
-    for (const key of changeKeys) {
-      await del(key)
-    }
-  }
-
-  /**
-   * Restores a staged change.
-   * @param {string} path - The path of the file to restore.
-   */
-  async restore(path) {
-    await this.#isReady()
-    path = path.startsWith('/') ? path : `/${path}`
-    await this.#removeChange(path)
+    await this.#setChangeRoot(this.#root)
   }
 }

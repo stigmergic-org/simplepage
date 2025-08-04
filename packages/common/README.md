@@ -85,12 +85,21 @@ console.log(result)
 ### IPLD Utilities
 
 #### `emptyUnixfs()`
-Creates an empty UnixFS filesystem with a memory blockstore.
+Creates an empty UnixFS filesystem with a memory blockstore. Use this for server-side operations or tests.
 
 ```javascript
 import { emptyUnixfs } from '@simplepg/common'
 
 const { fs, blockstore } = emptyUnixfs()
+```
+
+#### `browserUnixfs(storage)`
+Creates a UnixFS filesystem with a hybrid blockstore that combines memory, IndexedDB storage and localStorage for WAL. Use this for browser applications.
+
+```javascript
+import { browserUnixfs } from '@simplepg/common'
+
+const { fs, blockstore } = browserUnixfs(localStorage)
 ```
 
 #### `emptyCar()`
