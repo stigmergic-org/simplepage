@@ -20,6 +20,17 @@
     <meta name="twitter:title" content="Blank Template">
     <meta name="twitter:description" content="A SimplePage template that lets you start fresh">
     <meta name="twitter:image" content="https://simplepage.eth.link/_assets/images/logo.svg">
+
+    <!-- CSS Preload Pattern -->
+    <% for (const cssFile of htmlWebpackPlugin.files.css || []) { %>
+    <link rel="preload" href="<%= cssFile %>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="<%= cssFile %>"></noscript>
+    <% } %>
+
+    <!-- JavaScript files -->
+    <% for (const jsFile of htmlWebpackPlugin.files.js || []) { %>
+    <script src="<%= jsFile %>" defer></script>
+    <% } %>
   </head>
   <body>
     <div id="root">

@@ -195,7 +195,8 @@ module.exports = (env, argv) => {
         template: 'public/index.html',
         templateParameters: {
           version: version
-        }
+        },
+        inject: false // Disable automatic injection since we're handling it manually
       }),
       new CopyWebpackPlugin({
         patterns: [
