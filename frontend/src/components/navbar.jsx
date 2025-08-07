@@ -159,7 +159,19 @@ const Navbar = ({
                 </svg>
                 {'fork'}
               </button>
-            ) : (
+            ) : (<>
+              {/* <div className="tooltip tooltip-bottom" data-tip="history">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleQuitClick}
+                >
+                  <img
+                    src={ICONS.history.src}
+                    alt={ICONS.history.alt}
+                    className="w-4 h-4 dark:invert"
+                  />
+                </button>
+              </div> */}
               <div className="tooltip tooltip-bottom" data-tip="quit">
                 <button
                   className="btn btn-ghost btn-sm"
@@ -172,7 +184,7 @@ const Navbar = ({
                   />
                 </button>
               </div>
-            )}
+            </>)}
           </div>
         </div>
       </div>

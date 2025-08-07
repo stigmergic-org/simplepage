@@ -61,4 +61,8 @@ export const ICONS = {
     src: `${PREFIX}fork.svg`,
     alt: '🍴',
   },
+  'history': {
+    src: `${PREFIX}history.svg`,
+    alt: '⏰',
+  },
 };
