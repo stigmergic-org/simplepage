@@ -1,5 +1,26 @@
 # @simplepg/frontend
 
+## 1.3.0
+
+### Minor Changes
+
+- 0d408f2: feat(frontend): uploading and using files
+- 7520690: feat(frontend): better navigation with tabs
+- 065025b: feat(frontend): revert edits on pages page
+
+### Patch Changes
+
+- 56df1c5: fix(frontend): allow publishing 0 changes when updating template
+- 19d4b9b: chore(frontend): improve icons
+- ad13371: fix(frontend): dark mode ui adjustments
+- 8abf65a: fix(frontend): don't wait for css to render content
+- 1343781: fix(frontend): better title management
+- Updated dependencies [f380720]
+- Updated dependencies [c0d41d8]
+- Updated dependencies [891e5cc]
+  - @simplepg/common@1.2.0
+  - @simplepg/repo@1.1.0
+
 ## 1.2.0
 
 ### Minor Changes

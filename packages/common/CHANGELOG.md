@@ -1,5 +1,16 @@
 # @simplepg/common
 
+## 1.2.0
+
+### Minor Changes
+
+- c0d41d8: feat(dservice,repo): support files
+- 891e5cc: feat(common): implement persistent and performant blockstore
+
+### Patch Changes
+
+- f380720: fix(repo,common): use unixfs to track files changes
+
 ## 1.1.0
 
 ### Minor Changes

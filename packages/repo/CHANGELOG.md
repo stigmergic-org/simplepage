@@ -1,5 +1,19 @@
 # @simplepg/repo
 
+## 1.1.0
+
+### Minor Changes
+
+- c0d41d8: feat(dservice,repo): support files
+
+### Patch Changes
+
+- f380720: fix(repo,common): use unixfs to track files changes
+- Updated dependencies [f380720]
+- Updated dependencies [c0d41d8]
+- Updated dependencies [891e5cc]
+  - @simplepg/common@1.2.0
+
 ## 1.0.2
 
 ### Patch Changes

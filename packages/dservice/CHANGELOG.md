@@ -1,5 +1,20 @@
 # @simplepg/dservice
 
+## 1.3.0
+
+### Minor Changes
+
+- c0d41d8: feat(dservice,repo): support files
+
+### Patch Changes
+
+- 5978b35: fix(dservice): less verbose default stdout logging
+- ddb0b24: fix(dservice): include manifest.json in readCarLite
+- Updated dependencies [f380720]
+- Updated dependencies [c0d41d8]
+- Updated dependencies [891e5cc]
+  - @simplepg/common@1.2.0
+
 ## 1.2.0
 
 ### Minor Changes
