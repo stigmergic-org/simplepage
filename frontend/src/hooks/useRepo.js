@@ -62,6 +62,13 @@ export const useRepo = () => {
       }
     };
     initializeRepo();
+
+    // Setup flush on tab unload or hide
+    const flush = () => repoInstance.blockstore.flush().catch(console.error);
+    window.addEventListener('beforeunload', flush);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush()
+    });
   }, [viemClient, chainId]);
 
   return {

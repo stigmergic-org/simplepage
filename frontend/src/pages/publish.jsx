@@ -12,6 +12,7 @@ import Navbar from '../components/navbar';
 import WalletInfo from '../components/WalletInfo';
 import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
 import { useChainId } from '../hooks/useChainId';
+import { CHANGE_TYPE } from '@simplepg/repo';
 
 const Publish = () => {
   const viemClient = usePublicClient();
@@ -20,6 +21,7 @@ const Publish = () => {
   const queryDomain = useDomainQueryParam();
   const { repo } = useRepo();
   const [unstagedEdits, setUnstagedEdits] = useState([]);
+  const [fileChanges, setFileChanges] = useState([]);
   const [updateTemplate, setUpdateTemplate] = useState(true);
   const [ownedDomains, setOwnedDomains] = useState(() => {
     const domains = [domain];
@@ -50,7 +52,6 @@ const Publish = () => {
 
   useEffect(() => {
     if (isConfirmed && stagedRoot) {
-      console.log('finalized commit:', stagedRoot.toString());
       repo.finalizeCommit(stagedRoot).catch(console.error);
     }
   }, [isConfirmed, stagedRoot]);
@@ -85,10 +86,38 @@ const Publish = () => {
     }
   }, [queryDomain, domain, ownedDomains]);
 
+  const getFileChanges = async () => {
+    try {
+      const allChangedFiles = [];
+      
+      const traverseDirectory = async (path) => {
+        const files = await repo.files.ls(path);
+        
+        for (const file of files) {
+          if (file.change) {
+            allChangedFiles.push(file);
+          }
+          
+          // If it's a directory and has changes, recursively check inside
+          if (file.type === 'directory' && file.change) {
+            await traverseDirectory(file.path);
+          }
+        }
+      };
+      
+      await traverseDirectory('/');
+      setFileChanges(allChangedFiles);
+    } catch (error) {
+      console.error('Error getting file changes:', error);
+      setFileChanges([]);
+    }
+  };
+
   useEffect(() => {
     const getChanges = async () => {
       const changes = await repo.getChanges();
       setUnstagedEdits(changes);
+      await getFileChanges();
     }
     getChanges();
   }, [repo]);
@@ -219,7 +248,9 @@ const Publish = () => {
           reset={reset}
           publishedDomain={selectedDomain !== domain ? selectedDomain : null}
         >
-          <h1 className="text-3xl font-bold mb-6">{publishOrFork} {unstagedEdits.length} {unstagedEdits.length === 1 ? 'change' : 'changes'}</h1>
+          <h1 className="text-3xl font-bold mb-6">
+            {publishOrFork} {unstagedEdits.length + fileChanges.length} {(unstagedEdits.length + fileChanges.length) === 1 ? 'change' : 'changes'}
+          </h1>
           
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Select ENS name to publish at</label>
@@ -266,16 +297,40 @@ const Publish = () => {
           </div>
           
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Pages being {publishOrFork.toLowerCase()}ed:</h2>
-            <ul className="list-inside">
-              {unstagedEdits.map((change, index) => (
-                <li key={index}>
-                  {selectedDomain + change.path} 
-                  <span className="ml-2 text-sm text-gray-500">({change.type})</span>
-                </li>
-              ))}
-            </ul>
+            {unstagedEdits.length > 0 && (
+              <>
+                <h2 className="text-xl font-semibold mb-2">Pages being {publishOrFork.toLowerCase()}ed:</h2>
+                <ul className="list-inside">
+                  {unstagedEdits.map((change, index) => (
+                    <li key={index}>
+                      {selectedDomain + change.path}
+                      <span className="ml-2 text-sm text-gray-500">({change.type})</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
+
+          {fileChanges.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Files being {publishOrFork.toLowerCase()}ed:</h2>
+              <ul className="list-inside">
+                {fileChanges.map((file, index) => (
+                  <li key={index} className="flex items-center justify-between">
+                    <span>
+                      {file.path}
+                      <span className="ml-2 text-sm text-gray-500">
+                        ({file.change === CHANGE_TYPE.NEW ? 'new' : 
+                          file.change === CHANGE_TYPE.EDIT ? 'modified' : 
+                          file.change === CHANGE_TYPE.DELETE ? 'deleted' : 'unknown'})
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           
           {versionInfo.canUpdate && (
             <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
@@ -292,9 +347,9 @@ const Publish = () => {
           )}
 
           {hasExistingContent && selectedDomain !== domain && (
-            <div className="mb-6 border border-gray-300 rounded-md p-2 bg-gray-50">
+            <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
               <label className="inline-flex items-center justify-between w-full">
-                <span className="text-gray-500">Something else is already published at {selectedDomain}. Are you sure you want to overwrite the existing content?</span>
+                <span className="text-base-content/70">Something else is already published at {selectedDomain}. Are you sure you want to overwrite the existing content?</span>
                 <input
                   type="checkbox"
                   checked={allowOverwrite}
@@ -314,7 +369,7 @@ const Publish = () => {
                 selectedDomain === 'new.simplepage.eth' ||
                 accountChainId !== chainId ||
                 (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
-                (unstagedEdits.length === 0 && !updateTemplate)
+                (unstagedEdits.length === 0 && fileChanges.length === 0 && !updateTemplate)
               }
               className="btn btn-primary"
             >

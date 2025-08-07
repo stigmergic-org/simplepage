@@ -246,26 +246,18 @@ export class Files {
   }
 
   /**
-   * Reads the content of a file from the change filesystem or original filesystem.
+   * Reads the content of a file from the change filesystem.
    * @param {string} path - The path of the file to read.
    * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
    */
   async cat(path) {
     await this.#isReady()
     path = path.startsWith('/') ? path : `/${path}`
-    // Try to read from changeRoot first
-    try {
-      const res = concat(await all(this.#fs.cat(this.#changeRoot, { path })))
-      return res
-    } catch (err) {
-      // If not found in changeRoot, try original root
-      const fileCid = await this.#fileExists(path)
-      if (fileCid) {
-        await this.#ensureContent(fileCid)
-        return concat(await all(this.#fs.cat(this.#root, { path })))
-      }
-      throw new Error('File not found')
-    }
+
+    const fileCid = await this.#fileExists(path, true)
+    assert(fileCid, `File not found: ${path}`)
+    await this.#ensureContent(fileCid)
+    return concat(await all(this.#fs.cat(this.#changeRoot, { path })))
   }
 
   async hasChanges() {

@@ -5,5 +5,6 @@ export const ROUTES = {
   PUBLISH: '/spg-publish',
   SUBSCRIPTION: '/spg-subscription',
   PAGES: '/spg-pages',
+  FILES: '/spg-files',
   NOT_FOUND: '/spg-notfound',
 }; 

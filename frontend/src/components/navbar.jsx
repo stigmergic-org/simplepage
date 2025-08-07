@@ -14,7 +14,7 @@ const Navbar = ({
     name: domain,
   });
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToViewWithPreview, goToRoot } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
@@ -40,27 +40,32 @@ const Navbar = ({
   const availableTabs = {
     'Preview': {
       onClick: () => goToViewWithPreview(path),
-      iconSrc: "/images/icons/preview.svg",
+      iconSrc: "/_assets/images/icons/preview.svg",
       alt: "👁️"
     },
     'Edit': {
       onClick: () => goToEdit(path),
-      iconSrc: "/images/icons/edit.svg",
+      iconSrc: "/_assets/images/icons/edit.svg",
       alt: "✏️"
     },
     'Pages': {
       onClick: () => goToPages(path),
-      iconSrc: "/images/icons/document.svg",
+      iconSrc: "/_assets/images/icons/document.svg",
       alt: "📄"
+    },
+    'Files': {
+      onClick: () => goToFiles(path),
+      iconSrc: "/_assets/images/icons/folder.svg",
+      alt: "📁"
     },
     'Subscription': {
       onClick: () => goToSubscription(),
-      iconSrc: "/images/icons/credit-card.svg",
+      iconSrc: "/_assets/images/icons/credit-card.svg",
       alt: "💳"
     },
     'Publish': {
       onClick: () => goToPublish(),
-      iconSrc: "/images/icons/upload.svg",
+      iconSrc: "/_assets/images/icons/upload.svg",
       alt: "️⬆️"
     }
   };

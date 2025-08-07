@@ -4,6 +4,8 @@ import { CHANGE_TYPE } from '@simplepg/repo';
 import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { ICONS } from '../config/icons';
 
 
 const Pages = () => {
@@ -195,11 +197,7 @@ const Pages = () => {
           logo={false}
           activeTab="Pages"
         />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="loading loading-spinner loading-lg"></div>
-          </div>
-        </div>
+        <LoadingSpinner />
       </>
     );
   }
@@ -209,16 +207,15 @@ const Pages = () => {
   return (
     <>
       <Navbar 
-        logo={false}
         activeTab="Pages"
       />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Pages ({allItems.length})</h1>
+          {/* <h1 className="text-3xl font-bold mb-8">Pages ({allItems.length})</h1> */}
           
           {error && (
             <div className="alert alert-error mb-6">
-              <img src="/images/icons/error.svg" alt="Error" className="stroke-current shrink-0 h-6 w-6" />
+              <img src={ICONS.error} alt="Error" className="stroke-current shrink-0 h-6 w-6" />
               <span>{error}</span>
             </div>
           )}
@@ -230,7 +227,7 @@ const Pages = () => {
               {allItems.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <img src="/images/icons/document.svg" alt="Document" className="mx-auto h-12 w-12 dark:invert" />
+                    <img src={ICONS.document} alt="Document" className="mx-auto h-12 w-12 dark:invert" />
                   </div>
                   <p className="text-gray-600">No pages found</p>
                   <p className="text-sm text-gray-500 mt-2">Create a new page below to get started</p>
@@ -261,25 +258,25 @@ const Pages = () => {
                             <td>
                               {status === 'new' && (
                                 <span className="badge badge-success gap-1">
-                                  <img src="/images/icons/plus.svg" alt="New" className="w-3 h-3" />
+                                  <img src={ICONS.plus} alt="New" className="w-3 h-3" />
                                   New
                                 </span>
                               )}
                               {status === 'edited' && (
                                 <span className="badge badge-warning gap-1">
-                                  <img src="/images/icons/warning.svg" alt="Edited" className="w-3 h-3" />
+                                  <img src={ICONS.warning} alt="Edited" className="w-3 h-3" />
                                   Edited
                                 </span>
                               )}
                               {status === 'deleted' && (
                                 <span className="badge badge-error gap-1">
-                                  <img src="/images/icons/trash.svg" alt="Deleted" className="w-3 h-3" />
+                                  <img src={ICONS.trash} alt="Deleted" className="w-3 h-3" />
                                   Deleted
                                 </span>
                               )}
                               {status === 'published' && (
                                 <span className="badge badge-info gap-1">
-                                  <img src="/images/icons/check.svg" alt="Published" className="w-3 h-3" />
+                                  <img src={ICONS.check} alt="Published" className="w-3 h-3" />
                                   Published
                                 </span>
                               )}
@@ -293,24 +290,24 @@ const Pages = () => {
                                       onClick={() => goToViewWithPreview(path)}
                                       title="Preview page"
                                     >
-                                      <img src="/images/icons/preview.svg" alt="Preview" className="w-4 h-4 dark:invert" />
+                                      <img src={ICONS.preview} alt="Preview" className="w-4 h-4 dark:invert" />
                                     </button>
                                     <button
                                       className="btn btn-sm btn-ghost"
                                       onClick={() => goToEdit(path)}
                                       title="Edit page"
                                     >
-                                      <img src="/images/icons/edit.svg" alt="Edit" className="w-4 h-4 dark:invert" />
+                                      <img src={ICONS.edit} alt="Edit" className="w-4 h-4 dark:invert" />
                                     </button>
                                   </>
                                 )}
-                                {(status !== 'published' || status === 'deleted') && (
+                                {(status === 'edited' || status === 'deleted') && (
                                   <button
                                     className="btn btn-sm btn-ghost btn-success"
                                     onClick={() => handleRestore(path)}
                                     title={status === 'deleted' ? 'Revert delete' : 'Restore to published'}
                                   >
-                                    <img src="/images/icons/restore.svg" alt="Restore" className="w-4 h-4 dark:invert" />
+                                    <img src={ICONS.restore} alt="Restore" className="w-4 h-4 dark:invert" />
                                   </button>
                                 )}
                                 {path !== '/' && status !== 'deleted' && (
@@ -319,7 +316,7 @@ const Pages = () => {
                                     onClick={() => handleDeleteFile(path)}
                                     title="Delete page"
                                   >
-                                    <img src="/images/icons/trash.svg" alt="Delete" className="w-4 h-4 dark:invert" />
+                                    <img src={ICONS.trash} alt="Delete" className="w-4 h-4 dark:invert" />
                                   </button>
                                 )}
                               </div>
@@ -340,7 +337,7 @@ const Pages = () => {
               <h2 className="card-title">Create New Page</h2>
               <div className="form-control">
                 <label className="input validator">
-                  <img src="/images/icons/document.svg" alt="Document" className="h-[1em] opacity-50 dark:invert" />
+                  <img src={ICONS.document} alt="Document" className="h-[1em] opacity-50 dark:invert" />
                   <input
                     type="text"
                     required

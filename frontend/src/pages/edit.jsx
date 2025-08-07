@@ -1,11 +1,50 @@
 import React, { useState, useEffect } from 'react';
+import { Renderer } from 'marked';
 import { useAccount } from 'wagmi';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
+import { mediaType } from '../utils/file-tools';
+
+const renderer = new Renderer();
+renderer.image = (href, title, text) => {
+  // Parse width and height from title if it contains '=WxH' format
+  let extraParams = '';
+  if (title) {
+    const sizeMatch = title.match(/=(\d+)x(\d+)/);
+    if (sizeMatch) {
+      let [width, height] = sizeMatch.slice(1);
+      const actualTitle = title.replace(/=\d+x\d+/, '').trim();
+      extraParams = ` title="${actualTitle}" width="${width}" height="${height}"`;
+    } else {
+      extraParams = ` title="${title}"`;
+      if (href.toLowerCase().endsWith('.pdf')) {
+        extraParams += ' width="100%" height="500px"';
+      }
+    }
+  } else if (href.toLowerCase().endsWith('.pdf')) {
+    extraParams = ' width="100%" height="500px"';
+  }
+  switch (mediaType(href)) {
+    case 'video':
+      return `<video src="${href}" controls${extraParams}>${text}</video>`;
+    case 'audio':
+      return `<audio src="${href}" controls${extraParams}>${text}</audio>`;
+    case 'application':
+      // Handle PDF files
+      if (href.toLowerCase().endsWith('.pdf')) {
+        return `<iframe src="${href}"${extraParams}">Your browser does not support PDF viewing. <a href="${href}" target="_blank">Click here to download the PDF</a></iframe>`;
+      }
+      // Fall through for other application types
+    case 'image':
+    default:
+      return `<img src="${href}" alt="${text}"${extraParams} />`;
+  }
+};
 
 // Define a stateless overlay mode for frontmatter
 const frontmatterOverlay = {
@@ -62,7 +101,6 @@ const Edit = () => {
     try {
       // Ensure the page exists
       if (!await repo.pageExists(path)) {
-        console.log('Page does not exist:', path);
         goToNotFound(path);
         return;
       }
@@ -90,6 +128,10 @@ const Edit = () => {
       spellChecker: false,
       sideBySideFullscreen: false,
       autoDownloadFontAwesome: false,
+      insertTexts: {
+        image: ["![](", ")"],
+        link: ["[", "]()"],
+      },
       toolbar: [
         'bold', 'italic', 'heading', '|',
         'quote', 'unordered-list', 'ordered-list', '|',
@@ -107,6 +149,9 @@ const Edit = () => {
       overlayMode: {
         mode: frontmatterOverlay,
         combine: true
+      },
+      renderingConfig: {
+        markedOptions: { renderer }
       },
     });
 
@@ -140,9 +185,7 @@ const Edit = () => {
         <Navbar 
           activeTab="Edit"
         />
-        <div className="flex justify-center items-center h-[calc(100vh-8rem)] w-full">
-          <span className="loading loading-infinity loading-lg"></span>
-        </div>
+        <LoadingSpinner />
       </>
     );
   }

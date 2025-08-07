@@ -4,6 +4,7 @@ import Navbar from '../components/navbar';
 import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
+import { encodeFileToDataUrl } from '../utils/file-tools';
 
 const parser = new DOMParser();
 
@@ -34,6 +35,7 @@ const View = ({ existingContent }) => {
       addHeadingLinks(parsedContent);
       if (isVirtual) {
         updateVirtualLinks(parsedContent, basename);
+        await updateVirtualMedia(parsedContent, repo);
       }
       setContent(parsedContent.body.innerHTML);
     }
@@ -45,8 +47,6 @@ const View = ({ existingContent }) => {
   return (
     <>
       <Navbar 
-        logo={!isVirtual}
-        label={isVirtual ? "preview" : null}
         activeTab={isVirtual ? "Preview" : undefined}
       />
       <div id="content" className="min-h-70 flex items-center justify-center pt-6">
@@ -59,6 +59,42 @@ const View = ({ existingContent }) => {
 };
 
 export default View;
+
+
+const updateVirtualMedia = async (parsedContent, repo) => {
+  const media = parsedContent.querySelectorAll('img, video, audio, iframe');
+  
+  const processMedia = async (element) => {
+    const src = element.getAttribute('src');
+    if (src?.startsWith('/_files/')) {
+      try {
+        // Strip /_files/ prefix
+        const filePath = src.substring(8);
+        
+        // Get file content from repo
+        const fileContent = await repo.files.cat(filePath);
+        
+        // Encode file content to data URL
+        const dataUrl = encodeFileToDataUrl(fileContent, filePath);
+        
+        if (dataUrl) {
+          element.src = dataUrl;
+        } else {
+          // Keep original src if encoding fails
+          console.warn(`Unknown media extension: ${filePath}, keeping original src`);
+        }
+      } catch (error) {
+        console.warn(`Failed to load media ${src}:`, error);
+        // Keep original src if loading fails
+      }
+    }
+  }
+  const promises = []
+  for (const element of media) {
+    promises.push(processMedia(element));
+  }
+  await Promise.all(promises);
+}
 
 // Function to update links for virtual preview mode
 const updateVirtualLinks = (parsedContent, basename) => {

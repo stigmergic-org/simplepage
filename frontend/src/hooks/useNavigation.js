@@ -30,6 +30,8 @@ export const useNavigation = () => {
 
   const goToPages = (path = null) => navigate(createUrlWithParams(ROUTES.PAGES, { path }));
 
+  const goToFiles = (path = null) => navigate(createUrlWithParams(ROUTES.FILES, { path }));
+
   const goToNotFound = (path = null) => navigate(createUrlWithParams(ROUTES.NOT_FOUND, { path }));
 
   const goToRoot = () => {
@@ -49,6 +51,7 @@ export const useNavigation = () => {
     goToPublish,
     goToSubscription,
     goToPages,
+    goToFiles,
     goToNotFound,
     goToRoot,
     isActive,

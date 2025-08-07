@@ -14,6 +14,7 @@ import Edit from './pages/edit';
 import Publish from './pages/publish';
 import Subscription from './pages/subscription';
 import Pages from './pages/pages';
+import Files from './pages/files';
 import NotFound from './pages/notfound';
 import { ROUTES } from './config/routes';
 
@@ -37,6 +38,7 @@ const App = (props) => {
             <Route path={ROUTES.PUBLISH} element={<Publish />} />
             <Route path={ROUTES.SUBSCRIPTION} element={<Subscription />} />
             <Route path={ROUTES.PAGES} element={<Pages />} />
+            <Route path={ROUTES.FILES} element={<Files />} />
             <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
           </Routes>
         </ScrollProvider>
