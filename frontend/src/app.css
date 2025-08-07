@@ -208,6 +208,17 @@
   text-shadow: none;
 }
 
+.rainbow-fork svg {
+  background: linear-gradient(90deg, #ff005a, #ffbe00, #00ff94, #00cfff, #a259ff, #ff005a 100%);
+  background-size: 300% 300%;
+  animation: rainbowShift 6s linear infinite;
+  -webkit-mask: url(#fork-mask);
+  mask: url(#fork-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+
 .rainbow-fork:hover, .rainbow-fork:focus {
   filter: brightness(1.1) saturate(1.2);
 }

@@ -226,10 +226,10 @@ const Files = () => {
   };
 
   const STATUS_ICONS = {
-    new: <img src="/_assets/images/icons/plus.svg" alt="New" className="w-3 h-3" />,
-    modified: <img src="/_assets/images/icons/warning.svg" alt="Modified" className="w-3 h-3" />,
-    deleted: <img src="/_assets/images/icons/trash.svg" alt="Deleted" className="w-3 h-3" />,
-    published: <img src="/_assets/images/icons/check.svg" alt="Published" className="w-3 h-3" />
+    new: <img src={ICONS.plus.src} alt={ICONS.plus.alt} className="w-3 h-3" />,
+    modified: <img src={ICONS.warning.src} alt={ICONS.warning.alt} className="w-3 h-3" />,
+    deleted: <img src={ICONS.trash.src} alt={ICONS.trash.alt} className="w-3 h-3" />,
+    published: <img src={ICONS.check.src} alt={ICONS.check.alt} className="w-3 h-3" />
   };
 
   const STATUS_BADGES = {
@@ -253,7 +253,7 @@ const Files = () => {
           <ul>
             <li>
               <a onClick={() => setCurrentPath('/')} className="cursor-pointer">
-                <img src={ICONS.folder} alt="📁" className="w-4 h-4 dark:invert" />
+                <img src={ICONS.folder.src} alt={ICONS.folder.alt} className="w-4 h-4 dark:invert" />
                 ~
               </a>
             </li>
@@ -289,7 +289,7 @@ const Files = () => {
           
           {error && (
             <div className="alert alert-error mb-6">
-              <img src={ICONS.error} alt="Error" className="stroke-current shrink-0 h-6 w-6" />
+              <img src={ICONS.error.src} alt={ICONS.error.alt} className="stroke-current shrink-0 h-6 w-6" />
               <span>{error}</span>
             </div>
           )}
@@ -308,7 +308,7 @@ const Files = () => {
               {sortedFiles.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <img src={ICONS.folder} alt="Folder" className="mx-auto h-12 w-12 dark:invert" />
+                    <img src={ICONS.folder.src} alt={ICONS.folder.alt} className="mx-auto h-12 w-12 dark:invert" />
                   </div>
                   <p className="text-gray-600">No files or folders found</p>
                   <p className="text-sm text-gray-500 mt-2">Upload files or create folders to get started</p>
@@ -342,8 +342,8 @@ const Files = () => {
                                 }}
                               >
                                 <img 
-                                  src={isFolder ? ICONS.folder : ICONS.document} 
-                                  alt={isFolder ? "📁" : "📄"} 
+                                  src={isFolder ? ICONS.folder.src : ICONS.document.src} 
+                                  alt={isFolder ? ICONS.folder.alt : ICONS.document.alt} 
                                   className="w-4 h-4 dark:invert" 
                                 />
                                 <span className="">
@@ -370,7 +370,7 @@ const Files = () => {
                                       className="btn btn-sm btn-ghost"
                                       onClick={() => handleCopyPath(file)}
                                     >
-                                      <img src={ICONS.copy} alt="Copy" className="w-4 h-4 dark:invert" />
+                                      <img src={ICONS.copy.src} alt={ICONS.copy.alt} className="w-4 h-4 dark:invert" />
                                     </button>
                                   </div>
                                 )}
@@ -380,7 +380,7 @@ const Files = () => {
                                       className="btn btn-sm btn-ghost btn-success"
                                       onClick={() => handleRestore(file)}
                                     >
-                                      <img src={ICONS.restore} alt="Restore" className="w-4 h-4 dark:invert" />
+                                      <img src={ICONS.restore.src} alt={ICONS.restore.alt} className="w-4 h-4 dark:invert" />
                                     </button>
                                   </div>
                                 )}
@@ -390,7 +390,7 @@ const Files = () => {
                                       className="btn btn-sm btn-ghost btn-error"
                                       onClick={() => handleDeleteFile(file)}
                                     >
-                                      <img src={ICONS.trash} alt="Delete" className="w-4 h-4 dark:invert" />
+                                      <img src={ICONS.trash.src} alt={ICONS.trash.alt} className="w-4 h-4 dark:invert" />
                                     </button>
                                   </div>
                                 )}
@@ -459,14 +459,14 @@ const Files = () => {
                 className="btn btn-soft btn-primary"
                 onClick={() => setShowNewFolderInput(true)}
               >
-                <img src={ICONS.folder} alt="📁" className="w-4 h-4 dark:invert" />
+                <img src={ICONS.folder.src} alt={ICONS.folder.alt} className="w-4 h-4 dark:invert" />
                 New Folder
               </button>
               <button
                 className="btn btn-soft btn-secondary"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <img src={ICONS.upload} alt="⬆️" className="w-4 h-4 dark:invert" />
+                <img src={ICONS.upload.src} alt={ICONS.upload.alt} className="w-4 h-4 dark:invert" />
                 Upload Files
               </button>
               <input

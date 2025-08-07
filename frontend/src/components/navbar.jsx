@@ -4,6 +4,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
+import { ICONS } from '../config/icons';
 
 const Navbar = ({
   activeTab
@@ -40,33 +41,33 @@ const Navbar = ({
   const availableTabs = {
     'Preview': {
       onClick: () => goToViewWithPreview(path),
-      iconSrc: "/_assets/images/icons/preview.svg",
-      alt: "👁️"
+      iconSrc: ICONS.preview.src,
+      alt: ICONS.preview.alt
     },
     'Edit': {
       onClick: () => goToEdit(path),
-      iconSrc: "/_assets/images/icons/edit.svg",
-      alt: "✏️"
+      iconSrc: ICONS.edit.src,
+      alt: ICONS.edit.alt
     },
     'Pages': {
       onClick: () => goToPages(path),
-      iconSrc: "/_assets/images/icons/document.svg",
-      alt: "📄"
+      iconSrc: ICONS.document.src,
+      alt: ICONS.document.alt
     },
     'Files': {
       onClick: () => goToFiles(path),
-      iconSrc: "/_assets/images/icons/folder.svg",
-      alt: "📁"
+      iconSrc: ICONS.folder.src,
+      alt: ICONS.folder.alt
     },
     'Subscription': {
       onClick: () => goToSubscription(),
-      iconSrc: "/_assets/images/icons/credit-card.svg",
-      alt: "💳"
+      iconSrc: ICONS['credit-card'].src,
+      alt: ICONS['credit-card'].alt
     },
     'Publish': {
       onClick: () => goToPublish(),
-      iconSrc: "/_assets/images/icons/upload.svg",
-      alt: "️⬆️"
+      iconSrc: ICONS.upload.src,
+      alt: ICONS.upload.alt
     }
   };
 
@@ -141,18 +142,36 @@ const Navbar = ({
           <div className="flex gap-2 items-center">
             {!showTabs ? (
               <button
-                className="btn btn-ghost btn-sm rainbow-fork text-xl"
+                className="btn btn-ghost btn-sm rainbow-fork text-lg"
                 onClick={() => { goToEdit(path) }}
               >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                >
+                  <defs>
+                    <mask id="fork-mask">
+                      <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" fill="white"/>
+                    </mask>
+                  </defs>
+                </svg>
                 {'fork'}
               </button>
             ) : (
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleQuitClick}
-              >
-                Quit
-              </button>
+              <div className="tooltip tooltip-bottom" data-tip="quit">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleQuitClick}
+                >
+                  <img
+                    src={ICONS.exit.src}
+                    alt={ICONS.exit.alt}
+                    className="w-4 h-4 dark:invert"
+                  />
+                </button>
+              </div>
             )}
           </div>
         </div>

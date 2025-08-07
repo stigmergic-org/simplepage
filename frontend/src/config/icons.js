@@ -1,17 +1,64 @@
 const PREFIX = '/_assets/images/icons/';
 
 export const ICONS = {
-  'check': `${PREFIX}check.svg`,
-  'copy': `${PREFIX}copy.svg`,
-  'credit-card': `${PREFIX}credit-card.svg`,
-  'document': `${PREFIX}document.svg`,
-  'edit': `${PREFIX}edit.svg`,
-  'error': `${PREFIX}error.svg`,
-  'folder': `${PREFIX}folder.svg`,
-  'plus': `${PREFIX}plus.svg`,
-  'preview': `${PREFIX}preview.svg`,
-  'restore': `${PREFIX}restore.svg`,
-  'trash': `${PREFIX}trash.svg`,
-  'upload': `${PREFIX}upload.svg`,
-  'warning': `${PREFIX}warning.svg`,
+  'check': {
+    src: `${PREFIX}check.svg`,
+    alt: '✅',
+  },
+  'copy': {
+    src: `${PREFIX}copy.svg`,
+    alt: '📋',
+  },
+  'credit-card': {
+    src: `${PREFIX}credit-card.svg`,
+    alt: '💳',
+  },
+  'document': {
+    src: `${PREFIX}document.svg`,
+    alt: '📄',
+  },
+  'edit': {
+    src: `${PREFIX}edit.svg`,
+    alt: '✏️',
+  },
+  'error': {
+    src: `${PREFIX}error.svg`,
+    alt: '❌',
+  },
+  'exit': {
+    src: `${PREFIX}exit.svg`,
+    alt: '🚪',
+  },
+  'folder': {
+    src: `${PREFIX}folder.svg`,
+    alt: '📁',
+  },
+  'plus': {
+    src: `${PREFIX}plus.svg`,
+    alt: '➕',
+  },
+  'preview': {
+    src: `${PREFIX}preview.svg`,
+    alt: '👁️',
+  },
+  'restore': {
+    src: `${PREFIX}restore.svg`,
+    alt: '↩️',
+  },
+  'trash': {
+    src: `${PREFIX}trash.svg`,
+    alt: '🗑️',
+  },
+  'upload': {
+    src: `${PREFIX}upload.svg`,
+    alt: '⬆️',
+  },
+  'warning': {
+    src: `${PREFIX}warning.svg`,
+    alt: '⚠️',
+  },
+  'fork': {
+    src: `${PREFIX}fork.svg`,
+    alt: '🍴',
+  },
 };
