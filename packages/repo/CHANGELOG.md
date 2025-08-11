@@ -1,5 +1,11 @@
 # @simplepg/repo
 
+## 1.1.1
+
+### Patch Changes
+
+- 6da46cc: fix(repo): file deletion on template upgrade
+
 ## 1.1.0
 
 ### Minor Changes

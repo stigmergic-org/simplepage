@@ -1,5 +1,11 @@
 # @simplepg/dservice
 
+## 1.3.1
+
+### Patch Changes
+
+- 9a127d1: fix(dservice): don't exit if finalization fails
+
 ## 1.3.0
 
 ### Minor Changes

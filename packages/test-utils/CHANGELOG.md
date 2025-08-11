@@ -1,5 +1,12 @@
 # @simplepg/test-utils
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [9a127d1]
+  - @simplepg/dservice@1.3.1
+
 ## 1.0.4
 
 ### Patch Changes
