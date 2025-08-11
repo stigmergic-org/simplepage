@@ -1314,6 +1314,101 @@ This is a test.`;
       expect(finalRoot.toString()).toBe(updateResult.cid.toString());
       await newRepo.close()
     });
+
+    it('should handle file deletion through staging and finalization', async () => {
+      // Create repo and add some pages
+      const pages = {
+        root: {
+          path: '/',
+          markdown: '# Home Page\n\nWelcome to the home page.',
+          body: '<h1>Home Page</h1><p>Welcome to the home page.</p>'
+        },
+        about: {
+          path: '/about/',
+          markdown: '# About\n\nAbout page content.',
+          body: '<h1>About</h1><p>About page content.</p>'
+        },
+        contact: {
+          path: '/contact/',
+          markdown: '# Contact\n\nContact information.',
+          body: '<h1>Contact</h1><p>Contact information.</p>'
+        }
+      };
+
+      // Add all pages to the repo
+      for (const page of Object.values(pages)) {
+        await repo.setPageEdit(page.path, page.markdown, page.body);
+      }
+
+      // Stage and commit the initial pages
+      const initialResult = await repo.stage('test.eth', false);
+      expect(initialResult).toHaveProperty('cid');
+      expect(initialResult.cid instanceof CID).toBe(true);
+
+      // Verify all pages are staged correctly
+      for (const page of Object.values(pages)) {
+        const markdown = await cat(testEnv.kubo.kuboApi, `/ipfs/${initialResult.cid.toString()}${page.path}index.md`);
+        expect(markdown).toBe(page.markdown);
+
+        const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${initialResult.cid.toString()}${page.path}index.html`);
+        expect(html).toContain(page.body);
+      }
+
+      // Commit the initial version
+      const hash1 = await walletClient.writeContract(initialResult.prepTx);
+      expect(hash1).toBeDefined();
+      const transaction1 = await client.waitForTransactionReceipt({ hash: hash1 });
+      expect(transaction1.status).toBe('success');
+      await repo.finalizeCommit(initialResult.cid);
+
+      // Delete a file (the contact page)
+      await repo.deletePage('/contact/');
+
+      // Verify the deletion is staged
+      let changes = await repo.getChanges();
+      expect(changes.length).toBe(1);
+      expect(changes[0].type).toBe('delete');
+      expect(changes[0].path).toBe('/contact/');
+
+      // Stage (with update template) and commit the deletion
+      const deleteResult = await repo.stage('test.eth', true);
+      expect(deleteResult).toHaveProperty('cid');
+      expect(deleteResult.cid instanceof CID).toBe(true);
+
+      // Ensure the deleted file is not present in the new commit
+      await expect(cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/contact/index.md`)).rejects.toThrow();
+      await expect(cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/contact/index.html`)).rejects.toThrow();
+
+      // Verify other pages still exist
+      const rootMarkdown = await cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/index.md`);
+      expect(rootMarkdown).toBe(pages.root.markdown);
+
+      const aboutMarkdown = await cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/about/index.md`);
+      expect(aboutMarkdown).toBe(pages.about.markdown);
+
+      // Verify template update occurred (version 0.5.0)
+      const templateContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/_template.html`);
+      expect(templateContent).toBeDefined();
+      const templateDoc = parser.parseFromString(templateContent, 'text/html');
+      checkMeta(templateDoc, 'version', '0.5.0');
+
+      // Verify _assets and _js folders are updated
+      const assetsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/_assets`);
+      expect(assetsContent).toBe('folder-updated');
+
+      const jsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${deleteResult.cid.toString()}/_js`);
+      expect(jsContent).toBe('folder-updated');
+
+      // Commit the final version
+      const hash2 = await walletClient.writeContract(deleteResult.prepTx);
+      expect(hash2).toBeDefined();
+      const transaction2 = await client.waitForTransactionReceipt({ hash: hash2 });
+      expect(transaction2.status).toBe('success');
+
+      // Verify the final state through ENS resolution
+      const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
+      expect(finalRoot.toString()).toBe(deleteResult.cid.toString());
+    });
   });
 
   describe('Files Tests', () => {

@@ -355,24 +355,25 @@ export class Repo {
   /**
    * Stages the current edits for a commit.
    * @param {string} targetDomain - The domain of the target repository.
-   * @param {boolean} updateTemplate - Whether to update the template.
+   * @param {boolean} wantUpdateTemplate - Whether to update the template.
    * @returns {Promise<{ cid: string, prepTx: object }>} The CID of the new root and the preparation transaction.
    */
-  async stage(targetDomain, updateTemplate = false) {
+  async stage(targetDomain, wantUpdateTemplate = false) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     let edits = await this.getChanges()
     const filesChanged = await this.files.hasChanges()
     assert(edits.length > 0 || filesChanged, 'No edits to stage')
 
+    if (wantUpdateTemplate) {
+      assert(this.templateRoot.cid, 'Template root not found')
+    }
+    const willUpdateTemplate = wantUpdateTemplate && (await this.isNewVersionAvailable()).canUpdate
+
     // Puts the content of the current repoRoot into
     // the '_prev/0/' directory of the new root.
     const emptyDir = await this.unixfs.addDirectory()
     const zeroDir = await this.unixfs.cp(this.repoRoot.cid, emptyDir, '0')
-    let rootToUse = this.repoRoot.cid
-    if (updateTemplate) {
-      await this.#ensureRepoData(true)
-      rootToUse = this.templateRoot.cid
-    }
+    const rootToUse = willUpdateTemplate ? this.templateRoot.cid : this.repoRoot.cid
     const newRootWithoutPrev = await this.unixfs.rm(rootToUse, '_prev')
     let rootPointer = await this.unixfs.cp(zeroDir, newRootWithoutPrev, '_prev')
 
@@ -380,7 +381,7 @@ export class Repo {
     const { cid: newFilesRoot, unchangedCids: unchangedFileCids } = await this.files.stage()
     rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, '_files', { force: true })
 
-    if (updateTemplate) {
+    if (willUpdateTemplate) {
       // add upgrades to pending edits
       const allPages = await this.getAllPages()
       for (const path of allPages) {
@@ -399,6 +400,7 @@ export class Repo {
       const htmlPath = path + 'index.html'
       switch (type) {
         case CHANGE_TYPE.DELETE:
+          if (willUpdateTemplate) break // template root doesn't have any files, so we don't need to delete anything
           rootPointer = await rm(this.unixfs, rootPointer, mdPath)
           rootPointer = await rm(this.unixfs, rootPointer, htmlPath)
           break
