@@ -117,6 +117,7 @@ We use [Changesets](https://github.com/changesets/changesets) for versioning and
    pnpm install
    ```
 2. **Build all packages:**
+   First make sure `.env` is configured for mainnet, then:
    ```bash
    pnpm run build
    ```

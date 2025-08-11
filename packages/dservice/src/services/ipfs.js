@@ -231,7 +231,7 @@ export class IpfsService {
         blockNumber,
         stack: error.stack 
       })
-      throw error
+      // throw error
     }
   }
 
