@@ -1,7 +1,8 @@
 import { Files, FILES_ROOT } from '../src/files.js'
 import { CHANGE_TYPE } from '../src/constants.js'
-import { emptyUnixfs, ls } from '@simplepg/common'
+import { emptyUnixfs, ls, CidSet } from '@simplepg/common'
 import { jest } from '@jest/globals'
+import { CID } from 'multiformats/cid'
 
 describe('Files', () => {
   let files
@@ -299,6 +300,64 @@ describe('Files', () => {
         { name: 'file2.txt', cid: expect.any(Object), size: expect.any(Number), path: 'file2.txt', type: 'file' },
         { name: 'test.txt', cid: expect.any(Object), size: expect.any(Number), path: 'test.txt', type: 'file' }
       ])
+    })
+
+    it('should handle non-cached files', async () => {
+      // Add some files and folders
+      await files.rm('test.txt')
+      await files.add('file1.txt', new TextEncoder().encode('content1'))
+      await files.add('file2.txt', new TextEncoder().encode('content2'))
+      await files.mkdir('/folder1')
+      await files.add('/folder1/file3.txt', new TextEncoder().encode('content3'))
+      await files.add('/folder2/file4.txt', new TextEncoder().encode('content4'))
+      await files.add('/folder3/subfolder/file6.txt', new TextEncoder().encode('content6'))
+      
+      // Stage and finalize
+      const stagedResult = await files.stage()
+      await files.finalizeCommit(stagedResult.cid)
+      
+      // Create new files instance with new unixfs and blockstore
+      const { fs: newFs, blockstore: newBlockstore } = emptyUnixfs()
+      const newFiles = new Files(newFs, newBlockstore, mockDservice, mockEnsureRepoData, mockStorage)
+
+      mockDservice.fetch.mockImplementation(async (path) => {
+        const cid = path.split('?cid=')[1]
+        const block = await blockstore.get(CID.parse(cid))
+        return {
+          status: 200,
+          arrayBuffer: jest.fn().mockResolvedValue(block)
+        }
+      })
+      
+      // Copy the staged result blocks from old blockstore to new blockstore
+      const rootBlock = await blockstore.get(stagedResult.cid)
+      await newBlockstore.put(stagedResult.cid, rootBlock)
+      
+      // Create a repo root with _files directory containing the committed state
+      const emptyDir = await newFs.addDirectory()
+      const repoRootWithFiles = await newFs.cp(stagedResult.cid, emptyDir, '_files')
+      
+      // Set the repo root to the new repo root containing _files
+      await newFiles.unsafeSetRepoRoot(repoRootWithFiles)
+
+      await newFiles.add('file1.txt', new TextEncoder().encode('content1-updated'))
+      await newFiles.add('/folder2/file5.txt', new TextEncoder().encode('content5'))
+      await newFiles.add('/folder3/subfolder/file7.txt', new TextEncoder().encode('content7'))
+      
+      // Stage again (without changes)
+      const newStagedResult = await newFiles.stage()
+      
+      // Ensure unchangedCids are correct - should contain all the CIDs from the committed state
+      expect(Array.from(newStagedResult.unchangedCids.values())).toEqual([
+        (await fs.stat(stagedResult.cid, { path: '/file2.txt' })).cid.toString(),
+        (await fs.stat(stagedResult.cid, { path: '/folder1' })).cid.toString(),
+        (await fs.stat(stagedResult.cid, { path: '/folder2/file4.txt' })).cid.toString(),
+        (await fs.stat(stagedResult.cid, { path: '/folder3/subfolder/file6.txt' })).cid.toString()
+      ])
+      
+      // Ensure mockDservice is called as expected (if any fetch calls are made during content loading)
+      // The mockDservice.fetch should be called when ensuring content for non-cached CIDs
+      expect(mockDservice.fetch).toHaveBeenCalled()
     })
   })
 

@@ -2032,6 +2032,50 @@ Thoughts and insights about technology and development.`,
 
       await newRepo.close()
     });
+
+    it('should handle non-cached files', async () => {
+      // Create some files and folders
+      const files = {
+        '/images/logo.png': new TextEncoder().encode('fake-png-data'),
+        '/documents/resume.pdf': new TextEncoder().encode('fake-pdf-data'),
+        '/assets/css/style.css': new TextEncoder().encode('body { color: red; }'),
+        '/data/config.json': new TextEncoder().encode('{"setting": "value"}'),
+        '/backups/old-file.txt': new TextEncoder().encode('old content')
+      };
+
+      // Add all files to the repo
+      for (const [path, content] of Object.entries(files)) {
+        await repo.files.add(path, content);
+      }
+
+      // Stage and finalize the changes
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Commit the changes
+      const hash = await walletClient.writeContract(result.prepTx);
+      expect(hash).toBeDefined();
+      const transaction = await client.waitForTransactionReceipt({ hash });
+      expect(transaction.status).toBe('success');
+      await repo.finalizeCommit(result.cid);
+
+      // Create new files instance with new unixfs and blockstore
+      resetIDB();
+      const newStorage = new MockStorage();
+      const newRepo = new Repo('test.eth', newStorage);
+      await newRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      // Stage again without changes
+      const secondResult = await newRepo.stage('test.eth', true);
+      expect(secondResult).toHaveProperty('cid');
+      expect(secondResult.cid instanceof CID).toBe(true);
+
+      await newRepo.close();
+    });
   })
 
   describe('Error Handling Tests', () => {

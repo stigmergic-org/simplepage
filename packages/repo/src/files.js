@@ -1,9 +1,9 @@
 import { concat } from 'uint8arrays/concat'
-import { code as dagPbCode } from '@ipld/dag-pb'
+import * as dagPb from '@ipld/dag-pb'
 import all from 'it-all'
 import { CID } from 'multiformats/cid'
 
-import { addFile, rm, ls, lsFull, assert, getChildCids, cp } from '@simplepg/common'
+import { addFile, rm, ls, lsFull, assert, CidSet, cp } from '@simplepg/common'
 import { CHANGE_TYPE } from './constants.js'
 
 export const FILES_ROOT = '_files'
@@ -121,6 +121,7 @@ export class Files {
         const loc = refs.find(({ Name }) => Name === path)
         assert(!inChangeRoot || loc, `Folder not found: ${path}`)
         if (!loc) continue // we are calling ls in a folder that hasn't been created in fs yet
+        await this.#ensureContent(loc.Hash)
         refs = await lsFull(this.#blockstore, loc.Hash)
       }
       return refs
@@ -183,6 +184,18 @@ export class Files {
   async add(path, content) {
     await this.#isReady()
     path = path.startsWith('/') ? path : `/${path}`
+
+    // if the folder exist under changeRoot, we need to ensure it's in the local blockstore
+    const split = path.split('/').filter(Boolean)
+    split.pop() // remove file name
+    const revSplit = split.reverse()
+    let tmpPath = []
+    while (revSplit.length > 0) {
+      tmpPath.push(revSplit.pop())
+      try { // ls will ensure the folder is in the local blockstore, if it's under changeRoot
+        await this.ls(tmpPath.join('/'))
+      } catch (e) {}
+    }
     
     // Add file to changeRoot
     await this.#setChangeRoot(await addFile(this.#fs, this.#changeRoot, path, content))
@@ -265,6 +278,29 @@ export class Files {
     return !this.#changeRoot.equals(this.#root)
   }
 
+  async #getUnchangedRoots(newCid, oldCid) {
+    if (newCid.equals(oldCid)) {
+      return new CidSet([newCid])
+    }
+    if (newCid.code === dagPb.code) {
+      const getNode = async (cid) => {
+        await this.#ensureContent(cid)
+        return dagPb.decode(await this.#blockstore.get(cid))
+      }
+      const [newNode, oldNode] = await Promise.all([ getNode(newCid), getNode(oldCid) ])
+      let cids = new CidSet()
+      for (const link of newNode.Links) {
+        const oldLink = oldNode.Links.find(l => l.Name === link.Name)
+        if (oldLink) {
+          const childCids = await this.#getUnchangedRoots(link.Hash, oldLink.Hash)
+          cids = new CidSet([...cids, ...childCids])
+        }
+      }
+      return cids
+    }
+    return new CidSet()
+  }
+
   /**
    * Stages all changes and returns a new CID of the updated filesystem root.
    * @returns {Promise<{ cid: CID, unchangedCids: CidSet }>} The CID of the new root after staging changes.
@@ -272,7 +308,7 @@ export class Files {
   async stage() {
     await this.#isReady()
     // The changeRoot already contains all the staged changes
-    const unchangedCids = await getChildCids(this.#blockstore, this.#root)
+    const unchangedCids = await this.#getUnchangedRoots(this.#changeRoot, this.#root)
     return { cid: this.#changeRoot, unchangedCids }
   }
 
