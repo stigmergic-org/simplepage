@@ -59,7 +59,7 @@ const frontmatterOverlay = {
       // Find the first and second --- lines
       const lines = stream.lineOracle.doc.children[0].lines;
       let firstDash = -1, secondDash = -1;
-      for (let i = 0; i < Math.min(lines.length, 20); i++) {
+      for (let i = 0; i < Math.min(lines?.length, 20); i++) {
         if (/^---\s*$/.test(lines[i].text)) {
           if (firstDash === -1) firstDash = i;
           else if (secondDash === -1) { secondDash = i; break; }
