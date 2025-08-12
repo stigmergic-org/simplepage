@@ -196,13 +196,26 @@ export async function resolveEnsOwner(viemClient, ensName, chainId) {
     if (!registryAddress) throw new Error('ENS registry address not configured for this chain');
 
     try {
+        const nameHash = namehash(ensName);
         const owner = await viemClient.readContract({
             address: registryAddress,
             abi: ownerAbi,
             functionName: 'owner',
-            args: [namehash(ensName)]
+            args: [nameHash]
         });
         if (owner && owner !== '0x0000000000000000000000000000000000000000') {
+            const nameWrapperAddress = contracts.ensNameWrapper[String(chainId)];
+            if (owner.toLowerCase() === nameWrapperAddress.toLowerCase()) {
+                const nameWrapperAbi = contracts.abis.EnsNameWrapper;
+                const nameHashAsUint256 = BigInt(nameHash);
+                const actualOwner = await viemClient.readContract({
+                    address: nameWrapperAddress,
+                    abi: nameWrapperAbi,
+                    functionName: 'ownerOf',
+                    args: [nameHashAsUint256]
+                });
+                return actualOwner;
+            }
             return owner;
         }
     } catch (e) {
