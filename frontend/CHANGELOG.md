@@ -1,5 +1,14 @@
 # @simplepg/frontend
 
+## 1.3.3
+
+### Patch Changes
+
+- 68340ec: fix(frontend): frontmatter parsing bug
+- Updated dependencies [238121d]
+  - @simplepg/common@1.2.1
+  - @simplepg/repo@1.1.3
+
 ## 1.3.2
 
 ### Patch Changes

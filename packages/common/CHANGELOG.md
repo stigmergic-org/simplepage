@@ -1,5 +1,11 @@
 # @simplepg/common
 
+## 1.2.1
+
+### Patch Changes
+
+- 238121d: fix(common): properly resolve owner on wrapped ENS names
+
 ## 1.2.0
 
 ### Minor Changes
