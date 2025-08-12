@@ -1,5 +1,13 @@
 # @simplepg/repo
 
+## 1.1.2
+
+### Patch Changes
+
+- aa322f2: fix(repo): should allow updating template without page or file updates
+- af97146: chore(repo): set og:site_name to domain
+- 69b85aa: fix(repo): better handling of missing files from local filessytem
+
 ## 1.1.1
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @simplepg/frontend
 
+## 1.3.2
+
+### Patch Changes
+
+- Updated dependencies [aa322f2]
+- Updated dependencies [af97146]
+- Updated dependencies [69b85aa]
+  - @simplepg/repo@1.1.2
+
 ## 1.3.1
 
 ### Patch Changes
