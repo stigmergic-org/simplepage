@@ -362,12 +362,11 @@ export class Repo {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     let edits = await this.getChanges()
     const filesChanged = await this.files.hasChanges()
-    assert(edits.length > 0 || filesChanged, 'No edits to stage')
-
     if (wantUpdateTemplate) {
       assert(this.templateRoot.cid, 'Template root not found')
     }
     const willUpdateTemplate = wantUpdateTemplate && (await this.isNewVersionAvailable()).canUpdate
+    assert(edits.length > 0 || filesChanged || willUpdateTemplate, 'No edits to stage')
 
     // Puts the content of the current repoRoot into
     // the '_prev/0/' directory of the new root.

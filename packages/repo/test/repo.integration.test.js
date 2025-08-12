@@ -1047,6 +1047,27 @@ This is a test page with custom title and description.`;
       await expect(repo.stage('test.eth', false)).rejects.toThrow('No edits to stage');
     });
 
+    it('should stage with template update when there are no file or page edits', async () => {
+      // Stage with template update should work
+      const result = await repo.stage('test.eth', true);
+      expect(result).toHaveProperty('cid');
+      expect(result).toHaveProperty('prepTx');
+      expect(result.cid instanceof CID).toBe(true);
+      
+      // Verify template is updated to version 0.5.0
+      const templateContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/_template.html`);
+      expect(templateContent).toBeDefined();
+      const templateDoc = parser.parseFromString(templateContent, 'text/html');
+      checkMeta(templateDoc, 'version', '0.5.0');
+      
+      // Verify _assets and _js folders are updated
+      const assetsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/_assets`);
+      expect(assetsContent).toBe('folder-updated');
+      
+      const jsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/_js`);
+      expect(jsContent).toBe('folder-updated');
+    });
+
     it('should include manifest.json and _redirects files during staging', async () => {
       const testMarkdown = `---
 title: My Custom Title
