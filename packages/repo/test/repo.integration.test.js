@@ -583,6 +583,10 @@ This is a test page with custom title and description.`;
       expect(ogTitle).toBeDefined()
       expect(ogTitle.content).toBe('My Custom Title')
       
+      const ogSiteName = doc.querySelector('meta[property="og:site_name"]')
+      expect(ogSiteName).toBeDefined()
+      expect(ogSiteName.content).toBe('test.eth')
+
       const ogDescription = doc.querySelector('meta[property="og:description"]')
       expect(ogDescription).toBeDefined()
       expect(ogDescription.content).toBe('This is a custom description for the page')

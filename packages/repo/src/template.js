@@ -15,6 +15,8 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     // udpate og:title and twitter:title
     const ogTitleElement = templateDoc.querySelector('meta[property="og:title"]')
     ogTitleElement.setAttribute('content', titleText)
+    const ogSiteNameElement = templateDoc.querySelector('meta[property="og:site_name"]')
+    ogSiteNameElement.setAttribute('content', targetDomain)
     const twitterTitleElement = templateDoc.querySelector('meta[name="twitter:title"]')
     twitterTitleElement.setAttribute('content', titleText)
 
