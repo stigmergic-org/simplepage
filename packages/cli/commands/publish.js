@@ -137,4 +137,7 @@ export async function publish(domain, path, options) {
   console.log(`\nTo update your ENS name, set your contenthash to this url within 1 hour:`)
   console.log(`ipfs://${cid}`)
   console.log(`\n`)
+  console.log(`You can update your ENS name here:`)
+  console.log(`https://app.ens.domains${domain}?tab=records`)
+  console.log(`\n`)
 } 
