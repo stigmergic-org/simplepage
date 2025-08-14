@@ -23,14 +23,39 @@ const Publish = () => {
   const [unstagedEdits, setUnstagedEdits] = useState([]);
   const [fileChanges, setFileChanges] = useState([]);
   const [updateTemplate, setUpdateTemplate] = useState(true);
+  
+  // Load ownedDomains from localStorage or initialize with default values
   const [ownedDomains, setOwnedDomains] = useState(() => {
+    const savedDomains = localStorage.getItem('simplepage-owned-domains');
+    if (savedDomains) {
+      try {
+        const parsed = JSON.parse(savedDomains);
+        // Ensure current domain and queryDomain are included
+        const domains = [...new Set([...parsed, domain])];
+        if (queryDomain && queryDomain !== domain) {
+          domains.push(queryDomain);
+        }
+        return domains;
+      } catch (e) {
+        console.error('Error parsing saved domains:', e);
+      }
+    }
     const domains = [domain];
     if (queryDomain && queryDomain !== domain) {
       domains.push(queryDomain);
     }
     return domains;
   });
-  const [selectedDomain, setSelectedDomain] = useState(queryDomain || domain);
+  
+  // Load selectedDomain from localStorage or initialize with default value
+  const [selectedDomain, setSelectedDomain] = useState(() => {
+    const savedDomain = localStorage.getItem('simplepage-selected-domain');
+    if (savedDomain && savedDomain !== 'new.simplepage.eth') {
+      return savedDomain;
+    }
+    return queryDomain || domain;
+  });
+  
   const [newDomain, setNewDomain] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isValidDomain, setIsValidDomain] = useState(false);
@@ -49,6 +74,18 @@ const Publish = () => {
 
   const { subscriptionValid } = useGetSubscription(selectedDomain);
   const { isOwner } = useIsEnsOwner(selectedDomain);
+
+  // Save ownedDomains to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('simplepage-owned-domains', JSON.stringify(ownedDomains));
+  }, [ownedDomains]);
+
+  // Save selectedDomain to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedDomain && selectedDomain !== 'new.simplepage.eth') {
+      localStorage.setItem('simplepage-selected-domain', selectedDomain);
+    }
+  }, [selectedDomain]);
 
   useEffect(() => {
     if (isConfirmed && stagedRoot) {
