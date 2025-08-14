@@ -236,7 +236,7 @@ const Publish = () => {
   return (
     <>
       <Navbar 
-        activeTab="Publish"
+        activePage="Publish"
       />
       <div className="container mx-auto max-w-3xl px-4 py-6">
         <WalletInfo />

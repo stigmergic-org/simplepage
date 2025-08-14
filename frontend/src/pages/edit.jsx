@@ -183,7 +183,7 @@ const Edit = () => {
     return (
       <>
         <Navbar 
-          activeTab="Edit"
+          activePage="Edit"
         />
         <LoadingSpinner />
       </>
@@ -193,7 +193,7 @@ const Edit = () => {
   return (
     <>
       <Navbar 
-        activeTab="Edit"
+        activePage="Edit"
       />
       <div className="min-h-70 flex items-center justify-center pt-6">
         <div className="w-full max-w-3xl">

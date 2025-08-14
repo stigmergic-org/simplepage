@@ -27,7 +27,7 @@ export const ICONS = {
   },
   'exit': {
     src: `${PREFIX}exit.svg`,
-    alt: '🚪',
+    alt: '🚶',
   },
   'folder': {
     src: `${PREFIX}folder.svg`,
@@ -64,5 +64,9 @@ export const ICONS = {
   'history': {
     src: `${PREFIX}history.svg`,
     alt: '⏰',
+  },
+  'hamburger': {
+    src: `${PREFIX}hamburger.svg`,
+    alt: '☰',
   },
 };

@@ -7,7 +7,7 @@ import { useScrollContext } from '../contexts/ScrollContext';
 import { ICONS } from '../config/icons';
 
 const Navbar = ({
-  activeTab
+  activePage,
 }) => {
   const domain = useDomain();
   const { path } = usePagePath();
@@ -37,42 +37,45 @@ const Navbar = ({
     }
   };
 
+  const availableMenuItems = [
+    {
+      label: 'Subscription',
+      onClick: () => goToSubscription(),
+      ...ICONS['credit-card'],
+    },
+    {
+      label: 'Quit editor',
+      onClick: () => handleQuitClick(),
+      ...ICONS.exit,
+    },
+  ]
+
   // Define available tabs with their navigation functions and icons
   const availableTabs = {
     'Preview': {
       onClick: () => goToViewWithPreview(path),
-      iconSrc: ICONS.preview.src,
-      alt: ICONS.preview.alt
+      ...ICONS.preview,
     },
     'Edit': {
       onClick: () => goToEdit(path),
-      iconSrc: ICONS.edit.src,
-      alt: ICONS.edit.alt
+      ...ICONS.edit,
     },
     'Pages': {
       onClick: () => goToPages(path),
-      iconSrc: ICONS.document.src,
-      alt: ICONS.document.alt
+      ...ICONS.document,
     },
     'Files': {
       onClick: () => goToFiles(path),
-      iconSrc: ICONS.folder.src,
-      alt: ICONS.folder.alt
-    },
-    'Subscription': {
-      onClick: () => goToSubscription(),
-      iconSrc: ICONS['credit-card'].src,
-      alt: ICONS['credit-card'].alt
+      ...ICONS.folder,
     },
     'Publish': {
       onClick: () => goToPublish(),
-      iconSrc: ICONS.upload.src,
-      alt: ICONS.upload.alt
+      ...ICONS.upload,
     }
   };
 
-  // Check if activeTab is valid
-  const showTabs = activeTab && availableTabs.hasOwnProperty(activeTab);
+  // Check if in edit mode
+  const editMode = activePage && (availableTabs.hasOwnProperty(activePage) || availableMenuItems.find(i => i.label === activePage));
 
 
   useEffect(() => {
@@ -92,7 +95,7 @@ const Navbar = ({
 
   // Set up scroll listeners for tabs
   useEffect(() => {
-    if (showTabs && tabsContainerRef.current) {
+    if (editMode && tabsContainerRef.current) {
       const container = tabsContainerRef.current;
 
       // Restore scroll position if available
@@ -117,7 +120,7 @@ const Navbar = ({
         window.removeEventListener('resize', checkScrollPosition);
       };
     }
-  }, [showTabs, saveScrollPosition, getScrollPosition]);
+  }, [editMode, saveScrollPosition, getScrollPosition]);
 
   return (
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
@@ -140,7 +143,8 @@ const Navbar = ({
         </div>
         <div className="navbar-end mr-4">
           <div className="flex gap-2 items-center">
-            {!showTabs ? (
+            {/* Fork button */}
+            {!editMode ? (
               <button
                 className="btn btn-ghost btn-sm rainbow-fork text-lg"
                 onClick={() => { goToEdit(path) }}
@@ -160,35 +164,38 @@ const Navbar = ({
                 {'fork'}
               </button>
             ) : (<>
-              {/* <div className="tooltip tooltip-bottom" data-tip="history">
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleQuitClick}
-                >
-                  <img
-                    src={ICONS.history.src}
-                    alt={ICONS.history.alt}
-                    className="w-4 h-4 dark:invert"
-                  />
-                </button>
-              </div> */}
-              <div className="tooltip tooltip-bottom" data-tip="quit">
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleQuitClick}
-                >
-                  <img
-                    src={ICONS.exit.src}
-                    alt={ICONS.exit.alt}
-                    className="w-4 h-4 dark:invert"
-                  />
-                </button>
-              </div>
+                {/* Hamburger menu */}
+                <div className="dropdown dropdown-end relative z-[100]">
+                  <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" >
+                    <img
+                      src={ICONS.hamburger.src}
+                      alt={ICONS.hamburger.alt}
+                      className="h-5 w-5"
+                    />
+                  </div>
+                  <ul
+                    tabIndex={0}
+                    className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[100] mt-3 p-2 shadow absolute w-max"
+                  >
+                    {availableMenuItems.map((item) => (
+                      <li key={item.label}>
+                        <a onClick={item.onClick}>
+                          <img
+                            src={item.src}
+                            alt={item.alt}
+                            className="w-4 h-4 dark:invert"
+                          />
+                          {item.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
             </>)}
           </div>
         </div>
       </div>
-      {showTabs && (
+      {editMode && (
         <div className="relative">
           {/* Left scroll indicator */}
           {canScrollLeft && (
@@ -202,14 +209,14 @@ const Navbar = ({
                 <a
                   key={tab}
                   role="tab"
-                  className={`tab group ${activeTab === tab ? 'tab-active' : ''}`}
+                  className={`tab group ${activePage === tab ? 'tab-active' : ''}`}
                   onClick={() => availableTabs[tab].onClick()}
                 >
                   <span className="mr-1">
                     <img
-                      src={availableTabs[tab].iconSrc}
+                      src={availableTabs[tab].src}
                       alt={availableTabs[tab].alt}
-                      className={`w-4 h-4 dark:invert opacity-${activeTab === tab ? '100' : '50'} group-hover:opacity-100`}
+                      className={`w-4 h-4 dark:invert opacity-${activePage === tab ? '100' : '50'} group-hover:opacity-100`}
                     />
                   </span>
                   {tab}

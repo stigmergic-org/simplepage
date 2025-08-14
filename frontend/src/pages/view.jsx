@@ -47,7 +47,7 @@ const View = ({ existingContent }) => {
   return (
     <>
       <Navbar 
-        activeTab={isVirtual ? "Preview" : undefined}
+        activePage={isVirtual ? "Preview" : undefined}
       />
       <div id="content" className="min-h-70 flex items-center justify-center pt-6">
         <div className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>

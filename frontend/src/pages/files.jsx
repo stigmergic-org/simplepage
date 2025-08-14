@@ -273,7 +273,7 @@ const Files = () => {
   if (isLoading) {
     return (
       <>
-        <Navbar activeTab="Files" />
+        <Navbar activePage="Files" />
         <LoadingSpinner />
       </>
     );
@@ -283,7 +283,7 @@ const Files = () => {
 
   return (
     <>
-      <Navbar activeTab="Files" />
+      <Navbar activePage="Files" />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           
