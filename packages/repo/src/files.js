@@ -54,12 +54,20 @@ export class Files {
    */
   async #initializeChangeRoot() {
     const storedChangeRoot = JSON.parse(await this.#storage.getItem(CHANGE_ROOT_KEY))
-    if (storedChangeRoot && storedChangeRoot.root === this.#root.toString()) {
-      await this.#setChangeRoot(CID.parse(storedChangeRoot.changeRoot))
-    } else {
-      // Create a new changeRoot based on the current root
-      await this.#setChangeRoot(this.#root)
-    }
+    const changeRoot = storedChangeRoot ? CID.parse(storedChangeRoot.changeRoot) : this.#root
+    this.#changeRoot = changeRoot
+  }
+
+  /**
+   * Returns true if the file changes are based on an old repo root.
+   * @returns {boolean} Whether the file changes are based on an old repo root.
+   */
+  async isOutdated() {
+    await this.#isReady()
+    const storedChangeRoot = JSON.parse(await this.#storage.getItem(CHANGE_ROOT_KEY))
+    console.log(this.#root.toString())
+    console.log(storedChangeRoot)
+    return storedChangeRoot?.root !== this.#root.toString() && storedChangeRoot?.changeRoot !== this.#root.toString()
   }
 
   /**

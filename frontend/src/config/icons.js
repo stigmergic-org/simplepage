@@ -65,6 +65,10 @@ export const ICONS = {
     src: `${PREFIX}history.svg`,
     alt: '⏰',
   },
+  'info': {
+    src: `${PREFIX}info.svg`,
+    alt: 'ℹ️',
+  },
   'hamburger': {
     src: `${PREFIX}hamburger.svg`,
     alt: '☰',

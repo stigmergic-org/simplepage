@@ -5,6 +5,7 @@ import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Notice from '../components/Notice';
 import { ICONS } from '../config/icons';
 
 
@@ -214,10 +215,7 @@ const Pages = () => {
           {/* <h1 className="text-3xl font-bold mb-8">Pages ({allItems.length})</h1> */}
           
           {error && (
-            <div className="alert alert-error mb-6">
-              <img src={ICONS.error.src} alt={ICONS.error.alt} className="stroke-current shrink-0 h-6 w-6" />
-              <span>{error}</span>
-            </div>
+            <Notice type="error" message={error} onClose={() => setError(null)} />
           )}
 
           {/* Pages List Section */}

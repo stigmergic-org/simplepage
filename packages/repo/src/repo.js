@@ -201,13 +201,20 @@ export class Repo {
 
   async #getPageEdit(path) {
     const data = this.storage.getItem(`spg_edit_${path}`)
+    return data ? JSON.parse(data) : null
+  }
+
+  /**
+   * Returns true if the edit is for an old repo root.
+   * @param {string} path - The path of the page.
+   * @returns {boolean} Whether the edit is for an old repo root.
+   */
+  isOutdatedEdit(path) {
+    const data = this.storage.getItem(`spg_edit_${path}`)
     if (data) {
       const parsed = JSON.parse(data)
-      if (!this.repoRoot || parsed.root === this.repoRoot.cid.toString()) {
-        return parsed
-      }
+      return parsed.root !== this.repoRoot.cid.toString()
     }
-    return null
   }
 
   /**

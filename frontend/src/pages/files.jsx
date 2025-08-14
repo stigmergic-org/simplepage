@@ -5,6 +5,7 @@ import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import MediaModal from '../components/MediaModal';
+import Notice from '../components/Notice';
 import { formatFileSize } from '../utils/file-tools';
 import { ICONS } from '../config/icons';
 
@@ -26,6 +27,7 @@ const Files = () => {
   const [copiedFile, setCopiedFile] = useState(null);
   const [selectedMediaFile, setSelectedMediaFile] = useState(null);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [showOutdatedWarning, setShowOutdatedWarning] = useState(false);
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
@@ -44,6 +46,13 @@ const Files = () => {
   const loadFiles = async () => {
     try {
       setIsLoading(true);
+      
+      // Check if files are outdated before loading
+      const isOutdated = await repo.files.isOutdated();
+      if (isOutdated) {
+        setShowOutdatedWarning(true);
+      }
+      
       const fileList = await repo.files.ls(currentPath);
       setFiles(fileList);
       setError(null);
@@ -288,10 +297,14 @@ const Files = () => {
         <div className="max-w-6xl mx-auto">
           
           {error && (
-            <div className="alert alert-error mb-6">
-              <img src={ICONS.error.src} alt={ICONS.error.alt} className="stroke-current shrink-0 h-6 w-6" />
-              <span>{error}</span>
-            </div>
+            <Notice type="error" message={error} onClose={() => setError(null)} />
+          )}
+
+          {showOutdatedWarning && (
+            <Notice type="warning" 
+              message="Website was updated since your last edit, review file changes carefully."
+              onClose={() => setShowOutdatedWarning(false)}
+            />
           )}
 
           {/* Breadcrumbs */}

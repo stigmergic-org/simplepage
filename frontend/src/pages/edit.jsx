@@ -6,6 +6,7 @@ import 'easymde/dist/easymde.min.css';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Notice from '../components/Notice';
 import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
 import { mediaType } from '../utils/file-tools';
@@ -86,6 +87,7 @@ const frontmatterOverlay = {
 const Edit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [originalContent, setOriginalContent] = useState('');
+  const [isOutdatedEdit, setIsOutdatedEdit] = useState(false);
   const { path } = usePagePath();
   const { repo } = useRepo();
   const { goToNotFound } = useNavigation();
@@ -104,6 +106,10 @@ const Edit = () => {
         goToNotFound(path);
         return;
       }
+      
+      // Check if the edit is outdated
+      const outdated = repo.isOutdatedEdit(path);
+      setIsOutdatedEdit(outdated);
       
       const content = await repo.getMarkdown(path);
       setOriginalContent(content);
@@ -195,6 +201,18 @@ const Edit = () => {
       <Navbar 
         activePage="Edit"
       />
+      
+      {/* Outdated Edit Warning */}
+      {isOutdatedEdit && (
+        <div className="container mx-auto px-4 py-4">
+          <Notice 
+            type="warning" 
+            message="This page was edited based on an older version of the website. Your changes may not include the latest content."
+            onClose={() => setIsOutdatedEdit(false)}
+          />
+        </div>
+      )}
+      
       <div className="min-h-70 flex items-center justify-center pt-6">
         <div className="w-full max-w-3xl">
           <textarea id="markdown-editor" />
