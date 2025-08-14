@@ -102,7 +102,7 @@ const updateVirtualLinks = (parsedContent, basename) => {
   const params = new URLSearchParams();
   links.forEach(link => {
     const href = link.getAttribute('href');
-    if (href?.startsWith('/')) {
+    if (href?.startsWith('/') && !href.startsWith('/spg-')) {
       params.set('path', href);
       link.href = `${basename}?${params.toString()}`;
     }
