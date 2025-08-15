@@ -1,4 +1,5 @@
 import { toString } from 'uint8arrays/to-string';
+import { assert } from '@simplepg/common'
 import { MIME_TYPES } from '../config/media';
 
 /**
@@ -55,4 +56,21 @@ export const encodeFileToDataUrl = (fileContent, filePath) => {
   
   // Return data URL
   return `data:${mime};base64,${base64}`;
-}; 
+};
+
+/**
+ * Convert avatar URL to File
+ * @param {string} url - Avatar URL
+ * @returns {Promise<{data: Uint8Array, name: string}>} File
+ */
+export const avatarUrlToFile = async (url) => {
+  assert(url.startsWith('http'), `URL ${url} not supported`)
+  const fileExt = url.split('.').pop()
+  const response = await fetch(url)
+  const blob = await response.blob()
+  const data = await blob.arrayBuffer()
+  return {
+    data: new Uint8Array(data),
+    fileExt,
+  }
+}

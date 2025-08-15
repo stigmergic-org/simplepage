@@ -2076,6 +2076,95 @@ Thoughts and insights about technology and development.`,
 
       await newRepo.close();
     });
+
+    it('should set avatar and update favicon for all pages after staging', async () => {
+      // Create initial pages
+      const pages = {
+        root: {
+          path: '/',
+          markdown: '# Home Page\n\nWelcome to the home page.',
+          body: '<h1>Home Page</h1><p>Welcome to the home page.</p>'
+        },
+        about: {
+          path: '/about/',
+          markdown: '# About\n\nAbout page content.',
+          body: '<h1>About</h1><p>About page content.</p>'
+        },
+        blog: {
+          path: '/blog/',
+          markdown: '# Blog\n\nBlog index page.',
+          body: '<h1>Blog</h1><p>Blog index page.</p>'
+        },
+        contact: {
+          path: '/contact/',
+          markdown: '# Contact\n\nContact information.',
+          body: '<h1>Contact</h1><p>Contact information.</p>'
+        }
+      };
+
+      // Add all pages to the repo
+      for (const page of Object.values(pages)) {
+        await repo.setPageEdit(page.path, page.markdown, page.body);
+      }
+
+      // Stage and commit the initial pages
+      const initialResult = await repo.stage('test.eth', false);
+      expect(initialResult).toHaveProperty('cid');
+      expect(initialResult.cid instanceof CID).toBe(true);
+
+      // Verify all pages are staged correctly with default favicon
+      for (const page of Object.values(pages)) {
+        const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${initialResult.cid.toString()}${page.path}index.html`);
+        expect(html).toContain(page.body);
+        
+        // Check that default favicon is set
+        const doc = parser.parseFromString(html, 'text/html');
+        const favicon = doc.querySelector('link[rel="icon"]');
+        expect(favicon).toBeDefined();
+        expect(favicon.href).toBe('/_assets/images/favicon.ico');
+      }
+
+      // Commit the initial version
+      await repo.finalizeCommit(initialResult.cid);
+
+      // Set an avatar
+      const avatarContent = new TextEncoder().encode('fake-avatar-png-data');
+      await repo.files.setAvatar(avatarContent, 'png');
+
+      // Make a small edit to one page to trigger staging
+      await repo.setPageEdit('/', '# Updated Home Page\n\nWelcome to the updated home page.', '<h1>Updated Home Page</h1><p>Welcome to the updated home page.</p>');
+
+      // Stage the changes (including avatar)
+      const avatarResult = await repo.stage('test.eth', false);
+      expect(avatarResult).toHaveProperty('cid');
+      expect(avatarResult.cid instanceof CID).toBe(true);
+
+      // Verify avatar file is stored in the _files directory
+      const storedAvatarContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/_avatar.png`);
+      expect(storedAvatarContent).toBe('fake-avatar-png-data');
+
+      // Verify that ALL pages now have the avatar as favicon, regardless of whether they were edited
+      for (const page of Object.values(pages)) {
+        const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}${page.path}index.html`);
+        
+        // Parse HTML and check favicon
+        const doc = parser.parseFromString(html, 'text/html');
+        const favicon = doc.querySelector('link[rel="icon"]');
+        expect(favicon).toBeDefined();
+        
+        // The favicon should now point to the avatar
+        expect(favicon.href).toBe('/_files/_avatar.png');
+        
+        // Verify page content is still correct
+        if (page.path === '/') {
+          // Root page should have updated content
+          expect(html).toContain('Updated Home Page');
+        } else {
+          // Other pages should have original content
+          expect(html).toContain(page.body);
+        }
+      }
+    });
   })
 
   describe('Error Handling Tests', () => {

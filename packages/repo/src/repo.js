@@ -232,6 +232,8 @@ export class Repo {
           edits.push({
             path: key.replace('spg_edit_', ''),
             type: data.type,
+            markdown: data.markdown,
+            body: data.body,
           })
         }
       }
@@ -353,10 +355,11 @@ export class Repo {
 
   async #renderHtml({ body, markdown }, targetDomain, path, root) {
     const templateHtml = await cat(this.unixfs, root, '/_template.html')
+    const avatarPath = await this.files.getAvatarPath()
     
     // Extract title and description from markdown frontmatter
     const frontmatter = parseFrontmatter(markdown)
-    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter)
+    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath)
   }
 
   /**
@@ -387,24 +390,25 @@ export class Repo {
     const { cid: newFilesRoot, unchangedCids: unchangedFileCids } = await this.files.stage()
     rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, '_files', { force: true })
 
-    if (willUpdateTemplate) {
-      // add upgrades to pending edits
-      const allPages = await this.getAllPages()
-      for (const path of allPages) {
-        if (!edits.find(edit => edit.path === path)) {
-          const markdown = await this.getMarkdown(path)
-          const html = await this.getHtmlBody(path)
-          await this.setPageEdit(path, markdown, html, CHANGE_TYPE.UPGRADE)
-        }
+    // upgrade all pages that are not in the edits
+    // this is needed in case template is updated, or there's a new avatar
+    const allPages = await this.getAllPages()
+    for (const path of allPages) {
+      if (!edits.find(edit => edit.path === path)) {
+        edits.push({
+          path,
+          type: CHANGE_TYPE.UPGRADE,
+          markdown: await this.getMarkdown(path),
+          body: await this.getHtmlBody(path),
+        })
       }
-      edits = await this.getChanges()
     }
 
     // Add the edits to the new root
-    for (const { path, type } of edits) {
-      const mdPath = path + 'index.md'
-      const htmlPath = path + 'index.html'
-      switch (type) {
+    for (const edit of edits) {
+      const mdPath = edit.path + 'index.md'
+      const htmlPath = edit.path + 'index.html'
+      switch (edit.type) {
         case CHANGE_TYPE.DELETE:
           if (willUpdateTemplate) break // template root doesn't have any files, so we don't need to delete anything
           rootPointer = await rm(this.unixfs, rootPointer, mdPath)
@@ -413,9 +417,8 @@ export class Repo {
         case CHANGE_TYPE.EDIT:
         case CHANGE_TYPE.NEW:
         case CHANGE_TYPE.UPGRADE:
-          const data = await this.#getPageEdit(path)
-          rootPointer = await addFile(this.unixfs, rootPointer, mdPath, data.markdown)
-          const html = await this.#renderHtml(data, targetDomain, path, rootPointer)
+          rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
+          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
           break
       }

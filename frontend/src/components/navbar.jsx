@@ -21,6 +21,7 @@ const Navbar = ({
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || "/_assets/images/logo.svg");
 
   // Handle quit button click - clear scroll position and navigate to view
   const handleQuitClick = () => {
@@ -81,6 +82,7 @@ const Navbar = ({
   useEffect(() => {
     // Only update favicon if ensAvatar is available
     if (ensAvatar) {
+      setAvatarPath(ensAvatar);
       const favicon = document.querySelector('link[rel="icon"]');
       if (!favicon) {
         const newFavicon = document.createElement('link');
@@ -127,7 +129,7 @@ const Navbar = ({
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
           <img
-            src={ensAvatar || "/_assets/images/logo.svg"}
+            src={avatarPath}
             alt="Logo"
             className={`h-9 w-9 cursor-pointer ${ensAvatar ? 'mask mask-squircle' : ''}`}
             onClick={goToRoot}
@@ -170,7 +172,7 @@ const Navbar = ({
                     <img
                       src={ICONS.hamburger.src}
                       alt={ICONS.hamburger.alt}
-                      className="h-5 w-5"
+                      className="h-5 w-5 dark:invert"
                     />
                   </div>
                   <ul

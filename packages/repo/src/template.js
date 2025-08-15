@@ -1,5 +1,4 @@
-
-export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}) {
+export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null) {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
@@ -7,6 +6,12 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     const titleElement = templateDoc.querySelector('title')
     const titleText = title || targetDomain
     titleElement.textContent = titleText
+
+    // set favicon
+    if (avatarPath) {
+      const faviconElement = templateDoc.querySelector('link[rel="icon"]')
+      faviconElement.setAttribute('href', avatarPath)
+    }
 
     // update meta[name="ens-domain"]
     const ensDomainElement = templateDoc.querySelector('meta[name="ens-domain"]')

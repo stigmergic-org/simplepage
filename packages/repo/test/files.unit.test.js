@@ -451,4 +451,237 @@ describe('Files', () => {
       ])
     })
   })
+
+  describe('avatar methods', () => {
+    beforeEach(async () => {
+      await files.unsafeSetRepoRoot(repoRootCid)
+    })
+
+    it('should set avatar with correct filename', async () => {
+      const avatarContent = new TextEncoder().encode('avatar image data')
+      const fileExt = 'png'
+      
+      await files.setAvatar(avatarContent, fileExt)
+      
+      // Verify avatar is added to the filesystem
+      const lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.png',
+        type: 'file',
+        change: CHANGE_TYPE.NEW
+      }))
+      
+      // Verify avatar content can be read
+      const readContent = await files.cat('/_avatar.png')
+      expect(readContent).toEqual(avatarContent)
+    })
+
+    it('should replace existing avatar when setting new one', async () => {
+      // First set an avatar
+      const firstAvatar = new TextEncoder().encode('first avatar')
+      await files.setAvatar(firstAvatar, 'jpg')
+      
+      // Set a different avatar
+      const secondAvatar = new TextEncoder().encode('second avatar')
+      await files.setAvatar(secondAvatar, 'png')
+      
+      // Verify only the new avatar exists
+      const lsResult = await files.ls('/')
+      const avatarFiles = lsResult.filter(f => f.name.startsWith('_avatar.'))
+      expect(avatarFiles).toHaveLength(1)
+      expect(avatarFiles[0]).toEqual(expect.objectContaining({
+        name: '_avatar.png',
+        type: 'file',
+        change: CHANGE_TYPE.NEW
+      }))
+      
+      // Verify old avatar content is gone
+      await expect(files.cat('/_avatar.jpg')).rejects.toThrow()
+      
+      // Verify new avatar content is correct
+      const readContent = await files.cat('/_avatar.png')
+      expect(readContent).toEqual(secondAvatar)
+    })
+
+    it('should get avatar path with prefix when noPrefix is false', async () => {
+      const avatarContent = new TextEncoder().encode('avatar data')
+      await files.setAvatar(avatarContent, 'svg')
+      
+      const avatarPath = await files.getAvatarPath(false)
+      expect(avatarPath).toBe(`/${FILES_ROOT}/_avatar.svg`)
+    })
+
+    it('should get avatar path without prefix when noPrefix is true', async () => {
+      const avatarContent = new TextEncoder().encode('avatar data')
+      await files.setAvatar(avatarContent, 'gif')
+      
+      const avatarPath = await files.getAvatarPath(true)
+      expect(avatarPath).toBe('_avatar.gif')
+    })
+
+    it('should return undefined when no avatar is set', async () => {
+      const avatarPath = await files.getAvatarPath()
+      expect(avatarPath).toBeUndefined()
+    })
+
+    it('should return undefined when no avatar is set (noPrefix true)', async () => {
+      const avatarPath = await files.getAvatarPath(true)
+      expect(avatarPath).toBeUndefined()
+    })
+
+    it('should handle avatar with different file extensions', async () => {
+      const extensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp']
+      
+      for (const ext of extensions) {
+        const avatarContent = new TextEncoder().encode(`avatar ${ext}`)
+        await files.setAvatar(avatarContent, ext)
+        
+        const avatarPath = await files.getAvatarPath()
+        expect(avatarPath).toBe(`/${FILES_ROOT}/_avatar.${ext}`)
+        
+        // Verify content
+        const readContent = await files.cat(`/_avatar.${ext}`)
+        expect(readContent).toEqual(avatarContent)
+      }
+    })
+
+    it('should stage avatar changes correctly', async () => {
+      const avatarContent = new TextEncoder().encode('staged avatar')
+      await files.setAvatar(avatarContent, 'png')
+      
+      // Stage the changes
+      const stagedResult = await files.stage()
+      
+      // Verify the new root is different
+      expect(stagedResult.cid.toString()).not.toBe(filesCid.toString())
+      
+      // Finalize commit
+      await files.finalizeCommit(stagedResult.cid)
+      
+      // Verify avatar is now part of the committed state
+      const lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.png',
+        type: 'file'
+      }))
+      
+      // Verify avatar content is accessible
+      const readContent = await files.cat('/_avatar.png')
+      expect(readContent).toEqual(avatarContent)
+    })
+
+    it('should clear avatar changes when clearing all changes', async () => {
+      const avatarContent = new TextEncoder().encode('avatar to clear')
+      await files.setAvatar(avatarContent, 'jpg')
+      
+      // Verify avatar is staged
+      let lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.jpg',
+        change: CHANGE_TYPE.NEW
+      }))
+      
+      // Clear all changes
+      await files.clearChanges()
+      
+      // Verify avatar is no longer in ls
+      lsResult = await files.ls('/')
+      expect(lsResult).not.toContainEqual(expect.objectContaining({
+        name: '_avatar.jpg'
+      }))
+      
+      // Verify avatar is no longer accessible
+      await expect(files.cat('/_avatar.jpg')).rejects.toThrow()
+    })
+
+    it('should restore avatar to committed state', async () => {
+      // First set and commit an avatar
+      const originalAvatar = new TextEncoder().encode('original avatar')
+      await files.setAvatar(originalAvatar, 'png')
+      const stagedResult = await files.stage()
+      await files.finalizeCommit(stagedResult.cid)
+      
+      // Change the avatar
+      const newAvatar = new TextEncoder().encode('new avatar')
+      await files.setAvatar(newAvatar, 'jpg')
+      
+      // Verify new avatar is staged
+      let lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.jpg',
+        change: CHANGE_TYPE.NEW
+      }))
+      
+      // Restore the original avatar
+      await files.restore('/_avatar.png')
+      
+      // Verify original avatar is restored
+      lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.png'
+      }))
+      
+      // Verify original content is accessible
+      const readContent = await files.cat('/_avatar.png')
+      expect(readContent).toEqual(originalAvatar)
+    })
+
+    it('should handle avatar removal and restoration', async () => {
+      // First set and commit an avatar
+      const avatarContent = new TextEncoder().encode('avatar to remove')
+      await files.setAvatar(avatarContent, 'png')
+      const stagedResult = await files.stage()
+      await files.finalizeCommit(stagedResult.cid)
+      
+      // Remove the avatar
+      await files.rm('/_avatar.png')
+      
+      // Verify avatar is marked for deletion
+      let lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.png',
+        change: CHANGE_TYPE.DELETE
+      }))
+      
+      // Restore the avatar
+      await files.restore('/_avatar.png')
+      
+      // Verify avatar is no longer marked for deletion
+      lsResult = await files.ls('/')
+      expect(lsResult).toContainEqual(expect.objectContaining({
+        name: '_avatar.png'
+      }))
+      
+      // Verify avatar content is accessible again
+      const readContent = await files.cat('/_avatar.png')
+      expect(readContent).toEqual(avatarContent)
+    })
+
+    it('should handle multiple avatar operations in sequence', async () => {
+      // Set first avatar
+      const avatar1 = new TextEncoder().encode('avatar 1')
+      await files.setAvatar(avatar1, 'png')
+      
+      // Change to second avatar
+      const avatar2 = new TextEncoder().encode('avatar 2')
+      await files.setAvatar(avatar2, 'jpg')
+      
+      // Change to third avatar
+      const avatar3 = new TextEncoder().encode('avatar 3')
+      await files.setAvatar(avatar3, 'gif')
+      
+      // Verify only the last avatar exists
+      const lsResult = await files.ls('/')
+      const avatarFiles = lsResult.filter(f => f.name.startsWith('_avatar.'))
+      expect(avatarFiles).toHaveLength(1)
+      expect(avatarFiles[0]).toEqual(expect.objectContaining({
+        name: '_avatar.gif',
+        change: CHANGE_TYPE.NEW
+      }))
+      
+      // Verify content is correct
+      const readContent = await files.cat('/_avatar.gif')
+      expect(readContent).toEqual(avatar3)
+    })
+  })
 })

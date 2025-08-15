@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router';
-import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useEnsAvatar } from 'wagmi';
+import { getEnsAvatar } from '@wagmi/core'
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { resolveEnsDomain, contracts, resolveEnsOwner } from '@simplepg/common';
@@ -13,6 +13,7 @@ import WalletInfo from '../components/WalletInfo';
 import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
 import { useChainId } from '../hooks/useChainId';
 import { CHANGE_TYPE } from '@simplepg/repo';
+import { avatarUrlToFile } from '../utils/file-tools';
 
 const Publish = () => {
   const viemClient = usePublicClient();
@@ -23,7 +24,7 @@ const Publish = () => {
   const [unstagedEdits, setUnstagedEdits] = useState([]);
   const [fileChanges, setFileChanges] = useState([]);
   const [updateTemplate, setUpdateTemplate] = useState(true);
-  
+
   // Load ownedDomains from localStorage or initialize with default values
   const [ownedDomains, setOwnedDomains] = useState(() => {
     const savedDomains = localStorage.getItem('simplepage-owned-domains');
@@ -159,11 +160,21 @@ const Publish = () => {
     getChanges();
   }, [repo]);
 
+  const { data: ensAvatar } = useEnsAvatar({ name: selectedDomain });
 
   const handlePublish = async () => {
     if (!subscriptionValid) {
       goToSubscription(selectedDomain, 'publish');
       return;
+    }
+
+    try {
+      if (ensAvatar) {
+        const data = await avatarUrlToFile(ensAvatar);
+        await repo.files.setAvatar(data.data, data.fileExt)
+      }
+    } catch (error) {
+      console.error('Error adding avatar:', error);
     }
 
     try {

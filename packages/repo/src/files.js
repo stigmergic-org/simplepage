@@ -65,8 +65,6 @@ export class Files {
   async isOutdated() {
     await this.#isReady()
     const storedChangeRoot = JSON.parse(await this.#storage.getItem(CHANGE_ROOT_KEY))
-    console.log(this.#root.toString())
-    console.log(storedChangeRoot)
     return storedChangeRoot?.root !== this.#root.toString() && storedChangeRoot?.changeRoot !== this.#root.toString()
   }
 
@@ -189,9 +187,10 @@ export class Files {
    * @param {Uint8Array} content - The file content as a Uint8Array.
    * @returns {Promise<void>} Resolves when the file is staged.
    */
-  async add(path, content) {
+  async add(path, content, { forceAvatar = false } = {}) {
     await this.#isReady()
     path = path.startsWith('/') ? path : `/${path}`
+    assert(!path.startsWith('/_avatar.') || forceAvatar, `${path} is a reserved filename`)
 
     // if the folder exist under changeRoot, we need to ensure it's in the local blockstore
     const split = path.split('/').filter(Boolean)
@@ -207,6 +206,32 @@ export class Files {
     
     // Add file to changeRoot
     await this.#setChangeRoot(await addFile(this.#fs, this.#changeRoot, path, content))
+  }
+
+  /**
+   * Sets the avatar for the website.
+   * @param {Uint8Array} content - The avatar content as a Uint8Array.
+   * @param {string} fileExt - The file extension of the avatar.
+   * @returns {Promise<void>} Resolves when the avatar is set.
+   */
+  async setAvatar(content, fileExt) {
+    await this.#isReady()
+    const avatarPath = await this.getAvatarPath(true)
+    if (avatarPath) {
+      await this.rm(avatarPath)
+    }
+    await this.add('/_avatar.' + fileExt, content, { forceAvatar: true })
+  }
+
+  /**
+   * Gets the avatar for the website.
+   * @returns {Promise<Uint8Array | null>} The avatar content as a Uint8Array, or null if no avatar is set.
+   */
+  async getAvatarPath(noPrefix = false) {
+    await this.#isReady()
+    const files = await this.ls('/')
+    const avatarPath = files.find(f => f.name.startsWith('_avatar.'))?.path
+    return !noPrefix && avatarPath ? `/${FILES_ROOT}/${avatarPath}` : avatarPath
   }
 
   /**
