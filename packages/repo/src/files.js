@@ -65,7 +65,10 @@ export class Files {
   async isOutdated() {
     await this.#isReady()
     const storedChangeRoot = JSON.parse(await this.#storage.getItem(CHANGE_ROOT_KEY))
-    return storedChangeRoot?.root !== this.#root.toString() && storedChangeRoot?.changeRoot !== this.#root.toString()
+    if (!storedChangeRoot) {
+      return false
+    }
+    return storedChangeRoot.root !== this.#root.toString() && storedChangeRoot.changeRoot !== this.#root.toString()
   }
 
   /**
