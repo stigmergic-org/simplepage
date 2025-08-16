@@ -3,36 +3,52 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
     rootElem.innerHTML = body
-    const titleElement = templateDoc.querySelector('title')
-    const titleText = title || targetDomain
-    titleElement.textContent = titleText
 
-    // set favicon
-    if (avatarPath) {
-      const faviconElement = templateDoc.querySelector('link[rel="icon"]')
-      faviconElement.setAttribute('href', avatarPath)
+    const populateUrl = (path) => [`https://${targetDomain}.link`, ...(path.split('/').filter(Boolean))].join('/')
+    const select = (name, isProp = false) => templateDoc.querySelector(`meta[${isProp ? 'property' : 'name'}="${name}"`)
+    const setMeta = (name, content, isProp = false) => {
+      select(name, isProp)?.setAttribute('content', content)
     }
 
-    // update meta[name="ens-domain"]
-    const ensDomainElement = templateDoc.querySelector('meta[name="ens-domain"]')
-    ensDomainElement.setAttribute('content', targetDomain)
-
-    // udpate og:title and twitter:title
-    const ogTitleElement = templateDoc.querySelector('meta[property="og:title"]')
-    ogTitleElement.setAttribute('content', titleText)
-    const ogSiteNameElement = templateDoc.querySelector('meta[property="og:site_name"]')
-    ogSiteNameElement.setAttribute('content', targetDomain)
-    const twitterTitleElement = templateDoc.querySelector('meta[name="twitter:title"]')
-    twitterTitleElement.setAttribute('content', titleText)
-
-    // update description, og:description, and twitter:description
-    const descriptionElement = templateDoc.querySelector('meta[name="description"]')
+    const titleText = title || targetDomain
     const descriptionText = description || `A SimplePage by ${targetDomain}`
-    descriptionElement.setAttribute('content', descriptionText)
-    const ogDescriptionElement = templateDoc.querySelector('meta[property="og:description"]')
-    ogDescriptionElement.setAttribute('content', descriptionText)
-    const twitterDescriptionElement = templateDoc.querySelector('meta[name="twitter:description"]')
-    twitterDescriptionElement.setAttribute('content', descriptionText)
+    const url = populateUrl(path)
+
+    // HTML meta
+    const titleElement = templateDoc.querySelector('title')
+    titleElement.textContent = titleText
+    setMeta('description', descriptionText)
+    setMeta('ens-domain', targetDomain)
+
+    // set favicon
+    const faviconElement = templateDoc.querySelector('link[rel="icon"]')
+    let imageUrl = populateUrl(faviconElement.href)
+    if (avatarPath) {
+      faviconElement.setAttribute('href', avatarPath)
+      imageUrl = populateUrl(avatarPath)
+    }
+    let twitterCardType = 'summary'
+    // Check if body has any img tags and use the first one for social media
+    const firstImgSrc = rootElem.querySelector('img')?.getAttribute('src')
+    if (firstImgSrc) {
+      imageUrl = populateUrl(firstImgSrc)
+      twitterCardType = 'summary_large_image'
+    }
+
+    // Open Graph
+    setMeta('og:url', url, true)
+    setMeta('og:title', titleText, true)
+    setMeta('og:description', descriptionText, true)
+    if (imageUrl) setMeta('og:image', imageUrl, true)
+    setMeta('og:site_name', targetDomain, true)
+
+    // Twitter
+    setMeta('twitter:card', twitterCardType)
+    setMeta('twitter:domain', `${targetDomain}.link`)
+    setMeta('twitter:url', url)
+    setMeta('twitter:title', titleText)
+    setMeta('twitter:description', descriptionText)
+    if (imageUrl) setMeta('twitter:image', imageUrl)
 
     return `<!DOCTYPE html>\n${templateDoc.documentElement.outerHTML}`;
 }

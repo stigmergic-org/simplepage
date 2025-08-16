@@ -2143,7 +2143,7 @@ Thoughts and insights about technology and development.`,
       const storedAvatarContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/_avatar.png`);
       expect(storedAvatarContent).toBe('fake-avatar-png-data');
 
-      // Verify that ALL pages now have the avatar as favicon, regardless of whether they were edited
+      // Verify that ALL pages now have the avatar as favicon, Open Graph image, and Twitter image
       for (const page of Object.values(pages)) {
         const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}${page.path}index.html`);
         
@@ -2155,6 +2155,21 @@ Thoughts and insights about technology and development.`,
         // The favicon should now point to the avatar
         expect(favicon.href).toBe('/_files/_avatar.png');
         
+        // Check Open Graph image meta tag
+        const ogImage = doc.querySelector('meta[property="og:image"]');
+        expect(ogImage).toBeDefined();
+        expect(ogImage.content).toBe(`https://test.eth.link/_files/_avatar.png`);
+        
+        // Check Twitter image meta tag
+        const twitterImage = doc.querySelector('meta[name="twitter:image"]');
+        expect(twitterImage).toBeDefined();
+        expect(twitterImage.content).toBe(`https://test.eth.link/_files/_avatar.png`);
+        
+        // Check Twitter card type (should be 'summary' when using avatar)
+        const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+        expect(twitterCard).toBeDefined();
+        expect(twitterCard.content).toBe('summary');
+        
         // Verify page content is still correct
         if (page.path === '/') {
           // Root page should have updated content
@@ -2164,6 +2179,151 @@ Thoughts and insights about technology and development.`,
           expect(html).toContain(page.body);
         }
       }
+    });
+
+    it('should use first img tag in page content for social media previews', async () => {
+      // Create a page with an image
+      const pageWithImage = {
+        path: '/',
+        markdown: '# Page with Image\n\nThis page has an image.',
+        body: '<h1>Page with Image</h1><p>This page has an image.</p><img src="/images/hero.jpg" alt="Hero image" /><p>More content here.</p>'
+      };
+
+      // Add the page to the repo
+      await repo.setPageEdit(pageWithImage.path, pageWithImage.markdown, pageWithImage.body);
+
+      // Stage and commit the page
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Verify the page HTML contains the image
+      const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}${pageWithImage.path}index.html`);
+
+      // Parse HTML and check social media meta tags
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const imgTag = doc.querySelector('img');
+      expect(imgTag).toBeDefined();
+      expect(imgTag.src).toBe('/images/hero.jpg');
+      expect(imgTag.alt).toBe('Hero image');
+
+      // Check Open Graph image meta tag - should use the first img tag
+      const ogImage = doc.querySelector('meta[property="og:image"]');
+      expect(ogImage).toBeDefined();
+      expect(ogImage.content).toBe('https://test.eth.link/images/hero.jpg');
+      
+      // Check Twitter image meta tag - should use the first img tag
+      const twitterImage = doc.querySelector('meta[name="twitter:image"]');
+      expect(twitterImage).toBeDefined();
+      expect(twitterImage.content).toBe('https://test.eth.link/images/hero.jpg');
+      
+      // Check Twitter card type - should be 'summary_large_image' when using page image
+      const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+      expect(twitterCard).toBeDefined();
+      expect(twitterCard.content).toBe('summary_large_image');
+      
+      // Check that favicon still uses default (no avatar set)
+      const favicon = doc.querySelector('link[rel="icon"]');
+      expect(favicon).toBeDefined();
+      expect(favicon.href).toBe('/_assets/images/favicon.ico');
+    });
+
+    it('should prioritize page images over avatar for social media previews', async () => {
+      // First set an avatar
+      const avatarContent = new TextEncoder().encode('fake-avatar-png-data');
+      await repo.files.setAvatar(avatarContent, 'png');
+
+      // Create a page with an image
+      const pageWithImage = {
+        path: '/',
+        markdown: '# Page with Image\n\nThis page has an image.',
+        body: '<h1>Page with Image</h1><p>This page has an image.</p><img src="/images/hero.jpg" alt="Hero image" /><p>More content here.</p>'
+      };
+
+      // Add the page to the repo
+      await repo.setPageEdit(pageWithImage.path, pageWithImage.markdown, pageWithImage.body);
+
+      // Stage and commit the page
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Verify the page HTML contains the image
+      const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}${pageWithImage.path}index.html`);
+
+      // Parse HTML and check social media meta tags
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const imgTag = doc.querySelector('img');
+      expect(imgTag).toBeDefined();
+      expect(imgTag.src).toBe('/images/hero.jpg');
+      expect(imgTag.alt).toBe('Hero image');
+      
+      // Check Open Graph image meta tag - should use the page image, not avatar
+      const ogImage = doc.querySelector('meta[property="og:image"]');
+      expect(ogImage).toBeDefined();
+      expect(ogImage.content).toBe('https://test.eth.link/images/hero.jpg');
+      
+      // Check Twitter image meta tag - should use the page image, not avatar
+      const twitterImage = doc.querySelector('meta[name="twitter:image"]');
+      expect(twitterImage).toBeDefined();
+      expect(twitterImage.content).toBe('https://test.eth.link/images/hero.jpg');
+      
+      // Check Twitter card type - should be 'summary_large_image' when using page image
+      const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+      expect(twitterCard).toBeDefined();
+      expect(twitterCard.content).toBe('summary_large_image');
+      
+      // Check that favicon still uses avatar (since avatar was set)
+      const favicon = doc.querySelector('link[rel="icon"]');
+      expect(favicon).toBeDefined();
+      expect(favicon.href).toBe('/_files/_avatar.png');
+    });
+
+    it('should handle case with no avatar and no images in page content', async () => {
+      // Create a page without any images and no avatar set
+      const pageWithoutImage = {
+        path: '/',
+        markdown: '# Page without Image\n\nThis page has no images.',
+        body: '<h1>Page without Image</h1><p>This page has no images.</p><p>Just text content here.</p>'
+      };
+
+      // Add the page to the repo
+      await repo.setPageEdit(pageWithoutImage.path, pageWithoutImage.markdown, pageWithoutImage.body);
+
+      // Stage and commit the page
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Verify the page HTML contains the content but no images
+      const html = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}${pageWithoutImage.path}index.html`);
+      expect(html).toContain(pageWithoutImage.body);
+      expect(html).not.toContain('<img');
+
+      // Parse HTML and check social media meta tags
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      // Check Open Graph image meta tag - should be null when no avatar and no images
+      const ogImage = doc.querySelector('meta[property="og:image"]');
+      expect(ogImage).toBeDefined();
+      expect(ogImage.content).toBe('https://test.eth.link/_assets/images/favicon.ico');
+      
+      // Check Twitter image meta tag - should be null when no avatar and no images
+      const twitterImage = doc.querySelector('meta[name="twitter:image"]');
+      expect(twitterImage).toBeDefined();
+      expect(twitterImage.content).toBe('https://test.eth.link/_assets/images/favicon.ico');
+      
+      // Check Twitter card type - should be 'summary' when no images
+      const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+      expect(twitterCard).toBeDefined();
+      expect(twitterCard.content).toBe('summary');
+      
+      // Check that favicon uses default
+      const favicon = doc.querySelector('link[rel="icon"]');
+      expect(favicon).toBeDefined();
+      expect(favicon.href).toBe('/_assets/images/favicon.ico');
     });
   })
 
