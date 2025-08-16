@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useEnsAvatar } from 'wagmi';
 import { getEnsAvatar } from '@wagmi/core'
+import Notice from '../components/Notice';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { resolveEnsDomain, contracts, resolveEnsOwner } from '@simplepg/common';
@@ -267,7 +268,12 @@ const Publish = () => {
           const { cid } = await resolveEnsDomain(viemClient, selectedDomain, contracts.universalResolver[chainId]);
           setHasExistingContent(Boolean(cid));
         } catch (error) {
-          setHasExistingContent(false);
+          if (error.message.includes('Unsupported contenthash format')) {
+            setHasExistingContent(true);
+          } else {
+            setErrorMessage(error.message);
+            console.error('Error checking content:', error);
+          }
         }
       } else {
         setHasExistingContent(false);
@@ -287,6 +293,9 @@ const Publish = () => {
         activePage="Publish"
       />
       <div className="container mx-auto max-w-3xl px-4 py-6">
+        {errorMessage && (
+          <Notice type="error" message={errorMessage} />
+        )}
         <WalletInfo />
         <TransactionStatus 
           status={status}
@@ -405,6 +414,14 @@ const Publish = () => {
                   className="toggle toggle-warning"
                 />
               </label>
+            </div>
+          )}
+
+          {!isOwner && (
+            <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
+              <span className="text-base-content/70">
+                You are not the manager of {selectedDomain}. Try updating your <a className="link" href={`https://app.ens.domains/${selectedDomain}?tab=ownership`} target="_blank" rel="noopener noreferrer">ENS name's manager in the ENS app</a>.
+              </span>
             </div>
           )}
 
