@@ -5,6 +5,7 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
+import { highlightAll } from '../utils/prism-config';
 
 const parser = new DOMParser();
 
@@ -43,6 +44,10 @@ const View = ({ existingContent }) => {
       loadContent();
     }
   }, [repo, basename, isVirtual]);
+
+  useEffect(() => {
+    highlightAll();
+  }, [content]);
 
   return (
     <>

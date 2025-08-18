@@ -206,6 +206,8 @@ module.exports = (env, argv) => {
           // Copy manifest.json or manifest.webmanifest if present
           { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
           { from: 'public/manifest.webmanifest', to: 'manifest.webmanifest', noErrorOnMissing: true },
+          // Copy PrismJS CSS file
+          { from: 'public/styles/prism.css', to: '_css/prism.css' },
         ],
       }),
       new MiniCssExtractPlugin({

@@ -31,6 +31,10 @@
     <link rel="preload" href="<%= cssFile %>" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="<%= cssFile %>"></noscript>
     <% } %>
+    
+    <!-- PrismJS Syntax Highlighting CSS (preload with rel-swap) -->
+    <link rel="preload" href="/_css/prism.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/_css/prism.css"></noscript>
 
     <!-- JavaScript files -->
     <% for (const jsFile of htmlWebpackPlugin.files.js || []) { %>

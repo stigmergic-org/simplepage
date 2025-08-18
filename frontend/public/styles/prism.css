@@ -1,0 +1,261 @@
+/* PrismJS Syntax Highlighting with CSS Native Dark Mode Detection */
+/* This file automatically switches between light and dark themes based on system preference */
+
+/* Base styles for code blocks */
+pre[class*="language-"],
+code[class*="language-"] {
+  font-family: 'Fira Code', 'Monaco', 'Consolas', 'Roboto Mono', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
+}
+
+/* Code blocks */
+pre[class*="language-"] {
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  border-radius: 6px;
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* ===== LIGHT THEME (default) ===== */
+@media (prefers-color-scheme: light) {
+  pre[class*="language-"] {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+  }
+  
+  pre[class*="language-"],
+  code[class*="language-"] {
+    color: #333;
+  }
+  
+  :not(pre) > code[class*="language-"] {
+    background: #f1f3f4;
+    color: #d73a49;
+  }
+  
+  /* Token colors for light theme */
+  .token.comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    color: #6a737d;
+    font-style: italic;
+  }
+  
+  .token.punctuation {
+    color: #5a6aa6;
+  }
+  
+  .token.namespace {
+    opacity: 0.7;
+  }
+  
+  .token.property,
+  .token.tag,
+  .token.boolean,
+  .token.number,
+  .token.constant,
+  .token.symbol,
+  .token.deleted {
+    color: #22863a;
+  }
+  
+  .token.selector,
+  .token.attr-name,
+  .token.string,
+  .token.char,
+  .token.builtin,
+  .token.inserted {
+    color: #032f62;
+  }
+  
+  .token.operator,
+  .token.entity,
+  .token.url,
+  .language-css .token.string,
+  .style .token.string {
+    color: #d73a49;
+    background: #f6f8fa;
+  }
+  
+  .token.atrule,
+  .token.attr-value,
+  .token.keyword {
+    color: #d73a49;
+  }
+  
+  .token.function {
+    color: #6f42c1;
+  }
+  
+  .token.regex,
+  .token.important,
+  .token.variable {
+    color: #e36209;
+  }
+  
+  .token.important,
+  .token.bold {
+    font-weight: bold;
+  }
+  
+  .token.italic {
+    font-style: italic;
+  }
+  
+  .token.entity {
+    cursor: help;
+  }
+}
+
+/* ===== DARK THEME ===== */
+@media (prefers-color-scheme: dark) {
+  pre[class*="language-"] {
+    background: #0d1117;
+    border: 1px solid #30363d;
+  }
+  
+  pre[class*="language-"],
+  code[class*="language-"] {
+    color: #e6edf3;
+  }
+  
+  :not(pre) > code[class*="language-"] {
+    background: #21262d;
+    color: #f78166;
+  }
+  
+  /* Token colors for dark theme */
+  .token.comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    color: #8b949e;
+    font-style: italic;
+  }
+  
+  .token.punctuation {
+    color: #c9d1d9;
+  }
+  
+  .token.namespace {
+    opacity: 0.7;
+  }
+  
+  .token.property,
+  .token.tag,
+  .token.boolean,
+  .token.number,
+  .token.constant,
+  .token.symbol,
+  .token.deleted {
+    color: #79c0ff;
+  }
+  
+  .token.selector,
+  .token.attr-name,
+  .token.string,
+  .token.char,
+  .token.builtin,
+  .token.inserted {
+    color: #a5d6ff;
+  }
+  
+  .token.operator,
+  .token.entity,
+  .token.url,
+  .language-css .token.string,
+  .style .token.string {
+    color: #ff7b72;
+    background: #21262d;
+  }
+  
+  .token.atrule,
+  .token.attr-value,
+  .token.keyword {
+    color: #ff7b72;
+  }
+  
+  .token.function {
+    color: #d2a8ff;
+  }
+  
+  .token.regex,
+  .token.important,
+  .token.variable {
+    color: #ffa657;
+  }
+  
+  .token.important,
+  .token.bold {
+    font-weight: bold;
+  }
+  
+  .token.italic {
+    font-style: italic;
+  }
+  
+  .token.entity {
+    cursor: help;
+  }
+}
+
+/* ===== COMMON STYLES (both themes) ===== */
+
+/* Scrollbar styling */
+pre[class*="language-"]::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre[class*="language-"]::-webkit-scrollbar-track {
+  border-radius: 4px;
+}
+
+pre[class*="language-"]::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+/* Light theme scrollbar */
+@media (prefers-color-scheme: light) {
+  pre[class*="language-"]::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  pre[class*="language-"]::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+  }
+  
+  pre[class*="language-"]::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+}
+
+/* Dark theme scrollbar */
+@media (prefers-color-scheme: dark) {
+  pre[class*="language-"]::-webkit-scrollbar-track {
+    background: #21262d;
+  }
+  
+  pre[class*="language-"]::-webkit-scrollbar-thumb {
+    background: #484f58;
+  }
+  
+  pre[class*="language-"]::-webkit-scrollbar-thumb:hover {
+    background: #656d76;
+  }
+}
