@@ -122,14 +122,14 @@ contract TokenRendererV2 is ITokenRenderer {
         for (uint256 i = 0; i < pageData.units.length; i++) {
             string memory status = pageData.units[i] > block.timestamp ? "Active" : "Expired";
             string memory statusColor = pageData.units[i] > block.timestamp ? "#059669" : "#dc2626";
-            
+
             // Convert timestamp to ISO format
             string memory isoDate = _timestampToISO(pageData.units[i]);
-            
+
             svg = string(
                 abi.encodePacked(
                     svg,
-                    '<g>',
+                    "<g>",
                     '<rect x="65" y="',
                     Strings.toString(yPos),
                     '" width="280" height="35" rx="8" ry="8" fill="white" stroke="#f3f4f6" stroke-width="1" opacity="0.4"/>',
@@ -141,7 +141,7 @@ contract TokenRendererV2 is ITokenRenderer {
                     statusColor,
                     '">',
                     status,
-                    '</tspan> - ',
+                    "</tspan> - ",
                     isoDate,
                     "</text>",
                     "</g>"
@@ -196,12 +196,7 @@ contract TokenRendererV2 is ITokenRenderer {
             string memory isoDate = _timestampToISO(pageData.units[i]);
             attributes = string(
                 abi.encodePacked(
-                    attributes,
-                    ',{"trait_type":"unit',
-                    Strings.toString(i + 1),
-                    'ExpiresAt","value":"',
-                    isoDate,
-                    '"}'
+                    attributes, ',{"trait_type":"unit', Strings.toString(i + 1), 'ExpiresAt","value":"', isoDate, '"}'
                 )
             );
         }
@@ -238,18 +233,18 @@ contract TokenRendererV2 is ITokenRenderer {
         if (timestamp == 0) {
             return "Never";
         }
-        
+
         // Convert to days since epoch for easier date calculation
         uint256 daysSinceEpoch = timestamp / 86400;
-        
+
         // Approximate year calculation (not exact but good enough for display)
         uint256 year = 1970 + (daysSinceEpoch / 365);
         uint256 remainingDays = daysSinceEpoch % 365;
-        
+
         // Simple month calculation (approximate)
         uint256 month = 1 + (remainingDays / 30);
         uint256 day = 1 + (remainingDays % 30);
-        
+
         return string(
             abi.encodePacked(
                 Strings.toString(year),
