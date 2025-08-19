@@ -6,6 +6,8 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
 import { ICONS } from '../config/icons';
 
+const defaultLogo = "/_assets/images/logo.svg";
+
 const Navbar = ({
   activePage,
 }) => {
@@ -21,7 +23,7 @@ const Navbar = ({
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || "/_assets/images/logo.svg");
+  const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
 
   // Handle quit button click - clear scroll position and navigate to view
   const handleQuitClick = () => {
@@ -131,7 +133,7 @@ const Navbar = ({
           <img
             src={avatarPath}
             alt="Logo"
-            className={`h-9 w-9 cursor-pointer ${ensAvatar ? 'mask mask-squircle' : ''}`}
+            className={`h-9 w-9 cursor-pointer ${avatarPath.includes(defaultLogo) ? '' : 'mask mask-squircle'}`}
             onClick={goToRoot}
           />
         </div>

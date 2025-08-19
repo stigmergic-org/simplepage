@@ -221,7 +221,9 @@ export class Files {
     await this.#isReady()
     const avatarPath = await this.getAvatarPath(true)
     if (avatarPath) {
-      await this.rm(avatarPath)
+      try {
+        await this.rm(avatarPath)
+      } catch (e) {}
     }
     await this.add('/_avatar.' + fileExt, content, { forceAvatar: true })
   }

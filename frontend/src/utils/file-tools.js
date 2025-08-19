@@ -1,6 +1,7 @@
 import { toString } from 'uint8arrays/to-string';
 import { assert } from '@simplepg/common'
 import { MIME_TYPES } from '../config/media';
+import imageType from 'image-type';
 
 /**
  * Get MIME type from file path
@@ -65,12 +66,14 @@ export const encodeFileToDataUrl = (fileContent, filePath) => {
  */
 export const avatarUrlToFile = async (url) => {
   assert(url.startsWith('http'), `URL ${url} not supported`)
-  const fileExt = url.split('.').pop()
   const response = await fetch(url)
   const blob = await response.blob()
-  const data = await blob.arrayBuffer()
+  const data = new Uint8Array(await blob.arrayBuffer())
+  // Use image-type to detect the actual file extension from the binary data
+  const imageInfo = await imageType(data)
+  const fileExt = imageInfo ? imageInfo.ext : 'jpg' // fallback to 'jpg' if detection fails
   return {
-    data: new Uint8Array(data),
+    data,
     fileExt,
   }
 }
