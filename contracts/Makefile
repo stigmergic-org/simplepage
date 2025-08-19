@@ -62,8 +62,8 @@ test-renderers:
 	@echo "🧹 Cleaning up previous test outputs..."
 	@rm -rf test-render-outputs/*
 	@mkdir -p test-render-outputs
-	@echo "🔧 Running TokenRenderer test script and extracting SVGs..."
-	forge script script/TestRenderers.s.sol:TestRenderersScript --rpc-url http://localhost:8545 --broadcast | node script/extract-svgs.cjs
+	@echo "🔧 Running TokenRenderer demo script and extracting SVGs..."
+	forge script script/DemoRenderers.s.sol:RenderersDemoScript --rpc-url http://localhost:8545 --broadcast | node script/extract-svgs.cjs
 	@echo "✅ Test completed! Check the SVG files in the test-render-outputs/ directory"
 
 # Clean build artifacts

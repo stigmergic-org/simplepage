@@ -122,12 +122,10 @@ process.stdin.on('end', () => {
     
     if (svgCount > 0) {
         console.log(`\n🎉 Successfully extracted ${svgCount} SVG files!`);
-        console.log('📁 Check the test-outputs/ directory for the generated files.');
+        console.log('📁 Check the test-render-outputs/ directory for the generated files.');
         console.log('You can open the .svg files in a web browser to view the rendered tokens.');
     } else {
         console.log('\n❌ No SVG files were extracted. Check the input data.');
     }
 });
 
-console.log('Waiting for forge script output...');
-console.log('Run: forge script script/TestRenderers.s.sol --rpc-url http://localhost:8545 | node extract-svgs.cjs');

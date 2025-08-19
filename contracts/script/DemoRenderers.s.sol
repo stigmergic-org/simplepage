@@ -8,47 +8,47 @@ import "../src/TokenRenderer.sol";
 import "../src/TokenRendererV2.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
-contract TestRenderersScript is Script {
+contract RenderersDemoScript is Script {
     SimplePage public pages;
     TokenRenderer public rendererV1;
     TokenRendererV2 public rendererV2;
 
     // Test domains and configurations
-    string[] public testDomains = ["test1.eth", "test2.eth", "test3.eth", "test4.eth"];
+    string[] public sampleDomains = ["test1.eth", "test2.eth", "test3.eth", "test4.eth"];
 
     // Test unit configurations (expiration timestamps)
     // Each unit must expire after the previous one sequentially
-    uint256[][] public testUnits;
+    uint256[][] public sampleUnits;
 
     // Store initial timestamp for time manipulation
     uint256 public initialTimestamp;
 
     function setUp() public {
         initialTimestamp = block.timestamp;
-        testUnits = new uint256[][](4);
+        sampleUnits = new uint256[][](4);
 
         // Single unit, expires in 1 year
-        testUnits[0] = new uint256[](1);
-        testUnits[0][0] = initialTimestamp + 365 days;
+        sampleUnits[0] = new uint256[](1);
+        sampleUnits[0][0] = initialTimestamp + 365 days;
 
         // Two units, shorter time for later unit (reversed)
-        testUnits[1] = new uint256[](2);
-        testUnits[1][0] = initialTimestamp + 365 days; // First unit expires later
-        testUnits[1][1] = initialTimestamp + 180 days; // Second unit expires sooner
+        sampleUnits[1] = new uint256[](2);
+        sampleUnits[1][0] = initialTimestamp + 365 days; // First unit expires later
+        sampleUnits[1][1] = initialTimestamp + 180 days; // Second unit expires sooner
 
         // Three units, progressively shorter times (reversed)
-        testUnits[2] = new uint256[](3);
-        testUnits[2][0] = initialTimestamp + 365 days; // First unit expires later
-        testUnits[2][1] = initialTimestamp + 180 days; // Second unit expires sooner
-        testUnits[2][2] = initialTimestamp + 90 days; // Third unit expires soonest
+        sampleUnits[2] = new uint256[](3);
+        sampleUnits[2][0] = initialTimestamp + 365 days; // First unit expires later
+        sampleUnits[2][1] = initialTimestamp + 180 days; // Second unit expires sooner
+        sampleUnits[2][2] = initialTimestamp + 90 days; // Third unit expires soonest
 
         // Five units, progressively shorter times (reversed) with some expired
-        testUnits[3] = new uint256[](5);
-        testUnits[3][0] = initialTimestamp + 730 days; // First unit expires latest
-        testUnits[3][1] = initialTimestamp + 365 days; // Second unit expires later
-        testUnits[3][2] = initialTimestamp + 180 days; // Third unit expires sooner
-        testUnits[3][3] = initialTimestamp + 30 days; // Fourth unit expires soon
-        testUnits[3][4] = initialTimestamp + 1 days; // Fifth unit expires very soon
+        sampleUnits[3] = new uint256[](5);
+        sampleUnits[3][0] = initialTimestamp + 730 days; // First unit expires latest
+        sampleUnits[3][1] = initialTimestamp + 365 days; // Second unit expires later
+        sampleUnits[3][2] = initialTimestamp + 180 days; // Third unit expires sooner
+        sampleUnits[3][3] = initialTimestamp + 30 days; // Fourth unit expires soon
+        sampleUnits[3][4] = initialTimestamp + 1 days; // Fifth unit expires very soon
     }
 
     function run() external {
@@ -93,9 +93,9 @@ contract TestRenderersScript is Script {
         pages.grantRole(pages.MINTER_ROLE(), deployer);
 
         // Create test pages with different unit configurations
-        for (uint256 i = 0; i < testDomains.length; i++) {
-            string memory domain = testDomains[i];
-            uint256[] memory units = testUnits[i];
+        for (uint256 i = 0; i < sampleDomains.length; i++) {
+            string memory domain = sampleDomains[i];
+            uint256[] memory units = sampleUnits[i];
 
             // Create page with units directly using the pages contract
             for (uint256 j = units.length; j > 0; j--) {
@@ -129,8 +129,8 @@ contract TestRenderersScript is Script {
 
     function _testRenderer(address rendererAddress, string memory version) internal {
         // Test each page
-        for (uint256 i = 0; i < testDomains.length; i++) {
-            string memory domain = testDomains[i];
+        for (uint256 i = 0; i < sampleDomains.length; i++) {
+            string memory domain = sampleDomains[i];
             uint256 tokenId = pages.tokenIdForDomain(domain);
 
             // Testing domain: domain token ID: tokenId
