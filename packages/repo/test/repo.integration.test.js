@@ -2140,7 +2140,7 @@ Thoughts and insights about technology and development.`,
       expect(avatarResult.cid instanceof CID).toBe(true);
 
       // Verify avatar file is stored in the _files directory
-      const storedAvatarContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/_avatar.png`);
+      const storedAvatarContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/.avatar.png`);
       expect(storedAvatarContent).toBe('fake-avatar-png-data');
 
       // Verify that ALL pages now have the avatar as favicon, Open Graph image, and Twitter image
@@ -2153,17 +2153,17 @@ Thoughts and insights about technology and development.`,
         expect(favicon).toBeDefined();
         
         // The favicon should now point to the avatar
-        expect(favicon.href).toBe('/_files/_avatar.png');
+        expect(favicon.href).toBe('/_files/.avatar.png');
         
         // Check Open Graph image meta tag
         const ogImage = doc.querySelector('meta[property="og:image"]');
         expect(ogImage).toBeDefined();
-        expect(ogImage.content).toBe(`https://test.eth.link/_files/_avatar.png`);
+        expect(ogImage.content).toBe(`https://test.eth.link/_files/.avatar.png`);
         
         // Check Twitter image meta tag
         const twitterImage = doc.querySelector('meta[name="twitter:image"]');
         expect(twitterImage).toBeDefined();
-        expect(twitterImage.content).toBe(`https://test.eth.link/_files/_avatar.png`);
+        expect(twitterImage.content).toBe(`https://test.eth.link/_files/.avatar.png`);
         
         // Check Twitter card type (should be 'summary' when using avatar)
         const twitterCard = doc.querySelector('meta[name="twitter:card"]');
@@ -2278,7 +2278,7 @@ Thoughts and insights about technology and development.`,
       // Check that favicon still uses avatar (since avatar was set)
       const favicon = doc.querySelector('link[rel="icon"]');
       expect(favicon).toBeDefined();
-      expect(favicon.href).toBe('/_files/_avatar.png');
+      expect(favicon.href).toBe('/_files/.avatar.png');
     });
 
     it('should handle case with no avatar and no images in page content', async () => {

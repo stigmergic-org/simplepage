@@ -466,13 +466,13 @@ describe('Files', () => {
       // Verify avatar is added to the filesystem
       const lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.png',
+        name: '.avatar.png',
         type: 'file',
         change: CHANGE_TYPE.NEW
       }))
       
       // Verify avatar content can be read
-      const readContent = await files.cat('/_avatar.png')
+      const readContent = await files.cat('/.avatar.png')
       expect(readContent).toEqual(avatarContent)
     })
 
@@ -487,19 +487,19 @@ describe('Files', () => {
       
       // Verify only the new avatar exists
       const lsResult = await files.ls('/')
-      const avatarFiles = lsResult.filter(f => f.name.startsWith('_avatar.'))
+      const avatarFiles = lsResult.filter(f => f.name.startsWith('.avatar.'))
       expect(avatarFiles).toHaveLength(1)
       expect(avatarFiles[0]).toEqual(expect.objectContaining({
-        name: '_avatar.png',
+        name: '.avatar.png',
         type: 'file',
         change: CHANGE_TYPE.NEW
       }))
       
       // Verify old avatar content is gone
-      await expect(files.cat('/_avatar.jpg')).rejects.toThrow()
+      await expect(files.cat('/.avatar.jpg')).rejects.toThrow()
       
       // Verify new avatar content is correct
-      const readContent = await files.cat('/_avatar.png')
+      const readContent = await files.cat('/.avatar.png')
       expect(readContent).toEqual(secondAvatar)
     })
 
@@ -508,7 +508,7 @@ describe('Files', () => {
       await files.setAvatar(avatarContent, 'svg')
       
       const avatarPath = await files.getAvatarPath(false)
-      expect(avatarPath).toBe(`/${FILES_ROOT}/_avatar.svg`)
+      expect(avatarPath).toBe(`/${FILES_ROOT}/.avatar.svg`)
     })
 
     it('should get avatar path without prefix when noPrefix is true', async () => {
@@ -516,7 +516,7 @@ describe('Files', () => {
       await files.setAvatar(avatarContent, 'gif')
       
       const avatarPath = await files.getAvatarPath(true)
-      expect(avatarPath).toBe('_avatar.gif')
+      expect(avatarPath).toBe('.avatar.gif')
     })
 
     it('should return undefined when no avatar is set', async () => {
@@ -537,10 +537,10 @@ describe('Files', () => {
         await files.setAvatar(avatarContent, ext)
         
         const avatarPath = await files.getAvatarPath()
-        expect(avatarPath).toBe(`/${FILES_ROOT}/_avatar.${ext}`)
+        expect(avatarPath).toBe(`/${FILES_ROOT}/.avatar.${ext}`)
         
         // Verify content
-        const readContent = await files.cat(`/_avatar.${ext}`)
+        const readContent = await files.cat(`/.avatar.${ext}`)
         expect(readContent).toEqual(avatarContent)
       }
     })
@@ -561,12 +561,12 @@ describe('Files', () => {
       // Verify avatar is now part of the committed state
       const lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.png',
+        name: '.avatar.png',
         type: 'file'
       }))
       
       // Verify avatar content is accessible
-      const readContent = await files.cat('/_avatar.png')
+      const readContent = await files.cat('/.avatar.png')
       expect(readContent).toEqual(avatarContent)
     })
 
@@ -577,7 +577,7 @@ describe('Files', () => {
       // Verify avatar is staged
       let lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.jpg',
+        name: '.avatar.jpg',
         change: CHANGE_TYPE.NEW
       }))
       
@@ -587,11 +587,11 @@ describe('Files', () => {
       // Verify avatar is no longer in ls
       lsResult = await files.ls('/')
       expect(lsResult).not.toContainEqual(expect.objectContaining({
-        name: '_avatar.jpg'
+        name: '.avatar.jpg'
       }))
       
       // Verify avatar is no longer accessible
-      await expect(files.cat('/_avatar.jpg')).rejects.toThrow()
+      await expect(files.cat('/.avatar.jpg')).rejects.toThrow()
     })
 
     it('should restore avatar to committed state', async () => {
@@ -608,21 +608,21 @@ describe('Files', () => {
       // Verify new avatar is staged
       let lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.jpg',
+        name: '.avatar.jpg',
         change: CHANGE_TYPE.NEW
       }))
       
       // Restore the original avatar
-      await files.restore('/_avatar.png')
+      await files.restore('/.avatar.png')
       
       // Verify original avatar is restored
       lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.png'
+        name: '.avatar.png'
       }))
       
       // Verify original content is accessible
-      const readContent = await files.cat('/_avatar.png')
+      const readContent = await files.cat('/.avatar.png')
       expect(readContent).toEqual(originalAvatar)
     })
 
@@ -634,26 +634,26 @@ describe('Files', () => {
       await files.finalizeCommit(stagedResult.cid)
       
       // Remove the avatar
-      await files.rm('/_avatar.png')
+      await files.rm('/.avatar.png')
       
       // Verify avatar is marked for deletion
       let lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.png',
+        name: '.avatar.png',
         change: CHANGE_TYPE.DELETE
       }))
       
       // Restore the avatar
-      await files.restore('/_avatar.png')
+      await files.restore('/.avatar.png')
       
       // Verify avatar is no longer marked for deletion
       lsResult = await files.ls('/')
       expect(lsResult).toContainEqual(expect.objectContaining({
-        name: '_avatar.png'
+        name: '.avatar.png'
       }))
       
       // Verify avatar content is accessible again
-      const readContent = await files.cat('/_avatar.png')
+      const readContent = await files.cat('/.avatar.png')
       expect(readContent).toEqual(avatarContent)
     })
 
@@ -672,15 +672,15 @@ describe('Files', () => {
       
       // Verify only the last avatar exists
       const lsResult = await files.ls('/')
-      const avatarFiles = lsResult.filter(f => f.name.startsWith('_avatar.'))
+      const avatarFiles = lsResult.filter(f => f.name.startsWith('.avatar.'))
       expect(avatarFiles).toHaveLength(1)
       expect(avatarFiles[0]).toEqual(expect.objectContaining({
-        name: '_avatar.gif',
+        name: '.avatar.gif',
         change: CHANGE_TYPE.NEW
       }))
       
       // Verify content is correct
-      const readContent = await files.cat('/_avatar.gif')
+      const readContent = await files.cat('/.avatar.gif')
       expect(readContent).toEqual(avatar3)
     })
   })
