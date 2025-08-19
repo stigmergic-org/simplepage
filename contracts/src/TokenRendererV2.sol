@@ -21,7 +21,7 @@
  █  ░  Language . : Solidity                                                   █
  █  ░  Standard . : N/A                                                        █
  ▓  ░  Version .. : 2.0.0                                                      ▓
- ▒  ░  Deployed . : 2025-08-XX                                                 ▒
+ ▒  ░  Deployed . : 2025-08-19                                                 ▒
  ░                                                                             ░
 */
 pragma solidity ^0.8.24;

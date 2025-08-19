@@ -4,11 +4,13 @@ export const contracts = {
       "SimplePage": "0x99acdb2946b7240aac9aeb290cc0af145c48007e",
       "SimplePageManager": "0x17d02345c9f5949fb1c8262c210d51e81e1d78d6",
       "TokenRenderer": "0x4b337aa91996a5af014a8a715546fa16d1dc604a",
+      "TokenRendererV2": "0x4F1320c42383376A8215290df819C5a35327996d",
     },
     "11155111": {
       "SimplePage": "0x4f1320c42383376a8215290df819c5a35327996d",
       "SimplePageManager": "0x97f77e924c1bccb1adb5f6c0b96fa50fd4bd9f2d",
       "TokenRenderer": "0xfdceba3fd246464e8edcdf64c8702a857fa4ffa9",
+      "TokenRendererV2": "0x68603bA4F27925BC6256B777ae99FE4d0D3122bE",
     },
     "1337": {
       "SimplePage": "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
