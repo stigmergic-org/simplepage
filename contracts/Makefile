@@ -56,6 +56,16 @@ deploy:
 	forge script script/Setup.s.sol:SetupScript --rpc-url https://mainnet.gateway.tenderly.co --broadcast --sig "run(address,address)" $(word 2,$(MAKECMDGOALS)) $(word 3,$(MAKECMDGOALS)) --account simplepage-deploy
 	node script/updateContracts.cjs 1
 
+# Test token renderers and generate SVG outputs
+# Usage: make test-renderers
+test-renderers:
+	@echo "🧹 Cleaning up previous test outputs..."
+	@rm -rf test-render-outputs/*
+	@mkdir -p test-render-outputs
+	@echo "🔧 Running TokenRenderer test script and extracting SVGs..."
+	forge script script/TestRenderers.s.sol:TestRenderersScript --rpc-url http://localhost:8545 --broadcast | node script/extract-svgs.cjs
+	@echo "✅ Test completed! Check the SVG files in the test-render-outputs/ directory"
+
 # Clean build artifacts
 clean:
 	forge clean
@@ -70,10 +80,11 @@ help:
 	@echo "  make run-dev   - Run local Ethereum node"
 	@echo "  make fund-dev  - Fund a development address"
 	@echo "  make deploy-dev - Deploy script and save deployments"
+	@echo "  make test-renderers - Test token renderers and generate SVGs"
 	@echo "  make clean     - Clean build artifacts"
 	@echo "  make help      - Show this help message"
 
-.PHONY: all build test format snapshot run-dev fund-dev deploy-dev clean help
+.PHONY: all build test format snapshot run-dev fund-dev deploy-dev test-renderers clean help
 
 %:
 	@:
