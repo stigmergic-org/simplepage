@@ -193,7 +193,7 @@ export class Files {
   async add(path, content, { forceAvatar = false } = {}) {
     await this.#isReady()
     path = path.startsWith('/') ? path : `/${path}`
-    assert(!path.startsWith('/_avatar.') || forceAvatar, `${path} is a reserved filename`)
+    assert(!path.startsWith('/.avatar.') || forceAvatar, `${path} is a reserved filename`)
 
     // if the folder exist under changeRoot, we need to ensure it's in the local blockstore
     const split = path.split('/').filter(Boolean)
@@ -225,7 +225,7 @@ export class Files {
         await this.rm(avatarPath)
       } catch (e) {}
     }
-    await this.add('/_avatar.' + fileExt, content, { forceAvatar: true })
+    await this.add('/.avatar.' + fileExt, content, { forceAvatar: true })
   }
 
   /**
@@ -235,7 +235,7 @@ export class Files {
   async getAvatarPath(noPrefix = false) {
     await this.#isReady()
     const files = await this.ls('/')
-    const avatarPath = files.find(f => f.name.startsWith('_avatar.'))?.path
+    const avatarPath = files.find(f => f.name.startsWith('.avatar.'))?.path
     return !noPrefix && avatarPath ? `/${FILES_ROOT}/${avatarPath}` : avatarPath
   }
 
