@@ -1,5 +1,11 @@
 # @simplepg/cli
 
+## 1.0.5
+
+### Patch Changes
+
+- f60a246: chore(cli): better instructions for how to update contenthash record
+
 ## 1.0.4
 
 ### Patch Changes

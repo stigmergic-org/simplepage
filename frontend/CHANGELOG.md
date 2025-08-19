@@ -1,5 +1,28 @@
 # @simplepg/frontend
 
+## 1.4.0
+
+### Minor Changes
+
+- 4c4d7a3: feat(frontend): code syntax highlighting
+- f612667: feat(repo,frontend): better social previews, based on avatar and first img
+
+### Patch Changes
+
+- 2b8825a: feat(repo,frontend): persist avatar for more consistent favicon experience
+- af38d06: fix(repo,frontend): don't forget edits when website is updated
+- ef3328a: fix(frontend): handle non-CID contenthash, inform on incorrect manager setting
+- 948d32f: fix(frontend): remember added domains on publish page
+- dee85f8: fix(frontend): don't rewrite /spg- links in preview mode
+- 319895a: chore(frontend): move subscription page to navbar menu in edit mode
+- 44d5865: fix(frontend): better avatar filetype detection
+- Updated dependencies [2b8825a]
+- Updated dependencies [af38d06]
+- Updated dependencies [f612667]
+- Updated dependencies [44d5865]
+- Updated dependencies [c1233e3]
+  - @simplepg/repo@1.2.0
+
 ## 1.3.3
 
 ### Patch Changes

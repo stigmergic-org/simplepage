@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/frontend",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "webpack serve --mode=development",

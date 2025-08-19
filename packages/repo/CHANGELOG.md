@@ -1,5 +1,18 @@
 # @simplepg/repo
 
+## 1.2.0
+
+### Minor Changes
+
+- 2b8825a: feat(repo,frontend): persist avatar for more consistent favicon experience
+- f612667: feat(repo,frontend): better social previews, based on avatar and first img
+
+### Patch Changes
+
+- af38d06: fix(repo,frontend): don't forget edits when website is updated
+- 44d5865: fix(frontend): better avatar filetype detection
+- c1233e3: fix(repo): avatar 'hidden' filename should start with '.'
+
 ## 1.1.3
 
 ### Patch Changes
