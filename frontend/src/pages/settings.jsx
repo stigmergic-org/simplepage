@@ -6,14 +6,18 @@ import Icon from '../components/Icon';
 
 const Settings = () => {
   const domain = useDomain();
-  const repo = useRepo();
+  const { repo } = useRepo();
   const [forkButtonStyle, setForkButtonStyle] = useState('rainbow');
 
   document.title = `Settings - ${domain}`;
 
   const handleClearPageEdits = () => repo.restoreAllPages()
-  const handleClearFileEdits = () => repo.clearChanges()
-  const handleClearAllCache = () => localStorage.clear()
+  const handleClearFileEdits = () => repo.files.clearChanges()
+  const handleClearAllCache = () => {
+    repo.files.clearChanges()
+    repo.restoreAllPages()
+    localStorage.clear()
+  }
 
   return (
     <>
@@ -152,13 +156,13 @@ const Settings = () => {
 
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-base-content/60">Clear all cached data</span>
+                  <span className="text-base-content/60">Clear all locally cached data</span>
                 </div>
                 <button 
                   className="btn btn-outline btn-error"
                   onClick={handleClearAllCache}
                 >
-                  Clear All Cache
+                  Clear All Data
                 </button>
               </div>
             </div>

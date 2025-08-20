@@ -321,7 +321,7 @@ const Files = () => {
               {sortedFiles.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <Icon name="folder" className='mx-auto' size={12} />
+                    <Icon name="folder" className='mx-auto' size={8} />
                   </div>
                   <p className="text-gray-600">No files or folders found</p>
                   <p className="text-sm text-gray-500 mt-2">Upload files or create folders to get started</p>
