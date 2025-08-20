@@ -182,8 +182,8 @@ importers:
         specifier: ^3.0.9
         version: 3.0.9
       multiformats:
-        specifier: ^13.3.7
-        version: 13.3.7
+        specifier: ^13.4.0
+        version: 13.4.0
       uint8arrays:
         specifier: ^5.1.0
         version: 5.1.0
@@ -231,8 +231,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       multiformats:
-        specifier: ^13.3.7
-        version: 13.3.7
+        specifier: ^13.4.0
+        version: 13.4.0
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.1.0)
@@ -292,8 +292,8 @@ importers:
         specifier: ^3.0.9
         version: 3.0.9
       multiformats:
-        specifier: ^13.3.7
-        version: 13.3.7
+        specifier: ^13.4.0
+        version: 13.4.0
       uint8arrays:
         specifier: ^5.1.0
         version: 5.1.0
@@ -326,8 +326,8 @@ importers:
         specifier: ^5.2.0
         version: 5.2.0(undici@7.11.0)
       multiformats:
-        specifier: ^13.3.7
-        version: 13.3.7
+        specifier: ^13.4.0
+        version: 13.4.0
       uint8arrays:
         specifier: ^5.1.0
         version: 5.1.0
@@ -4818,6 +4818,9 @@ packages:
   multiformats@13.3.7:
     resolution: {integrity: sha512-meL9DERHj+fFVWoOX9fXqfcYcSpUfSYJPcFvDPKrxitICbwAoWR+Ut4j5NO9zAT917HUHLQmqzQbAsGNHlDcxQ==}
 
+  multiformats@13.4.0:
+    resolution: {integrity: sha512-Mkb/QcclrJxKC+vrcIFl297h52QcKh2Az/9A5vbWytbQt4225UWWWmIuSsKksdww9NkIeYcA7DkfftyLuC/JSg==}
+
   multiformats@9.9.0:
     resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
 
@@ -7913,7 +7916,7 @@ snapshots:
       interface-blockstore: 5.3.2
       interface-datastore: 8.3.2
       interface-store: 6.0.3
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       progress-events: 1.0.1
 
   '@helia/unixfs@5.0.3(encoding@0.1.13)':
@@ -7958,16 +7961,16 @@ snapshots:
   '@ipld/dag-cbor@9.2.4':
     dependencies:
       cborg: 4.2.12
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   '@ipld/dag-json@10.2.5':
     dependencies:
       cborg: 4.2.12
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   '@ipld/dag-pb@4.1.5':
     dependencies:
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -8224,7 +8227,7 @@ snapshots:
       '@libp2p/interface': 2.10.5
       '@noble/curves': 1.9.2
       '@noble/hashes': 1.8.0
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       protons-runtime: 5.6.0
       uint8arraylist: 2.4.8
       uint8arrays: 5.1.0
@@ -8236,7 +8239,7 @@ snapshots:
       it-pushable: 3.2.3
       it-stream-types: 2.0.2
       main-event: 1.0.1
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       progress-events: 1.0.1
       uint8arraylist: 2.4.8
 
@@ -8245,14 +8248,14 @@ snapshots:
       '@libp2p/interface': 2.10.5
       '@multiformats/multiaddr': 12.5.1
       interface-datastore: 8.3.2
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       weald: 1.0.4
 
   '@libp2p/peer-id@5.1.8':
     dependencies:
       '@libp2p/crypto': 5.1.7
       '@libp2p/interface': 2.10.5
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       uint8arrays: 5.1.0
 
   '@libp2p/utils@6.7.1':
@@ -8479,13 +8482,13 @@ snapshots:
       '@chainsafe/netmask': 2.0.0
       '@multiformats/dns': 1.0.6
       abort-error: 1.0.1
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       uint8-varint: 2.0.4
       uint8arrays: 5.1.0
 
   '@multiformats/murmur3@2.1.8':
     dependencies:
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       murmurhash3js-revisited: 3.0.0
 
   '@napi-rs/wasm-runtime@0.2.12':
@@ -10254,7 +10257,7 @@ snapshots:
       interface-store: 6.0.3
       it-filter: 3.1.4
       it-merge: 3.0.12
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   blockstore-idb@2.0.3:
     dependencies:
@@ -10262,7 +10265,7 @@ snapshots:
       idb: 8.0.3
       interface-blockstore: 5.3.2
       interface-store: 6.0.3
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       race-signal: 1.1.3
 
   bn.js@5.2.2: {}
@@ -10431,7 +10434,7 @@ snapshots:
   cartonne@3.0.1:
     dependencies:
       '@ipld/dag-cbor': 9.2.4
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       multihashes-sync: 2.0.0
       varintes: 2.0.5
 
@@ -11767,7 +11770,7 @@ snapshots:
   interface-blockstore@5.3.2:
     dependencies:
       interface-store: 6.0.3
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   interface-datastore@8.3.2:
     dependencies:
@@ -11797,7 +11800,7 @@ snapshots:
       it-parallel: 3.0.13
       it-pipe: 3.0.1
       it-pushable: 3.2.3
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       p-queue: 8.1.0
       progress-events: 1.0.1
 
@@ -11813,7 +11816,7 @@ snapshots:
       it-batch: 3.0.9
       it-first: 3.0.9
       it-parallel-batch: 3.0.9
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       progress-events: 1.0.1
       rabin-wasm: 0.1.5(encoding@0.1.13)
       uint8arraylist: 2.4.8
@@ -12525,7 +12528,7 @@ snapshots:
       it-peekable: 3.0.8
       it-to-stream: 1.0.0
       merge-options: 3.0.4
-      multiformats: 13.3.7
+      multiformats: 13.4.0
       nanoid: 5.1.5
       native-fetch: 4.0.2(undici@7.11.0)
       parse-duration: 2.1.4
@@ -12830,12 +12833,14 @@ snapshots:
 
   multiformats@13.3.7: {}
 
+  multiformats@13.4.0: {}
+
   multiformats@9.9.0: {}
 
   multihashes-sync@2.0.0:
     dependencies:
       '@noble/hashes': 1.8.0
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   murmurhash3js-revisited@3.0.0: {}
 
@@ -14143,7 +14148,7 @@ snapshots:
 
   uint8arrays@5.1.0:
     dependencies:
-      multiformats: 13.3.7
+      multiformats: 13.4.0
 
   uncrypto@0.1.3: {}
 
