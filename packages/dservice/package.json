@@ -31,7 +31,7 @@
     "it-all": "^3.0.9",
     "kubo-rpc-client": "^5.2.0",
     "lru-cache": "^11.1.0",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "multiformats": "^13.4.0",
     "swagger-ui-express": "^5.0.1",
     "varint": "^6.0.0",
