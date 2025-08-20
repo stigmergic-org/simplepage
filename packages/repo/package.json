@@ -21,7 +21,7 @@
   "devDependencies": {
     "fake-indexeddb": "^6.0.1",
     "jest": "^30.0.3",
-    "jest-environment-jsdom": "^30.0.2"
+    "jest-environment-jsdom": "^30.0.5"
   },
   "dependencies": {
     "@ipld/dag-pb": "^4.1.5",
