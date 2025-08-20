@@ -1,33 +1,19 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
 
 const Settings = () => {
-  const navigate = useNavigate();
   const domain = useDomain();
   const repo = useRepo();
   const [forkButtonStyle, setForkButtonStyle] = useState('rainbow');
 
   document.title = `Settings - ${domain}`;
 
-  const handleBackClick = () => {
-    navigate(-1);
-  };
-
-  const handleClearPageEdits = () => {
-    // TODO: Implement clear page edits functionality
-    console.log('Clear page edits clicked');
-  };
-
+  const handleClearPageEdits = () => repo.restoreAllPages()
   const handleClearFileEdits = () => repo.clearChanges()
-
-  const handleClearAllCache = () => {
-    // TODO: Implement clear all cache functionality
-    console.log('Clear all cache clicked');
-  };
+  const handleClearAllCache = () => localStorage.clear()
 
   return (
     <>
@@ -54,7 +40,7 @@ const Settings = () => {
 
           {/* Appearance Settings */}
           <div className="border border-base-300 rounded-lg p-6 bg-base-100">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <Icon name="palette" size={5} />
               Appearance
             </h2>
@@ -62,7 +48,7 @@ const Settings = () => {
             {/* Fork Button Style */}
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-medium mb-2">Fork Button Style</span>
+                <span className="label-text font-medium mb-4">Fork Button Style</span>
               </label>
               <div className="flex flex-row gap-6">
                 <label className="label cursor-pointer justify-start gap-3">

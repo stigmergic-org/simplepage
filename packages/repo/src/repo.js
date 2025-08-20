@@ -28,6 +28,7 @@ import { CHANGE_TYPE } from './constants.js'
 
 
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
+const EDIT_PREFIX = 'spg_edit_'
 
 /**
  * A class for managing a SimplePage repository.
@@ -149,7 +150,7 @@ export class Repo {
     if (!type) {
       type = await this.#pageExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW
     }
-    this.storage.setItem(`spg_edit_${path}`, JSON.stringify({
+    this.storage.setItem(`${EDIT_PREFIX}${path}`, JSON.stringify({
       markdown,
       body,
       root: this.repoRoot.cid.toString(),
@@ -180,12 +181,12 @@ export class Repo {
     await this.#initPromise;
     const allPages = await this.getAllPages()
     if (allPages.includes(path)) {
-      this.storage.setItem(`spg_edit_${path}`, JSON.stringify({
+      this.storage.setItem(`${EDIT_PREFIX}${path}`, JSON.stringify({
         root: this.repoRoot.cid.toString(),
         type: CHANGE_TYPE.DELETE,
       }));
     } else {
-      this.storage.removeItem(`spg_edit_${path}`)
+      this.storage.removeItem(`${EDIT_PREFIX}${path}`)
     }
   }
 
@@ -196,11 +197,21 @@ export class Repo {
   async restorePage(path) {
     assert(path.startsWith('/'), 'Path must start with /')
     assert(path.endsWith('/'), 'Path must end with /')
-    this.storage.removeItem(`spg_edit_${path}`)
+    this.storage.removeItem(`${EDIT_PREFIX}${path}`)
+  }
+
+  /**
+   * Restores all pages.
+   */
+  restoreAllPages() {
+    const keys = Object.keys(this.storage).filter(key => key.startsWith(EDIT_PREFIX))
+    for (const key of keys) {
+      this.storage.removeItem(key)
+    }
   }
 
   async #getPageEdit(path) {
-    const data = this.storage.getItem(`spg_edit_${path}`)
+    const data = this.storage.getItem(`${EDIT_PREFIX}${path}`)
     return data ? JSON.parse(data) : null
   }
 
@@ -210,7 +221,7 @@ export class Repo {
    * @returns {boolean} Whether the edit is for an old repo root.
    */
   isOutdatedEdit(path) {
-    const data = this.storage.getItem(`spg_edit_${path}`)
+    const data = this.storage.getItem(`${EDIT_PREFIX}${path}`)
     if (data) {
       const parsed = JSON.parse(data)
       return parsed.root !== this.repoRoot.cid.toString()
@@ -224,19 +235,15 @@ export class Repo {
   async getChanges() {
     await this.#initPromise;
     const edits = []
-    for (let i = 0; i < this.storage.length; i++) {
-      const key = this.storage.key(i)
-      if (key.startsWith('spg_edit_')) {
-        const data = JSON.parse(this.storage.getItem(key))
-        if (data.root === this.repoRoot.cid.toString()) {
-          edits.push({
-            path: key.replace('spg_edit_', ''),
-            type: data.type,
-            markdown: data.markdown,
-            body: data.body,
-          })
-        }
-      }
+    const keys = Object.keys(this.storage).filter(key => key.startsWith(EDIT_PREFIX))
+    for (const key of keys) {
+      const data = JSON.parse(this.storage.getItem(key))
+      edits.push({
+        path: key.replace(EDIT_PREFIX, ''),
+        type: data.type,
+        markdown: data.markdown,
+        body: data.body,
+      })
     }
     return edits
   }
@@ -490,12 +497,7 @@ export class Repo {
    */
   async finalizeCommit(cid) {
     // clear out all edits
-    for (let i = 0; i < this.storage.length; i++) {
-      const key = this.storage.key(i)
-      if (key.startsWith('spg_edit_')) {
-        this.storage.removeItem(key)
-      }
-    }
+    this.restoreAllPages()
     this.repoRoot.cid = cid;
     const filesRoot = (await ls(this.blockstore, cid)).find(([name]) => name === '_files')[1]
     await this.files.finalizeCommit(filesRoot)

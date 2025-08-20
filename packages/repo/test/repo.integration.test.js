@@ -30,6 +30,16 @@ const checkMeta = (doc, name, content) => {
 class MockStorage {
   constructor() {
     this.store = new Map();
+    return new Proxy(this, {
+      ownKeys: () => [...this.store.keys()],
+      getOwnPropertyDescriptor: (target, prop) => {
+        return {
+          enumerable: true,
+          configurable: true,
+          value: this.store.get(prop)
+        };
+      }
+    });
   }
 
   getItem(key) {
@@ -267,6 +277,70 @@ describe('Repo Integration Tests', () => {
       // Should work for valid paths
       await expect(repo.setPageEdit('/', testMarkdown, testBody)).resolves.not.toThrow();
       await expect(repo.setPageEdit('/about/', testMarkdown, testBody)).resolves.not.toThrow();
+    });
+
+    it('should handle restorePage functionality', async () => {
+      // Create initial pages
+      await repo.setPageEdit('/about/', '# About\n\nAbout content.', '<h1>About</h1><p>About content.</p>');
+      await repo.setPageEdit('/blog/', '# Blog\n\nBlog content.', '<h1>Blog</h1><p>Blog content.</p>');
+      
+      // Stage and commit initial pages
+      const firstResult = await repo.stage('test.eth', false);
+      const hash1 = await walletClient.writeContract(firstResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: hash1 });
+      await repo.finalizeCommit(firstResult.cid);
+      
+      // Delete a page
+      await repo.deletePage('/about/');
+      
+      // Verify deletion is staged
+      let changes = await repo.getChanges();
+      expect(changes.length).toBe(1);
+      expect(changes[0].type).toBe('delete');
+      expect(changes[0].path).toBe('/about/');
+      
+      // Restore the deleted page
+      await repo.restorePage('/about/');
+      
+      // Verify the deletion is removed from changes
+      changes = await repo.getChanges();
+      expect(changes.length).toBe(0);
+    });
+
+    it('should handle restoreAllPages functionality', async () => {
+      // Create multiple pages with edits
+      await repo.setPageEdit('/about/', '# About\n\nAbout content.', '<h1>About</h1><p>About content.</p>');
+      await repo.setPageEdit('/blog/', '# Blog\n\nBlog content.', '<h1>Blog</h1><p>Blog content.</p>');
+      await repo.setPageEdit('/contact/', '# Contact\n\nContact info.', '<h1>Contact</h1><p>Contact info.</p>');
+      await repo.setPageEdit('/docs/', '# Docs\n\nDocumentation.', '<h1>Docs</h1><p>Documentation.</p>');
+      
+      // Verify all edits exist
+      let changes = await repo.getChanges();
+      expect(changes.length).toBe(4);
+      expect(changes.map(c => c.path)).toContain('/about/');
+      expect(changes.map(c => c.path)).toContain('/blog/');
+      expect(changes.map(c => c.path)).toContain('/contact/');
+      expect(changes.map(c => c.path)).toContain('/docs/');
+      
+      // Restore all pages
+      repo.restoreAllPages();
+      
+      // Verify all edits are removed
+      changes = await repo.getChanges();
+      expect(changes.length).toBe(0);
+      
+      // Verify individual pages are also restored
+      const aboutData = storage.getItem('spg_edit_/about/');
+      expect(aboutData).toBeNull();
+      
+      const blogData = storage.getItem('spg_edit_/blog/');
+      expect(blogData).toBeNull();
+      
+      const contactData = storage.getItem('spg_edit_/contact/');
+      expect(contactData).toBeNull();
+      
+      const docsData = storage.getItem('spg_edit_/docs/');
+      expect(docsData).toBeNull();
     });
   });
 
@@ -865,34 +939,6 @@ This is a test page with custom title and description.`;
       // Verify the final state through ENS resolution
       const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
       expect(finalRoot.toString()).toBe(secondResult.cid.toString());
-    });
-
-    it('should handle restorePage functionality', async () => {
-      // Create initial pages
-      await repo.setPageEdit('/about/', '# About\n\nAbout content.', '<h1>About</h1><p>About content.</p>');
-      await repo.setPageEdit('/blog/', '# Blog\n\nBlog content.', '<h1>Blog</h1><p>Blog content.</p>');
-      
-      // Stage and commit initial pages
-      const firstResult = await repo.stage('test.eth', false);
-      const hash1 = await walletClient.writeContract(firstResult.prepTx);
-      await client.waitForTransactionReceipt({ hash: hash1 });
-      await repo.finalizeCommit(firstResult.cid);
-      
-      // Delete a page
-      await repo.deletePage('/about/');
-      
-      // Verify deletion is staged
-      let changes = await repo.getChanges();
-      expect(changes.length).toBe(1);
-      expect(changes[0].type).toBe('delete');
-      expect(changes[0].path).toBe('/about/');
-      
-      // Restore the deleted page
-      await repo.restorePage('/about/');
-      
-      // Verify the deletion is removed from changes
-      changes = await repo.getChanges();
-      expect(changes.length).toBe(0);
     });
 
     it('should handle deletion with multiple directory depths', async () => {

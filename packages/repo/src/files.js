@@ -367,5 +367,6 @@ export class Files {
   async clearChanges() {
     await this.#isReady()
     await this.#setChangeRoot(this.#root)
+    console.log('after files clearChanges')
   }
 }
