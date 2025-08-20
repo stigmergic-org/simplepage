@@ -32,6 +32,8 @@ export const useNavigation = () => {
 
   const goToFiles = (path = null) => navigate(createUrlWithParams(ROUTES.FILES, { path }));
 
+  const goToSettings = () => navigate(ROUTES.SETTINGS);
+
   const goToNotFound = (path = null) => navigate(createUrlWithParams(ROUTES.NOT_FOUND, { path }));
 
   const goToRoot = () => {
@@ -52,6 +54,7 @@ export const useNavigation = () => {
     goToSubscription,
     goToPages,
     goToFiles,
+    goToSettings,
     goToNotFound,
     goToRoot,
     isActive,

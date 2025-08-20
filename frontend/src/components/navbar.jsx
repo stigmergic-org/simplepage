@@ -4,7 +4,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
-import { ICONS } from '../config/icons';
+import Icon from './Icon';
 
 const defaultLogo = "/_assets/images/logo.svg";
 
@@ -17,7 +17,7 @@ const Navbar = ({
     name: domain,
   });
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
@@ -42,14 +42,19 @@ const Navbar = ({
 
   const availableMenuItems = [
     {
+      label: 'Settings',
+      onClick: () => goToSettings(),
+      icon: 'settings',
+    },
+    {
       label: 'Subscription',
       onClick: () => goToSubscription(),
-      ...ICONS['credit-card'],
+      icon: 'credit-card',
     },
     {
       label: 'Quit editor',
       onClick: () => handleQuitClick(),
-      ...ICONS.exit,
+      icon: 'exit',
     },
   ]
 
@@ -57,23 +62,23 @@ const Navbar = ({
   const availableTabs = {
     'Preview': {
       onClick: () => goToViewWithPreview(path),
-      ...ICONS.preview,
+      icon: 'preview',
     },
     'Edit': {
       onClick: () => goToEdit(path),
-      ...ICONS.edit,
+      icon: 'edit',
     },
     'Pages': {
       onClick: () => goToPages(path),
-      ...ICONS.document,
+      icon: 'document',
     },
     'Files': {
       onClick: () => goToFiles(path),
-      ...ICONS.folder,
+      icon: 'folder',
     },
     'Publish': {
       onClick: () => goToPublish(),
-      ...ICONS.upload,
+      icon: 'upload',
     }
   };
 
@@ -171,11 +176,7 @@ const Navbar = ({
                 {/* Hamburger menu */}
                 <div className="dropdown dropdown-end relative z-[100]">
                   <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" >
-                    <img
-                      src={ICONS.hamburger.src}
-                      alt={ICONS.hamburger.alt}
-                      className="h-5 w-5 dark:invert"
-                    />
+                    <Icon name="hamburger" size={5} />
                   </div>
                   <ul
                     tabIndex={0}
@@ -184,11 +185,7 @@ const Navbar = ({
                     {availableMenuItems.map((item) => (
                       <li key={item.label}>
                         <a onClick={item.onClick}>
-                          <img
-                            src={item.src}
-                            alt={item.alt}
-                            className="w-4 h-4 dark:invert"
-                          />
+                          <Icon name={item.icon} />
                           {item.label}
                         </a>
                       </li>
@@ -217,11 +214,7 @@ const Navbar = ({
                   onClick={() => availableTabs[tab].onClick()}
                 >
                   <span className="mr-1">
-                    <img
-                      src={availableTabs[tab].src}
-                      alt={availableTabs[tab].alt}
-                      className={`w-4 h-4 dark:invert opacity-${activePage === tab ? '100' : '50'} group-hover:opacity-100`}
-                    />
+                    <Icon name={availableTabs[tab].icon} className={`opacity-${activePage === tab ? '100' : '50'} group-hover:opacity-100`} />
                   </span>
                   {tab}
                 </a>

@@ -15,6 +15,7 @@ import Publish from './pages/publish';
 import Subscription from './pages/subscription';
 import Pages from './pages/pages';
 import Files from './pages/files';
+import Settings from './pages/settings';
 import NotFound from './pages/notfound';
 import { ROUTES } from './config/routes';
 
@@ -39,6 +40,7 @@ const App = (props) => {
             <Route path={ROUTES.SUBSCRIPTION} element={<Subscription />} />
             <Route path={ROUTES.PAGES} element={<Pages />} />
             <Route path={ROUTES.FILES} element={<Files />} />
+            <Route path={ROUTES.SETTINGS} element={<Settings />} />
             <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
           </Routes>
         </ScrollProvider>

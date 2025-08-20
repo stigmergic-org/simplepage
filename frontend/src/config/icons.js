@@ -45,6 +45,22 @@ export const ICONS = {
     src: `${PREFIX}restore.svg`,
     alt: '↩️',
   },
+  'settings': {
+    src: `${PREFIX}settings.svg`,
+    alt: '⚙️',
+  },
+  'palette': {
+    src: `${PREFIX}palette.svg`,
+    alt: '🎨',
+  },
+  'shield': {
+    src: `${PREFIX}shield.svg`,
+    alt: '🔒',
+  },
+  'tools': {
+    src: `${PREFIX}tools.svg`,
+    alt: '🔧',
+  },
   'trash': {
     src: `${PREFIX}trash.svg`,
     alt: '🗑️',

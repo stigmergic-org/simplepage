@@ -6,7 +6,7 @@ import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Notice from '../components/Notice';
-import { ICONS } from '../config/icons';
+import Icon from '../components/Icon';
 
 
 const Pages = () => {
@@ -225,7 +225,7 @@ const Pages = () => {
               {allItems.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="text-gray-500 mb-4">
-                    <img src={ICONS.document.src} alt={ICONS.document.alt} className="mx-auto h-12 w-12 dark:invert" />
+                    <Icon name="document" className='mx-auto' size={12} />
                   </div>
                   <p className="text-gray-600">No pages found</p>
                   <p className="text-sm text-gray-500 mt-2">Create a new page below to get started</p>
@@ -256,25 +256,25 @@ const Pages = () => {
                             <td>
                               {status === 'new' && (
                                 <span className="badge badge-success gap-1">
-                                  <img src={ICONS.plus.src} alt={ICONS.plus.alt} className="w-3 h-3" />
+                                  <Icon name="plus" size={3} disableInvert={true} />
                                   New
                                 </span>
                               )}
                               {status === 'edited' && (
                                 <span className="badge badge-warning gap-1">
-                                  <img src={ICONS.warning.src} alt={ICONS.warning.alt} className="w-3 h-3" />
+                                  <Icon name="warning" size={3} disableInvert={true} />
                                   Edited
                                 </span>
                               )}
                               {status === 'deleted' && (
                                 <span className="badge badge-error gap-1">
-                                  <img src={ICONS.trash.src} alt={ICONS.trash.alt} className="w-3 h-3" />
+                                  <Icon name="trash" size={3} disableInvert={true} />
                                   Deleted
                                 </span>
                               )}
                               {status === 'published' && (
                                 <span className="badge badge-info gap-1">
-                                  <img src={ICONS.check.src} alt={ICONS.check.alt} className="w-3 h-3" />
+                                  <Icon name="check" size={3} disableInvert={true} />
                                   Published
                                 </span>
                               )}
@@ -288,14 +288,14 @@ const Pages = () => {
                                       onClick={() => goToViewWithPreview(path)}
                                       title="Preview page"
                                     >
-                                      <img src={ICONS.preview.src} alt={ICONS.preview.alt} className="w-4 h-4 dark:invert" />
+                                      <Icon name="preview" />
                                     </button>
                                     <button
                                       className="btn btn-sm btn-ghost"
                                       onClick={() => goToEdit(path)}
                                       title="Edit page"
                                     >
-                                      <img src={ICONS.edit.src} alt={ICONS.edit.alt} className="w-4 h-4 dark:invert" />
+                                      <Icon name="edit" />
                                     </button>
                                   </>
                                 )}
@@ -305,7 +305,7 @@ const Pages = () => {
                                     onClick={() => handleRestore(path)}
                                     title={status === 'deleted' ? 'Revert delete' : 'Restore to published'}
                                   >
-                                    <img src={ICONS.restore.src} alt={ICONS.restore.alt} className="w-4 h-4 dark:invert" />
+                                    <Icon name="restore" />
                                   </button>
                                 )}
                                 {path !== '/' && status !== 'deleted' && (
@@ -314,7 +314,7 @@ const Pages = () => {
                                     onClick={() => handleDeleteFile(path)}
                                     title="Delete page"
                                   >
-                                    <img src={ICONS.trash.src} alt={ICONS.trash.alt} className="w-4 h-4 dark:invert" />
+                                    <Icon name="trash" />
                                   </button>
                                 )}
                               </div>
@@ -335,7 +335,7 @@ const Pages = () => {
               <h2 className="card-title">Create New Page</h2>
               <div className="form-control">
                 <label className="input validator">
-                  <img src={ICONS.document.src} alt={ICONS.document.alt} className="h-[1em] opacity-50 dark:invert" />
+                  <Icon name="document" className='h-[1em] opacity-50' />
                   <input
                     type="text"
                     required
