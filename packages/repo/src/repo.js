@@ -23,7 +23,8 @@ import {
 } from '@simplepg/common'
 
 import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
-import { Files } from './files.js'
+import { Files, FILES_FOLDER } from './files.js'
+import { Settings, SETTINGS_FILE } from './settings.js'
 import { CHANGE_TYPE } from './constants.js'
 
 
@@ -54,6 +55,7 @@ export class Repo {
 
     this.unixfs = fs;
     this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
+    this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
     
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
@@ -91,6 +93,7 @@ export class Repo {
       // this.#importRepoData(this.templateRoot.cid)
     ])
     await this.files.unsafeSetRepoRoot(this.repoRoot.cid)
+    await this.settings.unsafeSetRepoRoot(this.repoRoot.cid)
     this.#resolveInitPromise()
   }
 
@@ -379,11 +382,12 @@ export class Repo {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     let edits = await this.getChanges()
     const filesChanged = await this.files.hasChanges()
+    const settingsChanged = await this.settings.hasChanges()
     if (wantUpdateTemplate) {
       assert(this.templateRoot.cid, 'Template root not found')
     }
     const willUpdateTemplate = wantUpdateTemplate && (await this.isNewVersionAvailable()).canUpdate
-    assert(edits.length > 0 || filesChanged || willUpdateTemplate, 'No edits to stage')
+    assert(edits.length > 0 || filesChanged || settingsChanged || willUpdateTemplate, 'No edits to stage')
 
     // Puts the content of the current repoRoot into
     // the '_prev/0/' directory of the new root.
@@ -395,7 +399,11 @@ export class Repo {
 
     // updates files
     const { cid: newFilesRoot, unchangedCids: unchangedFileCids } = await this.files.stage()
-    rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, '_files', { force: true })
+    rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, FILES_FOLDER, { force: true })
+
+    // updates settings
+    const newSettingsRoot = await this.settings.stage()
+    rootPointer = await this.unixfs.cp(newSettingsRoot, rootPointer, SETTINGS_FILE, { force: true })
 
     // upgrade all pages that are not in the edits
     // this is needed in case template is updated, or there's a new avatar
@@ -441,7 +449,7 @@ export class Repo {
 
     // create car file with staged changes
     // ignore previous repo root and all files starting with _, except _prev and _redirects
-    // as well as all unchanged files from _files
+    // as well as all unchanged files from FILES_FOLDER
     const newRootFiles = await ls(this.blockstore, rootPointer)
     const seen = new CidSet([
       this.repoRoot.cid,
@@ -449,7 +457,7 @@ export class Repo {
         key.startsWith('_') &&
         key !== '_prev' &&
         key !== '_redirects' &&
-        key !== '_files'
+        key !== FILES_FOLDER
       )).map(([_, cid]) => cid),
       ...unchangedFileCids,
     ])
@@ -499,8 +507,10 @@ export class Repo {
     // clear out all edits
     this.restoreAllPages()
     this.repoRoot.cid = cid;
-    const filesRoot = (await ls(this.blockstore, cid)).find(([name]) => name === '_files')[1]
+    const filesRoot = (await ls(this.blockstore, cid)).find(([name]) => name === FILES_FOLDER)[1]
     await this.files.finalizeCommit(filesRoot)
+    const settingsCid = (await ls(this.blockstore, cid)).find(([name]) => name === SETTINGS_FILE)[1]
+    await this.settings.finalizeCommit(settingsCid)
   }
 
 

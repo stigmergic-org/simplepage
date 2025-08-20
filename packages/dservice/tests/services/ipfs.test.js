@@ -166,7 +166,7 @@ describe('IpfsService', () => {
     for (const block of car.blocks) {
       blockCount++
     }
-    expect(blockCount).toBe(4)
+    expect(blockCount).toBe(5)
     
     // Get the root block
     const rootData = await car.get(car.roots[0])

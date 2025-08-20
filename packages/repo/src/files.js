@@ -6,7 +6,7 @@ import { CID } from 'multiformats/cid'
 import { addFile, rm, ls, lsFull, assert, CidSet, cp } from '@simplepg/common'
 import { CHANGE_TYPE } from './constants.js'
 
-export const FILES_ROOT = '_files'
+export const FILES_FOLDER = '_files'
 
 const CHANGE_ROOT_KEY = 'spg_files_change_root'
 
@@ -44,7 +44,7 @@ export class Files {
   async unsafeSetRepoRoot(root) {
     // Check if /_files exists in the root
     const refs = await ls(this.#blockstore, root)
-    const filesCid = refs.find(([name]) => name === FILES_ROOT)?.[1]
+    const filesCid = refs.find(([name]) => name === FILES_FOLDER)?.[1]
     this.#root = filesCid || (await this.#fs.addDirectory())
     await this.#initializeChangeRoot()
   }
@@ -236,7 +236,7 @@ export class Files {
     await this.#isReady()
     const files = await this.ls('/')
     const avatarPath = files.find(f => f.name.startsWith('.avatar.'))?.path
-    return !noPrefix && avatarPath ? `/${FILES_ROOT}/${avatarPath}` : avatarPath
+    return !noPrefix && avatarPath ? `/${FILES_FOLDER}/${avatarPath}` : avatarPath
   }
 
   /**

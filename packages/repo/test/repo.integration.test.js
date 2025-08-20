@@ -2371,6 +2371,102 @@ Thoughts and insights about technology and development.`,
       expect(favicon).toBeDefined();
       expect(favicon.href).toBe('/_assets/images/favicon.ico');
     });
+  });
+
+  describe('Settings Tests', () => {
+    beforeAll(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
+    });
+
+    beforeEach(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
+      await repo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+    });
+
+    afterEach(async () => {
+      resetIDB()
+      await repo.close()
+    });
+
+    it('should handle complete settings integration flow', async () => {
+      // 1. Read/write some settings
+      const initialSettings = {
+        theme: 'dark',
+        language: 'en',
+        notifications: true,
+        analytics: {
+          enabled: true,
+          provider: 'google'
+        }
+      };
+
+      await repo.settings.write(initialSettings);
+      
+      // Verify settings are written
+      const readSettings = await repo.settings.read();
+      expect(readSettings).toEqual(initialSettings);
+      
+      // Read individual properties
+      const theme = await repo.settings.readProperty('theme');
+      expect(theme).toBe('dark');
+      
+      // Read nested properties from the full settings object
+      const allSettings = await repo.settings.read();
+      expect(allSettings.analytics.enabled).toBe(true);
+
+      // 2. Stage and commit
+      const result = await repo.stage('test.eth', false);
+      expect(result).toHaveProperty('cid');
+      expect(result.cid instanceof CID).toBe(true);
+
+      // Verify settings are staged
+      const settingsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/settings.json`);
+      expect(settingsContent).toBeDefined();
+      
+      const parsedSettings = JSON.parse(settingsContent);
+      expect(parsedSettings.theme).toBe('dark');
+      expect(parsedSettings.analytics.enabled).toBe(true);
+
+      // Commit the changes
+      const hash = await walletClient.writeContract(result.prepTx);
+      expect(hash).toBeDefined();
+      const transaction = await client.waitForTransactionReceipt({ hash });
+      expect(transaction.status).toBe('success');
+      await repo.finalizeCommit(result.cid);
+
+      // 3. Load new repo instance
+      const newStorage = new MockStorage();
+      const newRepo = new Repo('test.eth', newStorage);
+      await newRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      // 4. Read settings from new instance
+      const loadedSettings = await newRepo.settings.read();
+      expect(loadedSettings).toEqual(initialSettings);
+      
+      const loadedTheme = await newRepo.settings.readProperty('theme');
+      expect(loadedTheme).toBe('dark');
+
+      // 5. Write new settings
+      await newRepo.settings.writeProperty('theme', 'light');
+      await newRepo.settings.writeProperty('custom', 'new-value');
+      
+      // Verify changes are detected
+      expect(await newRepo.settings.hasChanges()).toBe(true);
+      
+      // Verify new values
+      const updatedTheme = await newRepo.settings.readProperty('theme');
+      const customValue = await newRepo.settings.readProperty('custom');
+      expect(updatedTheme).toBe('light');
+      expect(customValue).toBe('new-value');
+
+      await newRepo.close();
+    });
   })
 
   describe('Error Handling Tests', () => {

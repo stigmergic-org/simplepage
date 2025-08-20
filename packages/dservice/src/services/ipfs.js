@@ -111,7 +111,6 @@ export class IpfsService {
   async readCarLite(cid) {
     // Helper to recursively collect needed CIDs
     const neededCids = new Set([cid])
-    const filesToCollect = ["index.html", "index.md", "_template.html", "manifest.webmanifest", "manifest.json"]
     const self = this
     async function collectFiles(currentCid, path = '', isRoot = false) {
       for await (const entry of self.client.ls(currentCid)) {
@@ -120,7 +119,9 @@ export class IpfsService {
           if (isRoot && entry.name.startsWith('_') && entry.name !== '_files') continue
           neededCids.add(entry.cid.toString())
           await collectFiles(entry.cid, path + entry.name + '/', false)
-        } else if (filesToCollect.includes(entry.name) && !path.includes('_files')) {
+        } else if (!path.includes('_files')) {
+          // don't collect files in _files directory,
+          // as they are large and can be collected when needed
           neededCids.add(entry.cid.toString())
         }
       }

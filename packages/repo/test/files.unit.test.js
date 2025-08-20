@@ -1,4 +1,4 @@
-import { Files, FILES_ROOT } from '../src/files.js'
+import { Files, FILES_FOLDER } from '../src/files.js'
 import { CHANGE_TYPE } from '../src/constants.js'
 import { emptyUnixfs, ls, CidSet } from '@simplepg/common'
 import { jest } from '@jest/globals'
@@ -508,7 +508,7 @@ describe('Files', () => {
       await files.setAvatar(avatarContent, 'svg')
       
       const avatarPath = await files.getAvatarPath(false)
-      expect(avatarPath).toBe(`/${FILES_ROOT}/.avatar.svg`)
+      expect(avatarPath).toBe(`/${FILES_FOLDER}/.avatar.svg`)
     })
 
     it('should get avatar path without prefix when noPrefix is true', async () => {
@@ -537,7 +537,7 @@ describe('Files', () => {
         await files.setAvatar(avatarContent, ext)
         
         const avatarPath = await files.getAvatarPath()
-        expect(avatarPath).toBe(`/${FILES_ROOT}/.avatar.${ext}`)
+        expect(avatarPath).toBe(`/${FILES_FOLDER}/.avatar.${ext}`)
         
         // Verify content
         const readContent = await files.cat(`/.avatar.${ext}`)
