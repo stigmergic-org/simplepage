@@ -28,7 +28,7 @@
     "@simplepg/common": "workspace:*",
     "idb-keyval": "^6.2.2",
     "it-all": "^3.0.9",
-    "multiformats": "^13.3.7",
+    "multiformats": "^13.4.0",
     "uint8arrays": "^5.1.0",
     "viem": "^2.31.4"
   }
