@@ -21,8 +21,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/repo
       '@tanstack/react-query':
-        specifier: ^5.81.5
-        version: 5.83.0(react@19.1.0)
+        specifier: ^5.85.5
+        version: 5.85.5(react@19.1.0)
       easymde:
         specifier: ^2.20.0
         version: 2.20.0
@@ -52,7 +52,7 @@ importers:
         version: 2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
       wagmi:
         specifier: ^2.15.6
-        version: 2.15.6(@tanstack/query-core@5.83.0)(@tanstack/react-query@5.83.0(react@19.1.0))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
+        version: 2.15.6(@tanstack/query-core@5.85.5)(@tanstack/react-query@5.85.5(react@19.1.0))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
     devDependencies:
       '@babel/core':
         specifier: ^7.28.0
@@ -77,13 +77,13 @@ importers:
         version: 10.4.21(postcss@8.5.6)
       babel-loader:
         specifier: ^10.0.0
-        version: 10.0.0(@babel/core@7.28.0)(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 10.0.0(@babel/core@7.28.0)(webpack@5.100.2)
       copy-webpack-plugin:
         specifier: ^13.0.0
-        version: 13.0.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 13.0.0(webpack@5.100.2)
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 7.1.2(webpack@5.100.2)
       daisyui:
         specifier: ^5.0.46
         version: 5.0.46
@@ -92,19 +92,19 @@ importers:
         version: 17.2.0
       file-loader:
         specifier: ^6.2.0
-        version: 6.2.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 6.2.0(webpack@5.100.2)
       html-webpack-plugin:
         specifier: ^5.6.3
-        version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 5.6.3(webpack@5.100.2)
       mini-css-extract-plugin:
         specifier: ^2.9.2
-        version: 2.9.2(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 2.9.2(webpack@5.100.2)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
       postcss-loader:
         specifier: ^8.1.1
-        version: 8.1.1(postcss@8.5.6)(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 8.1.1(postcss@8.5.6)(webpack@5.100.2)
       process:
         specifier: ^0.11.10
         version: 0.11.10
@@ -113,7 +113,7 @@ importers:
         version: 14.2.4
       style-loader:
         specifier: ^4.0.0
-        version: 4.0.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 4.0.0(webpack@5.100.2)
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.11
@@ -1901,11 +1901,11 @@ packages:
   '@tailwindcss/postcss@4.1.11':
     resolution: {integrity: sha512-q/EAIIpF6WpLhKEuQSEVMZNMIY8KhWoAemZ9eylNAih9jxMGAYPPWBn3I9QL/2jZ+e7OEz/tZkX5HwbBR4HohA==}
 
-  '@tanstack/query-core@5.83.0':
-    resolution: {integrity: sha512-0M8dA+amXUkyz5cVUm/B+zSk3xkQAcuXuz5/Q/LveT4ots2rBpPTZOzd7yJa2Utsf8D2Upl5KyjhHRY+9lB/XA==}
+  '@tanstack/query-core@5.85.5':
+    resolution: {integrity: sha512-KO0WTob4JEApv69iYp1eGvfMSUkgw//IpMnq+//cORBzXf0smyRwPLrUvEe5qtAEGjwZTXrjxg+oJNP/C00t6w==}
 
-  '@tanstack/react-query@5.83.0':
-    resolution: {integrity: sha512-/XGYhZ3foc5H0VM2jLSD/NyBRIOK4q9kfeml4+0x2DlL6xVuAcVEW+hTlTapAmejObg0i3eNqhkr2dT+eciwoQ==}
+  '@tanstack/react-query@5.85.5':
+    resolution: {integrity: sha512-/X4EFNcnPiSs8wM2v+b6DqS5mmGeuJQvxBglmDxl6ZQb5V26ouD2SJYAcC3VjbNwqhY2zjxVD15rDA5nGbMn3A==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -5276,6 +5276,9 @@ packages:
   preact@10.26.9:
     resolution: {integrity: sha512-SSjF9vcnF27mJK1XyFMNJzFd5u3pQiATFqoaDy03XuN00u4ziveVVEGt5RKJrDR8MHE/wJo9Nnad56RLzS2RMA==}
 
+  preact@10.27.1:
+    resolution: {integrity: sha512-V79raXEWch/rbqoNc7nT9E4ep7lu+mI3+sBmfRD4i1M73R3WLYcCtdI0ibxGVf4eQL8ZIz2nFacqEC+rmnOORQ==}
+
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -7605,7 +7608,7 @@ snapshots:
       eth-json-rpc-filters: 6.0.1
       eventemitter3: 5.0.1
       keccak: 3.0.4
-      preact: 10.26.9
+      preact: 10.27.1
       sha.js: 2.4.12
     transitivePeerDependencies:
       - supports-color
@@ -9043,11 +9046,11 @@ snapshots:
       postcss: 8.5.6
       tailwindcss: 4.1.11
 
-  '@tanstack/query-core@5.83.0': {}
+  '@tanstack/query-core@5.85.5': {}
 
-  '@tanstack/react-query@5.83.0(react@19.1.0)':
+  '@tanstack/react-query@5.85.5(react@19.1.0)':
     dependencies:
-      '@tanstack/query-core': 5.83.0
+      '@tanstack/query-core': 5.85.5
       react: 19.1.0
 
   '@tokenizer/inflate@0.2.7':
@@ -9311,13 +9314,13 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@wagmi/connectors@5.8.5(@wagmi/core@2.17.3(@tanstack/query-core@5.83.0)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)':
+  '@wagmi/connectors@5.8.5(@wagmi/core@2.17.3(@tanstack/query-core@5.85.5)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)':
     dependencies:
       '@coinbase/wallet-sdk': 4.3.3
       '@metamask/sdk': 0.32.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       '@safe-global/safe-apps-provider': 0.18.6(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
       '@safe-global/safe-apps-sdk': 9.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
-      '@wagmi/core': 2.17.3(@tanstack/query-core@5.83.0)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@wagmi/core': 2.17.3(@tanstack/query-core@5.85.5)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))
       '@walletconnect/ethereum-provider': 2.21.1(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(zod@3.22.4)
       cbw-sdk: '@coinbase/wallet-sdk@3.9.3'
       viem: 2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
@@ -9348,14 +9351,14 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@wagmi/core@2.17.3(@tanstack/query-core@5.83.0)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))':
+  '@wagmi/core@2.17.3(@tanstack/query-core@5.85.5)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))':
     dependencies:
       eventemitter3: 5.0.1
       mipd: 0.0.7
       viem: 2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
       zustand: 5.0.0(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))
     optionalDependencies:
-      '@tanstack/query-core': 5.83.0
+      '@tanstack/query-core': 5.85.5
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -9963,17 +9966,17 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
 
-  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
 
-  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack-dev-server@5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1)(webpack-dev-server@5.2.2)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
@@ -10134,7 +10137,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  babel-loader@10.0.0(@babel/core@7.28.0)(webpack@5.100.2(webpack-cli@6.0.1)):
+  babel-loader@10.0.0(@babel/core@7.28.0)(webpack@5.100.2):
     dependencies:
       '@babel/core': 7.28.0
       find-up: 5.0.0
@@ -10631,7 +10634,7 @@ snapshots:
 
   cookie@1.0.2: {}
 
-  copy-webpack-plugin@13.0.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  copy-webpack-plugin@13.0.0(webpack@5.100.2):
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
@@ -10689,7 +10692,7 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  css-loader@7.1.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  css-loader@7.1.2(webpack@5.100.2):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       postcss: 8.5.6
@@ -11332,7 +11335,7 @@ snapshots:
     dependencies:
       flat-cache: 4.0.1
 
-  file-loader@6.2.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  file-loader@6.2.0(webpack@5.100.2):
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
@@ -11625,7 +11628,7 @@ snapshots:
       relateurl: 0.2.7
       terser: 5.43.1
 
-  html-webpack-plugin@5.6.3(webpack@5.100.2(webpack-cli@6.0.1)):
+  html-webpack-plugin@5.6.3(webpack@5.100.2):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -12762,7 +12765,7 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  mini-css-extract-plugin@2.9.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  mini-css-extract-plugin@2.9.2(webpack@5.100.2):
     dependencies:
       schema-utils: 4.3.2
       tapable: 2.2.2
@@ -13189,7 +13192,7 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-loader@8.1.1(postcss@8.5.6)(webpack@5.100.2(webpack-cli@6.0.1)):
+  postcss-loader@8.1.1(postcss@8.5.6)(webpack@5.100.2):
     dependencies:
       cosmiconfig: 9.0.0
       jiti: 1.21.7
@@ -13235,6 +13238,8 @@ snapshots:
       source-map-js: 1.2.1
 
   preact@10.26.9: {}
+
+  preact@10.27.1: {}
 
   prelude-ls@1.2.1: {}
 
@@ -13900,7 +13905,7 @@ snapshots:
     dependencies:
       '@tokenizer/token': 0.3.0
 
-  style-loader@4.0.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  style-loader@4.0.0(webpack@5.100.2):
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
 
@@ -13984,7 +13989,7 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terser-webpack-plugin@5.3.14(webpack@5.100.2(webpack-cli@6.0.1)):
+  terser-webpack-plugin@5.3.14(webpack@5.100.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.29
       jest-worker: 27.5.1
@@ -14306,11 +14311,11 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wagmi@2.15.6(@tanstack/query-core@5.83.0)(@tanstack/react-query@5.83.0(react@19.1.0))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4):
+  wagmi@2.15.6(@tanstack/query-core@5.85.5)(@tanstack/react-query@5.85.5(react@19.1.0))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4):
     dependencies:
-      '@tanstack/react-query': 5.83.0(react@19.1.0)
-      '@wagmi/connectors': 5.8.5(@wagmi/core@2.17.3(@tanstack/query-core@5.83.0)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
-      '@wagmi/core': 2.17.3(@tanstack/query-core@5.83.0)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@tanstack/react-query': 5.85.5(react@19.1.0)
+      '@wagmi/connectors': 5.8.5(@wagmi/core@2.17.3(@tanstack/query-core@5.85.5)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.0)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
+      '@wagmi/core': 2.17.3(@tanstack/query-core@5.85.5)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))
       react: 19.1.0
       use-sync-external-store: 1.4.0(react@19.1.0)
       viem: 2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
@@ -14387,9 +14392,9 @@ snapshots:
   webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2):
     dependencies:
       '@discoveryjs/json-ext': 0.6.3
-      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
-      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
-      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack-dev-server@5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
+      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)
+      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)
+      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1)(webpack-dev-server@5.2.2)(webpack@5.100.2)
       colorette: 2.0.20
       commander: 12.1.0
       cross-spawn: 7.0.6
@@ -14404,7 +14409,7 @@ snapshots:
       webpack-bundle-analyzer: 4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       webpack-dev-server: 5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2)
 
-  webpack-dev-middleware@7.4.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  webpack-dev-middleware@7.4.2(webpack@5.100.2):
     dependencies:
       colorette: 2.0.20
       memfs: 4.17.2
@@ -14443,7 +14448,7 @@ snapshots:
       serve-index: 1.9.1
       sockjs: 0.3.24
       spdy: 4.0.2
-      webpack-dev-middleware: 7.4.2(webpack@5.100.2(webpack-cli@6.0.1))
+      webpack-dev-middleware: 7.4.2(webpack@5.100.2)
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
@@ -14486,7 +14491,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.2
       tapable: 2.2.2
-      terser-webpack-plugin: 5.3.14(webpack@5.100.2(webpack-cli@6.0.1))
+      terser-webpack-plugin: 5.3.14(webpack@5.100.2)
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     optionalDependencies:
