@@ -12,7 +12,8 @@ export function useDserviceParam(name) {
     const value = params.get(paramKey);
     if (value) {
       try {
-        return decodeURIComponent(value);
+        const decoded = decodeURIComponent(value);
+        return decoded.startsWith('http') ? decoded : `https://${decoded}`;
       } catch (e) {
         return value;
       }
