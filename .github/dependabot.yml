@@ -6,9 +6,6 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directories:
-      - "/"
-      - "/frontend"
-      - "/packages/*"
+    directory: "/"
     schedule:
       interval: "monthly"
