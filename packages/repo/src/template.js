@@ -1,4 +1,4 @@
-export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null, settings = {}) {
+export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null) {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
@@ -19,7 +19,6 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     titleElement.textContent = titleText
     setMeta('description', descriptionText)
     setMeta('ens-domain', targetDomain)
-    setMeta('fork-style', settings?.appearance?.forkStyle || 'rainbow')
 
     // set favicon
     const faviconElement = templateDoc.querySelector('link[rel="icon"]')

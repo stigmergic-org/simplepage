@@ -192,6 +192,7 @@ const Publish = () => {
 
     try {
       const { prepTx, cid } = await repo.stage(selectedDomain, updateTemplate);
+      console.log('staged cid', cid.toString());
       setStagedRoot(cid);
       writeContract(prepTx);
     } catch (error) {

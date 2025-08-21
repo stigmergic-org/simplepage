@@ -366,11 +366,10 @@ export class Repo {
   async #renderHtml({ body, markdown }, targetDomain, path, root) {
     const templateHtml = await cat(this.unixfs, root, '/_template.html')
     const avatarPath = await this.files.getAvatarPath()
-    const settings = await this.settings.read()
     
     // Extract title and description from markdown frontmatter
     const frontmatter = parseFrontmatter(markdown)
-    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath, settings)
+    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath)
   }
 
   /**
