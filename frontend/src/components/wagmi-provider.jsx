@@ -86,6 +86,7 @@ const getConfig = (rpcOverrides, expectedChainId) => createConfig({
 const WagmiConfigProvider = ({ children, rpcOverrides }) => {
   const expectedChainId = useChainId();
   const config = getConfig(rpcOverrides, expectedChainId);
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

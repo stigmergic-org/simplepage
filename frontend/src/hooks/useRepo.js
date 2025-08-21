@@ -47,6 +47,8 @@ export const useRepo = () => {
   const chainId = useChainId();
   const domain = useDomain();
   const customDserviceUrl = useDserviceParam('new.simplepage.eth');
+  const [dserviceFailed, setDserviceFailed] = useState(false);
+  const [rpcFailed, setRpcFailed] = useState(false);
 
   // Create singleton instance if it doesn't exist
   if (!repoInstance) {
@@ -58,7 +60,15 @@ export const useRepo = () => {
     const initializeRepo = async () => {
       // Only initialize once when we have both viemClient and chainId
       if (viemClient && chainId && !repoInstance.initialized) {
-        await repoInstance.init(viemClient, { chainId });
+        try {
+          await repoInstance.init(viemClient, { chainId });
+        } catch (error) {
+          if (error.message.includes('HTTP request failed')) {
+            setRpcFailed(true);
+          } else {
+            setDserviceFailed(true);
+          }
+        }
       }
     };
     initializeRepo();
@@ -73,5 +83,7 @@ export const useRepo = () => {
 
   return {
     repo: repoInstance,
+    dserviceFailed,
+    rpcFailed,
   };
 }; 

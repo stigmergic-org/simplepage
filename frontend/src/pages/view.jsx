@@ -13,7 +13,7 @@ const View = ({ existingContent }) => {
   const basename = useBasename();
   const [content, setContent] = useState(existingContent);
   const { path, isVirtual } = usePagePath();
-  const { repo } = useRepo();
+  const { repo, dserviceFailed } = useRepo();
   const { goToNotFound } = useNavigation();
 
   useEffect(() => {

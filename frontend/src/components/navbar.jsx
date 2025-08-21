@@ -4,7 +4,9 @@ import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
+import { useRepo } from '../hooks/useRepo';
 import Icon from './Icon';
+import Notice from './Notice';
 
 const defaultLogo = "/_assets/images/logo.svg";
 
@@ -16,6 +18,7 @@ const Navbar = ({
   const { data: ensAvatar } = useEnsAvatar({
     name: domain,
   });
+  const { repo, dserviceFailed, rpcFailed } = useRepo();
 
   const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
@@ -157,7 +160,17 @@ const Navbar = ({
     </button>
   )
 
-  return (
+  return (<>
+    {dserviceFailed && (
+      <Notice type="warning" className="z-50">
+        <strong>Failed to connect to DService.</strong> If you have access to a DService endpoint, you can set it in the URL as <code>?ds-new.simplepage.eth=your-dservice.com</code>
+      </Notice>
+    )}
+    {rpcFailed && (
+      <Notice type="warning" className="z-50">
+        <strong>Failed to connect to RPC.</strong> If you have access to a ethereum RPC endpoint, you can set it in the URL as <code>?ds-rpc-1=your-rpc.com</code>
+      </Notice>
+    )}
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
@@ -237,7 +250,7 @@ const Navbar = ({
         </div>
       )}
     </div>
-  );
+  </>);
 };
 
 export default Navbar;
