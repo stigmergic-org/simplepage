@@ -154,9 +154,9 @@ export class Settings {
    * Reads the content of the settings file from the change root.
    * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
    */
-  async #cat() {
+  async #cat(persisted = false) {
     await this.#isReady()
-    return concat(await all(this.#fs.cat(this.#changeCid)))
+    return concat(await all(this.#fs.cat(persisted ? this.#persistedCid : this.#changeCid)))
   }
 
   /**
@@ -166,6 +166,51 @@ export class Settings {
   async hasChanges() {
     await this.#isReady()
     return !this.#changeCid.equals(this.#persistedCid)
+  }
+
+  /**
+   * Returns an array of strings representing the changes to the settings.
+   * based on the persisted and change CIDs.
+   * @returns {Promise<string[]>} The change diff.
+   */
+  async changeDiff() {
+    await this.#isReady()
+    const persisted = await this.#cat(true)
+    const change = await this.#cat()
+    const persistedJson = JSON.parse(new TextDecoder().decode(persisted))
+    const changeJson = JSON.parse(new TextDecoder().decode(change))
+
+    const compareValues = (persistedVal, changeVal, path = '') => {
+      if (persistedVal === changeVal) return []
+
+      if (typeof persistedVal === 'object' && typeof changeVal === 'object' && 
+        persistedVal !== null && changeVal !== null) {
+        const diffs = []
+        const allKeys = new Set([...Object.keys(persistedVal), ...Object.keys(changeVal)])
+        
+        for (const key of allKeys) {
+          const newPath = path ? `${path}.${key}` : key
+          diffs.push(...compareValues(persistedVal[key], changeVal[key], newPath))
+        }
+        return diffs
+      } else if (persistedVal === undefined) {
+        if (typeof changeVal === 'object' && changeVal !== null) {
+          return compareValues({}, changeVal, path)
+        } else {
+          return [`${path}: ${JSON.stringify(changeVal)} (added)`]
+        }
+      } else if (changeVal === undefined) {
+        if (typeof persistedVal === 'object' && persistedVal !== null) {
+          return compareValues(persistedVal, {}, path)
+        } else {
+          return [`${path}: ${JSON.stringify(persistedVal)} (removed)`]
+        }
+      }
+
+      return [`${path}: ${JSON.stringify(persistedVal)} -> ${JSON.stringify(changeVal)}`]
+    }
+
+    return compareValues(persistedJson, changeJson)
   }
 
   /**

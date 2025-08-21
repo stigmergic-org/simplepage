@@ -24,6 +24,7 @@ const Navbar = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
+  const [forkStyle, setForkStyle] = useState(document.querySelector('meta[name="fork-style"]')?.content || 'rainbow');
 
   // Handle quit button click - clear scroll position and navigate to view
   const handleQuitClick = () => {
@@ -131,6 +132,31 @@ const Navbar = ({
     }
   }, [editMode, saveScrollPosition, getScrollPosition]);
 
+  const forkButton = (
+    <button
+      className={`btn btn-sm ${forkStyle === 'rainbow' ? 'btn-ghost rainbow-fork' : 'bg-transparent'} text-lg`}
+      onClick={() => { goToEdit(path) }}
+    >
+      {forkStyle === 'rainbow' ? (<>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+        >
+          <defs>
+            <mask id="fork-mask">
+              <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" fill="white" />
+            </mask>
+          </defs>
+        </svg>
+        fork
+      </>) : (
+        <Icon name="fork" size={4} />
+      )}
+    </button>
+  )
+
   return (
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
       <div className="navbar z-[100] relative">
@@ -153,26 +179,7 @@ const Navbar = ({
         <div className="navbar-end mr-4">
           <div className="flex gap-2 items-center">
             {/* Fork button */}
-            {!editMode ? (
-              <button
-                className="btn btn-ghost btn-sm rainbow-fork text-lg"
-                onClick={() => { goToEdit(path) }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  width="16"
-                  height="16"
-                >
-                  <defs>
-                    <mask id="fork-mask">
-                      <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" fill="white"/>
-                    </mask>
-                  </defs>
-                </svg>
-                {'fork'}
-              </button>
-            ) : (<>
+            {!editMode ? forkButton : (<>
                 {/* Hamburger menu */}
                 <div className="dropdown dropdown-end relative z-[100]">
                   <div tabIndex={0} role="button" className="btn btn-ghost btn-sm" >

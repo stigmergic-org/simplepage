@@ -1,22 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
+import LoadingSpinner from '../components/LoadingSpinner';
+
+const DEFAULT_SETTINGS = {
+  appearance: {
+    forkStyle: 'rainbow'
+  }
+}
 
 const Settings = () => {
   const domain = useDomain();
   const { repo } = useRepo();
-  const [forkButtonStyle, setForkButtonStyle] = useState('rainbow');
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [isLoading, setIsLoading] = useState(true);
 
   document.title = `Settings - ${domain}`;
+
+  // Load settings when component mounts
+  const loadSettings = async () => {
+    try {
+      const loadedSettings = await repo.settings.read();
+      console.log('loadedSettings', loadedSettings)
+      if (Object.keys(loadedSettings).length === 0) {
+        setSettings(DEFAULT_SETTINGS);
+      } else {
+        setSettings(loadedSettings);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    loadSettings();
+  }, [repo]);
+
+  // Save fork button style to settings
+  const handleForkButtonStyleChange = async (newStyle) => {
+    try {
+      const currentSettings = await repo.settings.read()
+      const updatedSettings = {
+        ...currentSettings,
+        appearance: {
+          ...currentSettings.appearance,
+          forkStyle: newStyle
+        }
+      };
+      await repo.settings.write(updatedSettings);
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Failed to save fork button style:', error);
+    }
+  };
 
   const handleClearPageEdits = () => repo.restoreAllPages()
   const handleClearFileEdits = () => repo.files.clearChanges()
   const handleClearAllCache = () => {
     repo.files.clearChanges()
     repo.restoreAllPages()
+    repo.settings.clearChanges()
     localStorage.clear()
+    loadSettings()
+  }
+
+  if (isLoading) {
+    return (<>
+      <Navbar activePage="Settings" />
+      <LoadingSpinner />
+    </>);
   }
 
   return (
@@ -61,12 +116,12 @@ const Settings = () => {
                     name="radio-2"
                     className="radio"
                     value="rainbow"
-                    checked={forkButtonStyle === 'rainbow'}
-                    onChange={(e) => setForkButtonStyle(e.target.value)}
+                    checked={settings?.appearance?.forkStyle === 'rainbow'}
+                    onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button
                     className="btn btn-sm rainbow-fork text-lg"
-                    onClick={() => setForkButtonStyle('rainbow')}
+                    onClick={() => handleForkButtonStyleChange('rainbow')}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -89,12 +144,12 @@ const Settings = () => {
                     name="radio-1"
                     className="radio"
                     value="plain"
-                    checked={forkButtonStyle === 'plain'}
-                    onChange={(e) => setForkButtonStyle(e.target.value)}
+                    checked={settings?.appearance?.forkStyle === 'plain'}
+                    onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button
                     className="btn btn-sm plain-fork text-lg bg-transparent"
-                    onClick={() => setForkButtonStyle('plain')}
+                    onClick={() => handleForkButtonStyleChange('plain')}
                   >
                     <Icon name="fork" size={4} />
                   </button>

@@ -25,6 +25,7 @@ const Publish = () => {
   const [unstagedEdits, setUnstagedEdits] = useState([]);
   const [fileChanges, setFileChanges] = useState([]);
   const [updateTemplate, setUpdateTemplate] = useState(true);
+  const [settingsChangeDiff, setSettingsChangeDiff] = useState([]);
 
   // Load ownedDomains from localStorage or initialize with default values
   const [ownedDomains, setOwnedDomains] = useState(() => {
@@ -152,11 +153,22 @@ const Publish = () => {
     }
   };
 
+  const getSettingsChanges = async () => {
+    try {
+      const changeDiff = await repo.settings.changeDiff();
+      setSettingsChangeDiff(changeDiff);
+    } catch (error) {
+      console.error('Error checking settings changes:', error);
+      setSettingsChangeDiff([]);
+    }
+  };
+
   useEffect(() => {
     const getChanges = async () => {
       const changes = await repo.getChanges();
       setUnstagedEdits(changes);
       await getFileChanges();
+      await getSettingsChanges();
     }
     getChanges();
   }, [repo]);
@@ -180,7 +192,6 @@ const Publish = () => {
 
     try {
       const { prepTx, cid } = await repo.stage(selectedDomain, updateTemplate);
-      console.log('staged cid:', cid.toString())
       setStagedRoot(cid);
       writeContract(prepTx);
     } catch (error) {
@@ -307,7 +318,7 @@ const Publish = () => {
           publishedDomain={selectedDomain !== domain ? selectedDomain : null}
         >
           <h1 className="text-3xl font-bold mb-6">
-            {publishOrFork} {unstagedEdits.length + fileChanges.length} {(unstagedEdits.length + fileChanges.length) === 1 ? 'change' : 'changes'}
+            {publishOrFork} {unstagedEdits.length + fileChanges.length + settingsChangeDiff.length} {(unstagedEdits.length + fileChanges.length + settingsChangeDiff.length) === 1 ? 'change' : 'changes'}
           </h1>
           
           <div className="mb-6">
@@ -389,7 +400,27 @@ const Publish = () => {
               </ul>
             </div>
           )}
-          
+
+          {settingsChangeDiff.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Settings being {publishOrFork.toLowerCase()}ed:</h2>
+              <div className="border border-base-300 rounded-md p-3 bg-base-200">
+                {settingsChangeDiff.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm font-medium text-base-content/80">Changes:</span>
+                    <ul className="mt-1 space-y-1">
+                      {settingsChangeDiff.map((change, index) => (
+                        <li key={index} className="text-sm text-base-content/60">
+                          <code className="bg-base-300 px-1 rounded text-xs">{change}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {versionInfo.canUpdate && (
             <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
               <label className="inline-flex items-center justify-between w-full">
@@ -435,7 +466,7 @@ const Publish = () => {
                 selectedDomain === 'new.simplepage.eth' ||
                 accountChainId !== chainId ||
                 (hasExistingContent && selectedDomain !== domain && !allowOverwrite) ||
-                (unstagedEdits.length === 0 && fileChanges.length === 0 && !updateTemplate)
+                (unstagedEdits.length === 0 && fileChanges.length === 0 && !settingsChangeDiff.length && !updateTemplate)
               }
               className="btn btn-primary"
             >
