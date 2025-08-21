@@ -7,7 +7,7 @@ export default function OverridesBanner({ dserviceUrl, rpcOverrides }) {
 
   return (
     <Notice
-      type="warning"
+      type="info"
       className="z-50"
       onClose={() => setVisible(false)}
     >
