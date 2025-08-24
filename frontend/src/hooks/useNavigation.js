@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '../config/routes';
 
 export const useNavigation = () => {
@@ -26,6 +26,8 @@ export const useNavigation = () => {
 
   const goToPublish = () => navigate(ROUTES.PUBLISH);
 
+  const goToTheme = () => navigate(ROUTES.THEME);
+
   const goToSubscription = (domain = null, from = null) => navigate(createUrlWithParams(ROUTES.SUBSCRIPTION, { domain, from }));
 
   const goToPages = (path = null) => navigate(createUrlWithParams(ROUTES.PAGES, { path }));
@@ -51,6 +53,7 @@ export const useNavigation = () => {
     goToViewWithPreview,
     goToEdit,
     goToPublish,
+    goToTheme,
     goToSubscription,
     goToPages,
     goToFiles,

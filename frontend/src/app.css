@@ -1,5 +1,10 @@
-@import "tailwindcss";
-@plugin "daisyui";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* optional global tweaks */
+html, body { min-height: 100%; }
+
 
 /* Style for frontmatter in CodeMirror/EasyMDE */
 .cm-frontmatter {

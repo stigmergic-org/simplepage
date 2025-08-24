@@ -5,6 +5,7 @@ import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
 import { useRepo } from '../hooks/useRepo';
+import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 import Notice from './Notice';
 
@@ -13,6 +14,7 @@ const defaultLogo = "/_assets/images/logo.svg";
 const Navbar = ({
   activePage,
 }) => {
+  const navigate = useNavigate();
   const domain = useDomain();
   const { path } = usePagePath();
   const { data: ensAvatar } = useEnsAvatar({
@@ -20,14 +22,14 @@ const Navbar = ({
   });
   const { repo, dserviceFailed, rpcFailed } = useRepo();
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToTheme, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
-  const [forkStyle, setForkStyle] = useState(null);
+  const [forkStyle, setForkStyle] = useState('rainbow');
 
   useEffect(() => {
     const loadForkStyle = async () => {
@@ -93,6 +95,10 @@ const Navbar = ({
     'Publish': {
       onClick: () => goToPublish(),
       icon: 'upload',
+    },
+     'Theme': {
+      onClick: () => goToTheme(),
+      icon: 'palette',
     }
   };
 

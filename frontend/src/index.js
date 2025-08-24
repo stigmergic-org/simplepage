@@ -16,8 +16,3 @@ const existingContent = document.getElementById('content-container')?.innerHTML;
 
 const root = createRoot(rootElement);
 root.render(<App existingContent={existingContent} />);
-
-
-
-
-
