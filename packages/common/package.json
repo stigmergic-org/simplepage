@@ -20,6 +20,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@simplepg/test-utils": "workspace:*",
     "jest": "^30.0.3",
     "jest-fetch-mock": "^3.0.3"
   },

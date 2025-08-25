@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node bin/simplepage-dservice.js",
-    "dev": "nodemon bi/simplepage-dservice.js",
+    "dev": "nodemon bin/simplepage-dservice.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint src bin"
   },
