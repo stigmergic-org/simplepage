@@ -1,3 +1,8 @@
+/** Tailwind CSS configuration (v3) with DaisyUI plugin
+ *
+ * Note: In Tailwind v4 the config shape changes (ESM, `tailwind.config.ts`, 
+ *    new entrypoint system). This file is v3-compatible.
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [

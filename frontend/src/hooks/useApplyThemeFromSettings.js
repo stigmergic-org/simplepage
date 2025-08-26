@@ -1,3 +1,17 @@
+/*
+ * Should reads the persisted theme from repo.settings and apply it globally by
+ * setting `data-theme` on <html>. DaisyUI uses this attribute to control theming.
+ *
+ * Notes:
+ * - Clears any legacy Tailwind v3 "dark" class to avoid conflicts.
+ * - Falls back to DEFAULT_THEME if nothing is saved or if repo.settings fails.
+ * - Runs once on mount and re-runs only if `repo` changes.
+ * - Uses a simple "alive" flag to prevent updating DOM after unmount.
+ *
+ * This keeps the theme consistent across page refreshes and navigation,
+ * without relying on localStorage. Pattern mirrors how forkStyle is persisted.
+ */
+
 import { useEffect } from 'react';
 import { useRepo } from '../hooks/useRepo';
 

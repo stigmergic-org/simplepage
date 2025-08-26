@@ -1,10 +1,10 @@
+/* Tailwind CSS directives
+ * These three imports are required in Tailwind v3. */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* your custom CSS… */
-
-/* …your custom CSS after this… */
 
 /* Style for frontmatter in CodeMirror/EasyMDE */
 .cm-frontmatter {

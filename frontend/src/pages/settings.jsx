@@ -16,7 +16,6 @@ const THEMES = [
 const DEFAULT_SETTINGS = {
   appearance: {
     forkStyle: 'rainbow',
-    theme: 'light',
   },
 };
 
@@ -33,6 +32,7 @@ const Settings = () => {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
+
   // theme states
   const currentTheme = settings?.appearance?.theme ?? DEFAULT_SETTINGS.appearance.theme;
   const [draftTheme, setDraftTheme] = useState(currentTheme);
@@ -41,6 +41,14 @@ const Settings = () => {
   useEffect(() => {
     document.title = `Settings - ${domain}`;
   }, [domain]);
+
+  // Load persisted settings from the repo, merge with defaults,
+// and ensure the appearance block is always populated.
+// - If nothing is stored yet, fall back entirely to DEFAULT_SETTINGS.
+// - Otherwise, shallow-merge top-level + appearance keys so new defaults
+//   (like newly added settings) are not lost.
+// After merging, sync React state + draftTheme, and immediately
+// apply the chosen theme to <html> so DaisyUI styles take effect.
 
   const loadSettings = async () => {
     try {
@@ -79,6 +87,7 @@ const Settings = () => {
   }, [currentTheme]);
 
   // Save fork button style to settings
+
   const handleForkButtonStyleChange = async (newStyle) => {
     try {
       const currentSettings = await repo.settings.read();
@@ -98,7 +107,23 @@ const Settings = () => {
     }
   };
 
-  // Theme: persist + apply
+
+  // Theme handling + advanced actions:
+//
+// handleApplyTheme:
+//   - Reads current repo.settings
+//   - Merges with defaults (so new keys aren’t dropped)
+//   - Updates the "appearance.theme" field with the user’s draft
+//   - Persists changes back to repo.settings
+//   - Calls applyThemeGlobally for instant visual feedback
+//
+// handleResetDraftTheme:
+//   - Reverts the draft theme dropdown back to whatever is currently active
+//
+// handleClearPageEdits / handleClearFileEdits:
+//   - Utility actions to wipe unsaved edits from the repo state
+
+
   const handleApplyTheme = async () => {
     try {
       const currentSettings = await repo.settings.read();

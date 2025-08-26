@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './app.css';
 import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
