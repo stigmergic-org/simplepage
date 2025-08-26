@@ -1,3 +1,4 @@
+// frontend/src/pages/settings.jsx
 import React, { useState, useEffect } from 'react';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
@@ -20,11 +21,9 @@ const DEFAULT_SETTINGS = {
 };
 
 function applyThemeGlobally(theme) {
-  if (typeof document !== 'undefined') {
-    // Important: remove any tailwind v3 dark-mode class before applying DaisyUI theme
-    document.documentElement.removeAttribute('class');
-    document.documentElement.setAttribute('data-theme', theme);
-  }
+  // Clear any legacy Tailwind v3 dark class and apply DaisyUI theme
+  document.documentElement.removeAttribute('class');
+  document.documentElement.setAttribute('data-theme', theme);
 }
 
 const Settings = () => {
@@ -38,7 +37,10 @@ const Settings = () => {
   const currentTheme = settings?.appearance?.theme ?? DEFAULT_SETTINGS.appearance.theme;
   const [draftTheme, setDraftTheme] = useState(currentTheme);
 
-  document.title = `Settings - ${domain}`;
+  // Page title
+  useEffect(() => {
+    document.title = `Settings - ${domain}`;
+  }, [domain]);
 
   const loadSettings = async () => {
     try {
@@ -71,7 +73,7 @@ const Settings = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo]);
 
-  // Also auto-apply whenever currentTheme changes (keeps UI consistent)
+  // Keep UI in sync if currentTheme changes
   useEffect(() => {
     applyThemeGlobally(currentTheme);
   }, [currentTheme]);
@@ -111,7 +113,7 @@ const Settings = () => {
       };
       await repo.settings.write(updatedSettings);
       setSettings(updatedSettings);
-      applyThemeGlobally(draftTheme);
+      applyThemeGlobally(draftTheme); // instant feedback
     } catch (error) {
       console.error('Failed to save theme:', error);
     }
@@ -125,7 +127,8 @@ const Settings = () => {
     repo.files.clearChanges();
     repo.restoreAllPages();
     repo.settings.clearChanges();
-    localStorage.clear();
+    // keep this if the rest of the app caches other things locally
+    try { localStorage.clear(); } catch {}
     loadSettings();
   };
 
@@ -150,7 +153,7 @@ const Settings = () => {
             <option>Option B</option>
           </select>
         </div>
-        <progress className="progress w-full" value="50" max="100"></progress>
+        <progress className="progress w-full" value="50" max="100" />
         <div className="text-sm opacity-70">
           Body text preview – links <a className="link">look like this</a>.
         </div>
