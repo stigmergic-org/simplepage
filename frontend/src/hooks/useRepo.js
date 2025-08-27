@@ -12,6 +12,7 @@ let repoInstance = null;
 const createDefaultMarkdown = (title, actualFileName) => `---
 title: ${title}
 description: ${title} description
+sidebar-toc: false
 ---
 
 # ${title}

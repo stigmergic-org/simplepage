@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
+import Sidebar from '../components/Sidebar';
+import TableOfContents from '../components/TableOfContents';
 import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
@@ -12,6 +14,9 @@ const parser = new DOMParser();
 const View = ({ existingContent }) => {
   const basename = useBasename();
   const [content, setContent] = useState(existingContent);
+  const [sidebarToc, setSidebarToc] = useState(false);
+  const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
+  const [contentWidth, setContentWidth] = useState(0);
   const { path, isVirtual } = usePagePath();
   const { repo, dserviceFailed } = useRepo();
   const { goToNotFound } = useNavigation();
@@ -28,6 +33,7 @@ const View = ({ existingContent }) => {
       
       let loadedContent = await repo.getHtmlBody(path, ignoreEdits);
       const loadedMetadata = await repo.getMetadata(path, ignoreEdits);
+      setSidebarToc(loadedMetadata['sidebar-toc'] || false);
       document.title = loadedMetadata.title
       
       // Parse content once and apply all modifications
@@ -49,13 +55,47 @@ const View = ({ existingContent }) => {
     highlightAll();
   }, [content]);
 
+  // Track content container width
+  useEffect(() => {
+    const updateContentWidth = () => {
+      const contentContainer = document.getElementById('content-container');
+      if (contentContainer) {
+        setContentWidth(contentContainer.getBoundingClientRect().width);
+      }
+    };
+    // Initial measurement
+    updateContentWidth();
+    // Listen for resize events
+    window.addEventListener('resize', updateContentWidth);
+    return () => {
+      window.removeEventListener('resize', updateContentWidth);
+    };
+  }, [content]); // Re-measure when content changes
+
   return (
     <>
       <Navbar 
         activePage={isVirtual ? "Preview" : undefined}
+        onNavbarInfoChange={setNavbarEffectiveTop}
       />
-      <div id="content" className="min-h-70 flex items-center justify-center pt-6">
-        <div className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
+
+      {/* Sidebar with Table of Contents */}
+      {sidebarToc && (
+        <Sidebar
+          position="right"
+          defaultOpen={true}
+          title="Contents"
+          icon="toc"
+          effectiveTop={navbarEffectiveTop}
+          contentWidth={contentWidth}
+        >
+          <TableOfContents content={content} />
+        </Sidebar>
+      )}
+
+
+      <div id="content" className="min-h-70 flex items-center justify-center pt-8">
+        <div id="content-container" className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
           <div dangerouslySetInnerHTML={{ __html: content }} />
         </div>
       </div>

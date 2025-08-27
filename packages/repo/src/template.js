@@ -106,9 +106,11 @@ export function parseFrontmatter(markdown) {
           value = value.slice(1, -1);
         }
         frontmatter[key] = value;
-      } else if (key === 'sidebar') {
+      } else if (key === 'sidebar-toc') {
         // Parse as boolean
         frontmatter[key] = value.toLowerCase() === 'true';
+      } else if (key === 'sidebar-nav-prio') {
+        frontmatter[key] = parseInt(value)
       }
       // Ignore all other fields
     }

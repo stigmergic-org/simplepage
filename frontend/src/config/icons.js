@@ -89,4 +89,8 @@ export const ICONS = {
     src: `${PREFIX}hamburger.svg`,
     alt: '☰',
   },
+  'toc': {
+    src: `${PREFIX}toc.svg`,
+    alt: '📋',
+  },
 };
