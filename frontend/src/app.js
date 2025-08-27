@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './app.css';
 import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
@@ -21,7 +21,7 @@ import { ROUTES } from './config/routes';
 
 import { useApplyThemeFromSettings } from './hooks/useApplyThemeFromSettings';
 
-// Booter must run *inside* WagmiConfigProvider
+// Must run inside WagmiConfigProvider
 const ThemeBooter = () => {
   useApplyThemeFromSettings();
   return null;
