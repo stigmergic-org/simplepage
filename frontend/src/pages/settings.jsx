@@ -8,6 +8,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const DEFAULT_SETTINGS = {
   appearance: {
     forkStyle: 'rainbow'
+  },
+  subscription: {
+    hideDonationNotice: false
   }
 }
 
@@ -57,6 +60,24 @@ const Settings = () => {
     }
   };
 
+  // Save donation notice setting
+  const handleDonationNoticeToggle = async (hideDonationNotice) => {
+    try {
+      const currentSettings = await repo.settings.read()
+      const updatedSettings = {
+        ...currentSettings,
+        subscription: {
+          ...currentSettings.subscription,
+          hideDonationNotice
+        }
+      };
+      await repo.settings.write(updatedSettings);
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Failed to save donation notice setting:', error);
+    }
+  };
+
   const handleClearPageEdits = () => repo.restoreAllPages()
   const handleClearFileEdits = () => repo.files.clearChanges()
   const handleClearAllCache = () => {
@@ -88,14 +109,30 @@ const Settings = () => {
 
         <div className="space-y-6">
           {/* General Settings */}
-          {/*
           <div className="border border-base-300 rounded-lg p-6 bg-base-100">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <Icon name="settings" size={5} />
-              General Settings
+              General
             </h2>
+            
+            {/* Donation Notice Toggle */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={!settings?.subscription?.hideDonationNotice}
+                  onChange={(e) => handleDonationNoticeToggle(!e.target.checked)}
+                />
+                <div className="flex flex-col">
+                  <span className="label-text font-medium">Show donation notice</span>
+                  <span className="text-sm text-base-content/60 text-wrap">
+                    <p>When enabled, visitors will see a notice asking for a donation when your subscription is about to expire (in less than 30 days).</p>
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
-          */}
 
           {/* Appearance Settings */}
           <div className="border border-base-300 rounded-lg p-6 bg-base-100">

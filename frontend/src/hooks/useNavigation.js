@@ -11,7 +11,13 @@ export const useNavigation = () => {
     // Add all non-null/undefined parameters
     Object.entries(params).forEach(([key, value]) => {
       if (value != null) {
-        urlParams.set(key, value);
+        if (typeof value === 'boolean') {
+          if (value) {
+            urlParams.append(key, '');
+          }
+        } else {
+          urlParams.set(key, value);
+        }
       }
     });
     const queryString = urlParams.toString();
@@ -26,7 +32,10 @@ export const useNavigation = () => {
 
   const goToPublish = () => navigate(ROUTES.PUBLISH);
 
-  const goToSubscription = (domain = null, from = null) => navigate(createUrlWithParams(ROUTES.SUBSCRIPTION, { domain, from }));
+  const goToSubscription = (domain = null, from = null, donate = false) => {
+    const params = { domain, from, donate };
+    return navigate(createUrlWithParams(ROUTES.SUBSCRIPTION, params));
+  };
 
   const goToPages = (path = null) => navigate(createUrlWithParams(ROUTES.PAGES, { path }));
 

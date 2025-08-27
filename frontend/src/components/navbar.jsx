@@ -7,6 +7,7 @@ import { useScrollContext } from '../contexts/ScrollContext';
 import { useRepo } from '../hooks/useRepo';
 import Icon from './Icon';
 import Notice from './Notice';
+import SubscriptionNotice from './SubscriptionNotice';
 
 const defaultLogo = "/_assets/images/logo.svg";
 
@@ -182,6 +183,9 @@ const Navbar = ({
       <Notice type="warning" className="z-50">
         <strong>Failed to connect to RPC.</strong> If you have access to a ethereum RPC endpoint, you can set it in the URL as <code>?ds-rpc-1=your-rpc.com</code>
       </Notice>
+    )}
+    {activePage !== 'Subscription' && (
+      <SubscriptionNotice editMode={editMode} />
     )}
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
       <div className="navbar z-[100] relative">

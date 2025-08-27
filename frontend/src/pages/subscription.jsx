@@ -31,19 +31,26 @@ const Subscribe = () => {
   const propDomain = useDomain();
   const domain = queryDomain || propDomain;
 
-  document.title = `Subscribe - ${domain}`;
-
   const [redirectFrom, setRedirectFrom] = useState(() => {
     const params = new URLSearchParams(location.search);
     return params.get('from');
   });
 
+  const [isDonationRequest, setIsDonationRequest] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.has('donate');
+  });
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setRedirectFrom(params.get('from'));
+    setIsDonationRequest(params.has('donate'));
   }, [location.search]);
 
-  const { pageData, isLoading: isLoadingPageData } = useGetSubscription(domain);
+  document.title = `${isDonationRequest ? 'Donate to' : 'Subscribe'} - ${domain}`;
+
+  const { pageData, subscriptionValid, isLoading: isLoadingPageData } = useGetSubscription(domain);
+  console.log('subscriptionValid', subscriptionValid);
   const { 
     fee, 
     feeWithMargin, 
@@ -119,30 +126,43 @@ const Subscribe = () => {
           redirectPath={redirectFrom === 'publish' ? `/spg-publish?domain=${domain}` : null}
         >
           <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-6 text-center">Subscription for {domain}</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center">
+              {isDonationRequest ? `Donate to ${domain}` : `Subscription for ${domain}`}
+            </h1>
             {pageData && (
               <p className="text-center text-gray-600 mb-16 italic">
                 Currently valid until {new Date(Number(pageData.units[0]) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
             )}
 
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-18">
               <div className="card bg-base-100 w-96 shadow-xl">
                 <div className="card-body items-center">
                   <h2 className="card-title">$1 monthly</h2>
-                  <p className="text-sm text-center">SimplePage is an open source and decentralized protocol, powered by a small fee. <br />You will always be in control.</p>
+                  <p className="text-sm text-center">
+                    {isDonationRequest 
+                      ? `Help keep ${domain} online!`
+                      : 'SimplePage is an open source and decentralized protocol, powered by a small fee. You will always be in control.'
+                    }
+                  </p>
+                  {!isDonationRequest && (
                   <ul className="list-disc list-inside text-gray-600">
                     <li>Accessible via <a href={`https://${domain}.link`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">{domain}.link</a></li>
                     <li>Unlimited edits</li>
                     <li>Edit history</li>
                     <li>Early adopter status</li>
                   </ul>
+                  )}
                 </div>
               </div>
             </div>
 
+            {subscriptionValid && (
+                <h2 className="text-2xl font-bold mt-10 text-center">Extend subscription:</h2>
+            )}
+
             {/* Duration Selection */}
-            <div className="mt-16 mb-16">
+            <div className="mt-10 mb-16">
               <div className="flex justify-between items-center w-full mb-6">
                 <button 
                   onClick={() => handleDurationChange(Math.max(1, duration - 1))}
@@ -186,7 +206,9 @@ const Subscribe = () => {
                        isWaiting || 
                        isFeeLoading}
             >
-              {status === 'pending' ? 'Confirming...' : (pageData?.until > 0 ? 'Extend' : 'Subscribe')}
+              {status === 'pending' ? 'Confirming...' : 
+                isDonationRequest ? 'Donate' :
+                (pageData?.until > 0 ? 'Extend' : 'Subscribe')}
             </button>
           </div>
         </TransactionStatus>
