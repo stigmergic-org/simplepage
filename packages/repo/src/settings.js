@@ -1,12 +1,91 @@
+// packages/repo/src/settings.js
+
+// (Original imports preserved)
 import { concat } from 'uint8arrays/concat'
 import all from 'it-all'
 import { CID } from 'multiformats/cid'
 
 import { addFile, rm, ls, assert, CidSet, cp } from '@simplepg/common'
 
+// (Original filename preserved so repo.js cp(...) remains correct)
 export const SETTINGS_FILE = 'settings.json'
 
+// (Original storage key preserved)
 const CHANGE_ROOT_KEY = 'spg_settings_change_root'
+
+/* -------------------------------------------------------------------------- */
+/*                                ADDED (NEW)                                 */
+/*  Default settings + helpers to migrate legacy single `appearance.theme`    */
+/*  into the new dual-theme shape (themeLight/themeDark) and to support a     */
+/*  structured diff [{path,from,to}] that the Publish page can format nicely. */
+/* -------------------------------------------------------------------------- */
+
+// ADDED: exported defaults (used by callers/UI and for safe reads)
+export const DEFAULT_SETTINGS = {
+  appearance: {
+    forkStyle: 'rainbow',
+    // dual-theme shape used by Settings UI (follow system: light/dark)
+    themeLight: 'light',
+    themeDark: 'dark',
+  },
+}
+
+// ADDED: shallow-ish deepMerge for small settings trees
+function deepMerge(base, patch) {
+  const out = Array.isArray(base) ? base.slice() : { ...base }
+  for (const [k, v] of Object.entries(patch || {})) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      out[k] = deepMerge(base?.[k] ?? {}, v)
+    } else {
+      out[k] = v
+    }
+  }
+  return out
+}
+
+// ADDED: migrate older single-theme shape -> dual themes
+function migrateAppearanceShape(s) {
+  if (!s || !s.appearance) return s
+  const a = s.appearance
+  // If legacy `appearance.theme` exists and dual-theme keys are missing, fill them
+  if ('theme' in a && (!('themeLight' in a) || !('themeDark' in a))) {
+    return {
+      ...s,
+      appearance: {
+        ...a,
+        themeLight: a.themeLight ?? a.theme ?? 'light',
+        // if old theme was "dark", keep dark; otherwise still give a dark theme default
+        themeDark:  a.themeDark  ?? (a.theme === 'dark' ? 'dark' : 'dark'),
+      },
+    }
+  }
+  return s
+}
+
+// ADDED: structured diff for better UX on Publish screen
+function diffSettings(a, b, prefix = '') {
+  const changes = []
+  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})])
+  for (const k of keys) {
+    const pa = a?.[k]
+    const pb = b?.[k]
+    const path = prefix ? `${prefix}.${k}` : k
+    const bothObjs =
+      pa && pb &&
+      typeof pa === 'object' && typeof pb === 'object' &&
+      !Array.isArray(pa) && !Array.isArray(pb)
+
+    if (bothObjs) {
+      changes.push(...diffSettings(pa, pb, path))
+    } else if (JSON.stringify(pa) !== JSON.stringify(pb)) {
+      changes.push({ path, from: pa, to: pb })
+    }
+  }
+  return changes
+}
+
+/* ------------------------------ END ADDED --------------------------------- */
+
 
 /**
  * A class for managing settings in a SimplePage repository.
@@ -42,6 +121,7 @@ export class Settings {
   async unsafeSetRepoRoot(root) {
     const refs = await ls(this.#blockstore, root)
     const settingsCid = refs.find(([name]) => name === SETTINGS_FILE)?.[1]
+    // (Original behavior) If missing, seed an empty object as file content.
     this.#persistedCid = settingsCid || (await this.#writeJson({}))
     await this.#initializeChangeCid()
   }
@@ -52,12 +132,16 @@ export class Settings {
   async #initializeChangeCid() {
     const storedChangeCid = this.#storage.getItem(CHANGE_ROOT_KEY)
     if (storedChangeCid) {
-      const parsed = JSON.parse(storedChangeCid)
-      const changeCid = CID.parse(parsed.changeCid)
-      this.#changeCid = changeCid
-    } else {
-      this.#changeCid = this.#persistedCid
+      try {
+        const parsed = JSON.parse(storedChangeCid)
+        const changeCid = CID.parse(parsed.changeCid)
+        this.#changeCid = changeCid
+        return
+      } catch {
+        // ignore parse errors and fall through
+      }
     }
+    this.#changeCid = this.#persistedCid
   }
 
   /**
@@ -88,18 +172,26 @@ export class Settings {
   /**
    * Reads the entire settings object from the current change root.
    * @returns {Promise<object>} The settings object.
+   *
+   * NOTE (ADDED): We return a migrated + default-merged view so callers
+   * always see dual-theme keys and sensible defaults. The underlying file
+   * remains whatever was staged (we do not auto-write defaults here).
    */
   async read() {
     await this.#isReady()
-    
     const content = await this.#cat()
-    return JSON.parse(new TextDecoder().decode(content))
+    const raw = JSON.parse(new TextDecoder().decode(content) || '{}')
+    const migrated = migrateAppearanceShape(raw) || {}
+    const merged = deepMerge(DEFAULT_SETTINGS, migrated)
+    return merged
   }
 
   /**
    * Reads a specific top-level property from settings.
    * @param {string} key - The property key to read.
    * @returns {Promise<any>} The property value, or undefined if not found.
+   *
+   * NOTE (unchanged): Reads from the merged view returned by read().
    */
   async readProperty(key) {
     const settings = await this.read()
@@ -110,19 +202,26 @@ export class Settings {
    * Writes a specific top-level property to settings.
    * @param {string} key - The property key to write.
    * @param {any} value - The property value to write.
+   *
+   * NOTE (unchanged core behavior): We edit the staged JSON and update #changeCid.
+   * We intentionally DO NOT inject defaults here; the UI should pass the full object
+   * if it wants defaults persisted.
    */
   async writeProperty(key, value) {
     await this.#isReady()
     
-    const settings = await this.read()
-    settings[key] = value
+    const rawStaged = JSON.parse(new TextDecoder().decode(await this.#cat(false)) || '{}')
+    rawStaged[key] = value
     
-    return this.write(settings)
+    return this.write(rawStaged)
   }
 
   /**
    * Writes the entire settings object.
    * @param {object} settings - The settings object to write.
+   *
+   * NOTE (unchanged): Caller should pass what they want persisted. This keeps
+   * B's behavior and avoids silently baking defaults into the file.
    */
   async write(settings) {
     await this.#isReady()
@@ -144,10 +243,10 @@ export class Settings {
   async deleteProperty(key) {
     await this.#isReady()
     
-    const settings = await this.read()
-    delete settings[key]
+    const rawStaged = JSON.parse(new TextDecoder().decode(await this.#cat(false)) || '{}')
+    delete rawStaged[key]
     
-    return this.write(settings)
+    return this.write(rawStaged)
   }
 
   /**
@@ -169,48 +268,27 @@ export class Settings {
   }
 
   /**
-   * Returns an array of strings representing the changes to the settings.
+   * Returns an array representing the changes to the settings
    * based on the persisted and change CIDs.
-   * @returns {Promise<string[]>} The change diff.
+   * @returns {Promise<Array<string|{path:string,from:any,to:any}>>} The change diff.
+   *
+   * NOTE (ADDED): We return a structured diff [{path, from, to}] using a
+   * migrated + default-merged view for human-friendly display. Your Publish
+   * page already handles objects nicely; if you still need strings you can map
+   * them externally.
    */
   async changeDiff() {
     await this.#isReady()
     const persisted = await this.#cat(true)
     const change = await this.#cat()
-    const persistedJson = JSON.parse(new TextDecoder().decode(persisted))
-    const changeJson = JSON.parse(new TextDecoder().decode(change))
+    const persistedJson = JSON.parse(new TextDecoder().decode(persisted) || '{}')
+    const changeJson = JSON.parse(new TextDecoder().decode(change) || '{}')
 
-    const compareValues = (persistedVal, changeVal, path = '') => {
-      if (persistedVal === changeVal) return []
+    // Normalize both sides so diffs include dual-theme keys consistently
+    const persistedNorm = deepMerge(DEFAULT_SETTINGS, migrateAppearanceShape(persistedJson) || {})
+    const changeNorm    = deepMerge(DEFAULT_SETTINGS, migrateAppearanceShape(changeJson) || {})
 
-      if (typeof persistedVal === 'object' && typeof changeVal === 'object' && 
-        persistedVal !== null && changeVal !== null) {
-        const diffs = []
-        const allKeys = new Set([...Object.keys(persistedVal), ...Object.keys(changeVal)])
-        
-        for (const key of allKeys) {
-          const newPath = path ? `${path}.${key}` : key
-          diffs.push(...compareValues(persistedVal[key], changeVal[key], newPath))
-        }
-        return diffs
-      } else if (persistedVal === undefined) {
-        if (typeof changeVal === 'object' && changeVal !== null) {
-          return compareValues({}, changeVal, path)
-        } else {
-          return [`${path}: ${JSON.stringify(changeVal)} (added)`]
-        }
-      } else if (changeVal === undefined) {
-        if (typeof persistedVal === 'object' && persistedVal !== null) {
-          return compareValues(persistedVal, {}, path)
-        } else {
-          return [`${path}: ${JSON.stringify(persistedVal)} (removed)`]
-        }
-      }
-
-      return [`${path}: ${JSON.stringify(persistedVal)} -> ${JSON.stringify(changeVal)}`]
-    }
-
-    return compareValues(persistedJson, changeJson)
+    return diffSettings(persistedNorm, changeNorm)
   }
 
   /**

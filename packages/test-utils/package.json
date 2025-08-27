@@ -13,13 +13,13 @@
   "dependencies": {
     "@simplepg/dservice": "workspace:*",
     "ipfsd-ctl": "^15.0.2",
-    "kubo": "^0.35.0",
     "kubo-rpc-client": "^5.2.0",
     "multiformats": "^13.4.0",
     "uint8arrays": "^5.1.0",
     "viem": "^2.31.4"
   },
   "devDependencies": {
-    "jest": "^30.0.3"
+    "jest": "^30.0.3",
+    "kubo": "^0.35.0"
   }
 }

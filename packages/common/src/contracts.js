@@ -13,14 +13,14 @@ export const contracts = {
       "TokenRendererV2": "0x68603bA4F27925BC6256B777ae99FE4d0D3122bE",
     },
     "1337": {
-      "SimplePage": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
-      "SimplePageManager": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed",
+      "SimplePage": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "SimplePageManager": "0xe6e340d132b5f46d1e472debcd681b2abc16e57e",
     },
   },
   universalResolver: {
     "1": "0xaBd80E8a13596fEeA40Fd26fD6a24c3fe76F05fB",
     "11155111": "0xb7B7DAdF4D42a08B3eC1d3A1079959Dfbc8CFfCC",
-    "1337": "0x0b306bf915c4d645ff596e518faf3f9669b97016",
+    "1337": "0x09635f643e140090a9a8dcd712ed6285858cebef",
   },
   abis: {
     EnsNameWrapper: [{"name":"ownerOf","type":"function","stateMutability":"view","inputs":[{"name":"id","type":"uint256"}],"outputs":[{"name":"owner","type":"address"}]}],

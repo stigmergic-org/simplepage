@@ -25,8 +25,26 @@
     <meta name="twitter:title" content="Blank Template">
     <meta name="twitter:description" content="A SimplePage template that lets you start fresh">
     <meta name="twitter:image" content="https://new.simplepage.eth.link/_assets/images/logo.png">
-
+    
+    
     <!-- CSS Preload Pattern -->
+<script>
+  (function() {
+    try {
+      var key = '__spg_theme_mode';
+      var mode = localStorage.getItem(key) || 'system';
+      var theme = mode === 'system'
+        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : (mode === 'dark' ? 'dark' : 'light');
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.classList.add(theme);
+    } catch (e) {}
+  })();
+</script>
+
+  <link rel="stylesheet" href="/theme.css" />
+
     <% for (const cssFile of htmlWebpackPlugin.files.css || []) { %>
     <link rel="preload" href="<%= cssFile %>" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="<%= cssFile %>"></noscript>
