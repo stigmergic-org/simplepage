@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useEnsAvatar } from 'wagmi';
-import { getEnsAvatar } from '@wagmi/core'
 import Notice from '../components/Notice';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';

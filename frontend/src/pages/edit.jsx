@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Renderer } from 'marked';
-import { useAccount } from 'wagmi';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import { useRepo } from '../hooks/useRepo';
