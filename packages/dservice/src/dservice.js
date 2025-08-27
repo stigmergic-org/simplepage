@@ -2,7 +2,7 @@ import { IpfsService } from './services/ipfs.js'
 import { IndexerService } from './services/indexer.js'
 import { createApi } from './api.js'
 import { createLogger } from './logger.js'
-import packageJson from '../package.json' assert { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 import http from 'http'
 import https from 'https'
 import fs from 'fs'
