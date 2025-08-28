@@ -1,5 +1,10 @@
-@import "tailwindcss";
-@plugin "daisyui";
+/* Tailwind CSS directives
+ * These three imports are required in Tailwind v3. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 /* Style for frontmatter in CodeMirror/EasyMDE */
 .cm-frontmatter {

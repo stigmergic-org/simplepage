@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './app.css';
 import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
@@ -19,15 +19,22 @@ import Settings from './pages/settings';
 import NotFound from './pages/notfound';
 import { ROUTES } from './config/routes';
 
+import { useApplyThemeFromSettings } from './hooks/useApplyThemeFromSettings';
+
+// Must run inside WagmiConfigProvider
+const ThemeBooter = () => {
+  useApplyThemeFromSettings();
+  return null;
+};
+
 const App = (props) => {
   const basename = useBasename();
-  // Get custom dservice url for new.simplepage.eth
   const customDserviceUrl = useDserviceParam('new.simplepage.eth');
-  // Get custom rpc overrides
   const rpcOverrides = useRpcOverride();
 
   return (
     <WagmiConfigProvider rpcOverrides={rpcOverrides}>
+      <ThemeBooter />
       {(customDserviceUrl || Object.keys(rpcOverrides).length > 0) && (
         <OverridesBanner dserviceUrl={customDserviceUrl} rpcOverrides={rpcOverrides} />
       )}
