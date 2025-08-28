@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useEnsAvatar } from 'wagmi';
+import { getEnsAvatar } from '@wagmi/core'
 import Notice from '../components/Notice';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
@@ -402,24 +403,27 @@ const Publish = () => {
           )}
 
           {settingsChangeDiff.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Settings being {publishOrFork.toLowerCase()}ed:</h2>
-              <div className="border border-base-300 rounded-md p-3 bg-base-200">
-                {settingsChangeDiff.length > 0 && (
-                  <div className="mt-2">
-                    <span className="text-sm font-medium text-base-content/80">Changes:</span>
-                    <ul className="mt-1 space-y-1">
-                      {settingsChangeDiff.map((change, index) => (
-                        <li key={index} className="text-sm text-base-content/60">
-                          <code className="bg-base-300 px-1 rounded text-xs">{change}</code>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+  <div className="mb-6">
+    <h2 className="text-xl font-semibold mb-2">
+      Settings being {publishOrFork.toLowerCase()}ed:
+    </h2>
+    <div className="border border-base-300 rounded-md p-3 bg-base-200">
+      <div className="mt-2">
+        <span className="text-sm font-medium text-base-content/80">Changes:</span>
+        <ul className="mt-1 space-y-1">
+          {settingsChangeDiff.map((change, index) => (
+            <li key={index} className="text-sm text-base-content/60">
+              <span className="font-mono">{change.path}</span>
+              <span className="ml-2 text-xs text-gray-500">
+                ({change.from} → {change.to})
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+)}
 
           {versionInfo.canUpdate && (
             <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">

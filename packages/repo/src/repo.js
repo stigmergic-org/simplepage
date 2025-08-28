@@ -31,6 +31,45 @@ import { CHANGE_TYPE } from './constants.js'
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
 
+
+/** -----------------------------------------------
+ * Minimal server-side theme variables for theme.css
+ * ---------------------------------------------- */
+const THEME_VARS = {
+  light: {
+    '--b1': '255 255 255',
+    '--bc': '0 0 0',
+    '--p':  '16 185 129',
+  },
+  dark: {
+    '--b1': '17 24 39',
+    '--bc': '255 255 255',
+    '--p':  '99 102 241',
+  },
+}
+
+function toVarsBlock(varsObj) {
+  return Object.entries(varsObj)
+    .map(([k, v]) => `${k}: ${v};`)
+    .join('\n');
+}
+
+function buildThemeCss({ light = 'light', dark = 'dark' } = {}) {
+  const lightVars = THEME_VARS[light] || THEME_VARS.light;
+  const darkVars  = THEME_VARS[dark]  || THEME_VARS.dark;
+
+  return `/* generated: theme.css */
+:root {
+${toVarsBlock(lightVars)}
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+${toVarsBlock(darkVars)}
+  }
+}
+`;
+}
+
 /**
  * @typedef {Object} NavItem
  * @property {string} path - The path of the navigation item
@@ -489,6 +528,23 @@ export class Repo {
     // updates settings
     const newSettingsRoot = await this.settings.stage()
     rootPointer = await this.unixfs.cp(newSettingsRoot, rootPointer, SETTINGS_FILE, { force: true })
+
+
+     // --- generate theme.css from saved settings (pre-JS) ---
+    // 1.	Publish flow → when staging/publishing, we need title + description to populate manifest.json and manifest.webmanifest (so sites have proper PWA metadata, favicons, search engine descriptions).
+	// 2.	UI → sidebar + page metadata can be shown in lists without having to load the full page HTML in the browser editor.
+	// 3.	Future extensibility → adding custom site-wide behaviors.
+
+    const savedSettings = await this.settings.read();
+    const themePref = {
+      light: savedSettings?.appearance?.themeLight || 'light',
+      dark:  savedSettings?.appearance?.themeDark  || 'dark',
+    }
+    const themeCss = buildThemeCss(themePref)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'theme.css', themeCss)
+    // -------------------------------------------------------
+
+    // upgrade unchanged pages (template/avatar changes)
 
     // upgrade all pages that are not in the edits
     // this is needed in case template is updated, or there's a new avatar
