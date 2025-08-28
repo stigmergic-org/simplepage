@@ -32,6 +32,15 @@ const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
 
 /**
+ * @typedef {Object} NavItem
+ * @property {string} path - The path of the navigation item
+ * @property {boolean} selected - Whether this item is currently selected
+ * @property {string} title - The display title for the navigation item
+ * @property {number} priority - The priority for sorting (lower numbers = higher priority)
+ * @property {NavItem[]} children - Child navigation items
+ */
+
+/**
  * A class for managing a SimplePage repository.
  * Keeps track of all canonical markdown and html pages in the repo,
  * as well as edits that are yet to be committed.
@@ -318,18 +327,94 @@ export class Repo {
       }
     } 
     await this.#ensureRepoData()
-    const html = await cat(this.unixfs, this.repoRoot.cid, path + 'index.html')
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, 'text/html')
-    const title = doc.querySelector('title')?.textContent
-    const description = doc.querySelector('meta[name="description"]')?.getAttribute('content')
-    const sidebar = doc.querySelector('meta[name="spg-sidebar"]')?.getAttribute('content')
-    return {
-      title,
-      description,
-      sidebar,
-    }
+    const markdown = await cat(this.unixfs, this.repoRoot.cid, path + 'index.md')
+    return parseFrontmatter(markdown)
   }
+
+  /**
+   * Returns the sidebar navigation info for a page.
+   * @param {string} selectedPath - The path of the page.
+   * @param {boolean} ignoreEdits - Whether to ignore local edits.
+   * @returns {Promise<NavItem[]>} The sidebar navigation info for the page.
+   */
+  async getSidebarNavInfo(selectedPath, ignoreEdits = false) {
+    // TODO - deal with selectedPath being root
+    let allPaths = []
+    if (ignoreEdits) {
+      allPaths = await this.getAllPages()
+    } else {
+      const [allPages, allEdits] = await Promise.all([ this.getAllPages(), this.getChanges() ])
+      //remove duplicates
+      allPaths = [...new Set([...allPages, ...allEdits.map(edit => edit.path)])]
+    }
+    
+    // get the metadata for all pages
+    const allMetadata = await Promise.all(allPaths.map(async path => ({ ...(await this.getMetadata(path, ignoreEdits)), path })))
+    const metaItems = allMetadata.filter(meta => meta['sidebar-nav-prio'] && meta['sidebar-nav-prio'] > 0)
+
+    // Helper function to convert path to title
+    const pathToTitle = (path) => {
+      if (!path) return ''
+      return path.split('/').filter(Boolean).pop().split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    }
+
+    let showNavInfo = false
+    const navItems = []
+    for (const meta of metaItems) {
+
+      const path = meta.path
+      if (selectedPath === path) {
+        showNavInfo = true
+      }
+      let newItem = {
+        selected: selectedPath === path,
+        path,
+        title: meta.title || pathToTitle(meta.path) || path,
+        priority: meta['sidebar-nav-prio'],
+        children: [],
+      }
+      const pathSplit = meta.path.split('/').filter(Boolean)
+      let sectionPointer = navItems
+      for (let i = 1; i < pathSplit.length; i++) {
+        const parentPath = `/${pathSplit.slice(0, i).join('/')}/`
+        let parentItem = sectionPointer.find(item => item.path === parentPath)
+
+        if (!parentItem) {
+          parentItem = {
+            virtual: true,
+            path: parentPath,
+            title: pathToTitle(parentPath),
+            priority: newItem.priority,
+            children: [],
+          }
+          sectionPointer.push(parentItem)
+        } else if (parentItem.virtual) {
+          parentItem.priority = Math.min(parentItem.priority, newItem.priority)
+        }
+        sectionPointer = parentItem.children
+      }
+      const virtualNewItem = navItems.find(item => item.path === path && item.virtual)
+      if (virtualNewItem) {
+        virtualNewItem.title = newItem.title
+        virtualNewItem.priority = newItem.priority
+        virtualNewItem.selected = newItem.selected
+        delete virtualNewItem.virtual
+      } else {
+        sectionPointer.push(newItem)
+      }
+    }
+
+    if (!showNavInfo) return []
+
+    const sort = items => {
+      items.sort((a, b) => a.priority - b.priority)
+      items.forEach(item => sort(item.children))
+      return items
+    }
+    return sort(navItems)
+  }
+
 
   /**
    * Checks if a new version of the template is available.

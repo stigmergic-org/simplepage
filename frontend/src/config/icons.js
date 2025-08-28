@@ -93,4 +93,8 @@ export const ICONS = {
     src: `${PREFIX}toc.svg`,
     alt: '📋',
   },
+  'map': {
+    src: `${PREFIX}map.svg`,
+    alt: '🗺️',
+  },
 };

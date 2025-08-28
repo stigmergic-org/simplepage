@@ -388,17 +388,41 @@ describe('Repo Integration Tests', () => {
       const pages = {
         about: {
           path: '/about/',
-          markdown: '# About\n\nAbout page content.',
+          markdown: `---
+title: About
+description: About page content.
+---
+
+# About
+
+About page content.`,
           body: '<h1>About</h1><p>About page content.</p>'
         },
         blog: {
           path: '/blog/',
-          markdown: '# Blog\n\nBlog index page.',
+          markdown: `---
+title: Blog
+description: Blog index page.
+sidebar-toc: true
+---
+
+# Blog
+
+Blog index page.`,
           body: '<h1>Blog</h1><p>Blog index page.</p>'
         },
         contact: {
           path: '/contact/',
-          markdown: '# Contact\n\nContact information.',
+          markdown: `---
+title: Contact
+description: Contact information.
+sidebar-toc: true
+sidebar-nav-prio: 100
+---
+
+# Contact
+
+Contact information.`,
           body: '<h1>Contact</h1><p>Contact information.</p>'
         }
       };
@@ -407,6 +431,26 @@ describe('Repo Integration Tests', () => {
       for (const page of Object.values(pages)) {
         await repo.setPageEdit(page.path, page.markdown, page.body);
       }
+
+      expect(await repo.getMetadata('/about/')).toEqual({
+        title: 'About',
+        description: 'About page content.',
+      })
+      
+      expect(await repo.getMetadata('/blog/')).toEqual({
+        title: 'Blog',
+        description: 'Blog index page.',
+        'sidebar-toc': true
+      })
+      
+      
+      expect(await repo.getMetadata('/contact/')).toEqual({
+        title: 'Contact',
+        description: 'Contact information.',
+        'sidebar-toc': true,
+        'sidebar-nav-prio': 100
+      })
+      
 
       // Stage and commit without version update
       const firstResult = await repo.stage('test.eth', false);
@@ -473,6 +517,25 @@ describe('Repo Integration Tests', () => {
       // Verify the final state through ENS resolution
       const { cid: finalRoot } = await resolveEnsDomain(client, 'test.eth', addresses.universalResolver);
       expect(finalRoot.toString()).toBe(secondResult.cid.toString());
+
+      expect(await repo.getMetadata('/about/')).toEqual({
+        title: 'About',
+        description: 'About page content.',
+      })
+      
+      expect(await repo.getMetadata('/blog/')).toEqual({
+        title: 'Blog',
+        description: 'Blog index page.',
+        'sidebar-toc': true
+      })
+      
+      
+      expect(await repo.getMetadata('/contact/')).toEqual({
+        title: 'Contact',
+        description: 'Contact information.',
+        'sidebar-toc': true,
+        'sidebar-nav-prio': 100
+      })
     });
   });
 

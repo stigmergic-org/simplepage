@@ -3,6 +3,7 @@ import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/Sidebar';
 import TableOfContents from '../components/TableOfContents';
+import SidebarNavigation from '../components/SidebarNavigation';
 import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
@@ -17,6 +18,7 @@ const View = ({ existingContent }) => {
   const [sidebarToc, setSidebarToc] = useState(false);
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
+  const [navItems, setNavItems] = useState([]);
   const { path, isVirtual } = usePagePath();
   const { repo, dserviceFailed } = useRepo();
   const { goToNotFound } = useNavigation();
@@ -49,7 +51,23 @@ const View = ({ existingContent }) => {
     if (repo) {
       loadContent();
     }
-  }, [repo, basename, isVirtual]);
+  }, [repo, basename, isVirtual, path]);
+
+  // Load navigation items
+  useEffect(() => {
+    const loadNavigation = async () => {
+      if (!repo) return;
+      try {
+        const items = await repo.getSidebarNavInfo(path, !isVirtual);
+        setNavItems(items);
+      } catch (error) {
+        console.error('Failed to load sidebar navigation:', error);
+        setNavItems([]);
+      }
+    };
+
+    loadNavigation();
+  }, [repo, path, isVirtual]);
 
   useEffect(() => {
     highlightAll();
@@ -84,7 +102,7 @@ const View = ({ existingContent }) => {
         <Sidebar
           position="right"
           defaultOpen={true}
-          title="Contents"
+          title="On this page"
           icon="toc"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
@@ -92,7 +110,19 @@ const View = ({ existingContent }) => {
           <TableOfContents content={content} />
         </Sidebar>
       )}
-
+      {/* Navigation Sidebar */}
+      {navItems.length > 0 && (
+        <Sidebar
+          position="left"
+          defaultOpen={true}
+          title="Navigation"
+          icon="map"
+          effectiveTop={navbarEffectiveTop}
+          contentWidth={contentWidth}
+        >
+          <SidebarNavigation navItems={navItems} isVirtual={isVirtual} />
+        </Sidebar>
+      )}
 
       <div id="content" className="min-h-70 flex items-center justify-center pt-8">
         <div id="content-container" className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
