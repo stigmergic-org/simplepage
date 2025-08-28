@@ -1,1 +1,61 @@
-node_modules
+# Node.js
+node_modules/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.cache/
+.temp/
+*.tsbuildinfo
+
+# Local environment configs
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# OS / IDE junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Coverage / testing
+coverage/
+.nyc_output/
+.jest/
+
+# IPFS / blockchain service data
+ipfs_data/
+.dservice/
+.anvil/
+.chain/
+db.sqlite*
+
+# Misc
+*.pid
+*.seed
+*.lock
+
+# Car files / repo artifacts
+*.car
+frontend/page.car
+frontend/repo-out/
+frontend/{version:*}
+
+# Logs
+logs/
+
+# Foundry lock
+contracts/foundry.lock

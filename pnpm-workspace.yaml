@@ -1,3 +1,15 @@
 packages:
-  - 'packages/*'
-  - 'frontend' 
+  - packages/*
+  - frontend
+
+ignoredBuiltDependencies:
+  - utf-8-validate
+
+onlyBuiltDependencies:
+  - '@ipshipyard/node-datachannel'
+  - '@scarf/scarf'
+  - '@tailwindcss/oxide'
+  - bufferutil
+  - keccak
+  - kubo
+  - unrs-resolver
