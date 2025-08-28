@@ -47,7 +47,7 @@ const SidebarNavigation = ({ navItems = [], isVirtual = false }) => {
 
     return (
       <div key={item.path} className="mb-1">
-        {isVirtual ? (
+        {isVirtual || item.virtual ? (
           itemContent
         ) : (
           <a href={item.path} className="block">
