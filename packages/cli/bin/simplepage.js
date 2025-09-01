@@ -1,9 +1,9 @@
-#!/usr/bin/env node --no-warnings
+#!/usr/bin/env node
 
 import { program, Option } from 'commander';
 import { publish } from '../commands/publish.js';
 import { info } from '../commands/info.js';
-import packageJson from '../package.json' assert { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 
 // Helper function to add global options to a command
 function withGlobalOptions(command) {

@@ -4,7 +4,7 @@ import { Command, Option } from 'commander'
 import { DService } from '../src/dservice.js'
 import { handleListCommand } from '../src/listCommand.js'
 import { handleIndexerDataCommand } from '../src/indexerDataCommand.js'
-import packageJson from '../package.json' assert { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 
 
 const program = new Command()
