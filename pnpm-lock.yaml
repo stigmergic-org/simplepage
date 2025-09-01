@@ -33,7 +33,7 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
       marked:
-        specifier: 4.3.0
+        specifier: '*'
         version: 4.3.0
       plausible-tracker:
         specifier: ^0.3.9
@@ -156,7 +156,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
 
   packages/common:
     dependencies:
@@ -199,7 +199,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
       jest-fetch-mock:
         specifier: ^3.0.3
         version: 3.0.3(encoding@0.1.13)
