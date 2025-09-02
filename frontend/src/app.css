@@ -1,9 +1,44 @@
-/* Tailwind CSS directives
- * These three imports are required in Tailwind v3. */
+@import "tailwindcss";
+@plugin "daisyui";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Defaults */
+@plugin "daisyui/theme" { name: light; default: true; }
+@plugin "daisyui/theme" { name: dark; prefersdark: true; }
+
+/* All other built-in themes */
+@plugin "daisyui/theme" { name: cupcake; }
+@plugin "daisyui/theme" { name: bumblebee; }
+@plugin "daisyui/theme" { name: emerald; }
+@plugin "daisyui/theme" { name: corporate; }
+@plugin "daisyui/theme" { name: synthwave; }
+@plugin "daisyui/theme" { name: retro; }
+@plugin "daisyui/theme" { name: cyberpunk; }
+@plugin "daisyui/theme" { name: valentine; }
+@plugin "daisyui/theme" { name: halloween; }
+@plugin "daisyui/theme" { name: garden; }
+@plugin "daisyui/theme" { name: forest; }
+@plugin "daisyui/theme" { name: aqua; }
+@plugin "daisyui/theme" { name: lofi; }
+@plugin "daisyui/theme" { name: pastel; }
+@plugin "daisyui/theme" { name: fantasy; }
+@plugin "daisyui/theme" { name: wireframe; }
+@plugin "daisyui/theme" { name: black; }
+@plugin "daisyui/theme" { name: luxury; }
+@plugin "daisyui/theme" { name: dracula; }
+@plugin "daisyui/theme" { name: cmyk; }
+@plugin "daisyui/theme" { name: autumn; }
+@plugin "daisyui/theme" { name: business; }
+@plugin "daisyui/theme" { name: acid; }
+@plugin "daisyui/theme" { name: lemonade; }
+@plugin "daisyui/theme" { name: night; }
+@plugin "daisyui/theme" { name: coffee; }
+@plugin "daisyui/theme" { name: winter; }
+
+
+/* Tell Tailwind what files to scan (v4 replaces the old "content" config) */
+@source "../public/index.html";
+@source "./**/*.{js,jsx,ts,tsx}";
+
 
 
 /* Style for frontmatter in CodeMirror/EasyMDE */

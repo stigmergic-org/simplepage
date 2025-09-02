@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useEnsName, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useEnsAvatar } from 'wagmi';
-import { getEnsAvatar } from '@wagmi/core'
 import Notice from '../components/Notice';
 import TransactionStatus from '../components/TransactionStatus';
 import { useGetSubscription } from '../hooks/useGetSubscription';
@@ -71,7 +70,6 @@ const Publish = () => {
   const [hasExistingContent, setHasExistingContent] = useState(false);
 
   const { data: hash, status, error, reset, writeContract } = useWriteContract()
-
   const { isLoading: isWaiting, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
   const [progress, setProgress] = useState(0);
 
@@ -129,22 +127,15 @@ const Publish = () => {
   const getFileChanges = async () => {
     try {
       const allChangedFiles = [];
-      
       const traverseDirectory = async (path) => {
         const files = await repo.files.ls(path);
-        
         for (const file of files) {
-          if (file.change) {
-            allChangedFiles.push(file);
-          }
-          
-          // If it's a directory and has changes, recursively check inside
+          if (file.change) allChangedFiles.push(file);
           if (file.type === 'directory' && file.change) {
             await traverseDirectory(file.path);
           }
         }
       };
-      
       await traverseDirectory('/');
       setFileChanges(allChangedFiles);
     } catch (error) {
@@ -243,12 +234,10 @@ const Publish = () => {
         setErrorMessage('Failed to fetch blank version');
       }
     };
-
     fetchVersionInfo();
   }, [repo]);
 
   useEffect(() => {
-    
     // Use query parameter domain if available, otherwise use hash-based domain
     if (queryDomain && queryDomain !== domain) {
       setSelectedDomain(queryDomain);
@@ -261,15 +250,12 @@ const Publish = () => {
       const queryString = hash.split('?')[1];
       const params = new URLSearchParams(queryString);
       const urlDomain = params.get('domain');
-      
-      // Use query parameter domain if available, otherwise use hash-based domain
       if (queryDomain && queryDomain !== domain) {
         setSelectedDomain(queryDomain);
       } else if (urlDomain) {
         setSelectedDomain(urlDomain);
       }
     };
-
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [queryDomain, domain]);
@@ -292,23 +278,31 @@ const Publish = () => {
         setHasExistingContent(false);
       }
     };
-
     checkExistingContent();
   }, [selectedDomain, domain]);
 
   const publishOrFork = selectedDomain === domain ? 'Publish' : 'Fork';
-
   document.title = `${publishOrFork} - ${selectedDomain}`;
+
+  // --- minimal addition: format object diffs and hide legacy keys
+  const formatSettingsChange = (c) => {
+    const asObj = typeof c === 'object' && c !== null;
+    const path = asObj ? c.path : c;
+
+    // hide legacy entries from the Publish list
+    if (path === 'appearance.theme' || path === 'appearance.themeMode') return null;
+
+    if (!asObj) return String(c);
+    const from = JSON.stringify(c.from);
+    const to = JSON.stringify(c.to);
+    return `${c.path}: ${from} -> ${to}`;
+  };
 
   return (
     <>
-      <Navbar 
-        activePage="Publish"
-      />
+      <Navbar activePage="Publish" />
       <div className="container mx-auto max-w-3xl px-4 py-6">
-        {errorMessage && (
-          <Notice type="error" message={errorMessage} />
-        )}
+        {errorMessage && <Notice type="error" message={errorMessage} />}
         <WalletInfo />
         <TransactionStatus 
           status={status}
@@ -403,27 +397,25 @@ const Publish = () => {
           )}
 
           {settingsChangeDiff.length > 0 && (
-  <div className="mb-6">
-    <h2 className="text-xl font-semibold mb-2">
-      Settings being {publishOrFork.toLowerCase()}ed:
-    </h2>
-    <div className="border border-base-300 rounded-md p-3 bg-base-200">
-      <div className="mt-2">
-        <span className="text-sm font-medium text-base-content/80">Changes:</span>
-        <ul className="mt-1 space-y-1">
-          {settingsChangeDiff.map((change, index) => (
-            <li key={index} className="text-sm text-base-content/60">
-              <span className="font-mono">{change.path}</span>
-              <span className="ml-2 text-xs text-gray-500">
-                ({change.from} → {change.to})
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">Settings being {publishOrFork.toLowerCase()}ed:</h2>
+              <div className="border border-base-300 rounded-md p-3 bg-base-200">
+                <div className="mt-2">
+                  <span className="text-sm font-medium text-base-content/80">Changes:</span>
+                  <ul className="mt-1 space-y-1">
+                    {settingsChangeDiff
+                      .map(formatSettingsChange)
+                      .filter(Boolean)
+                      .map((line, index) => (
+                        <li key={index} className="text-sm text-base-content/60">
+                          <code className="bg-base-300 px-1 rounded text-xs">{line}</code>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {versionInfo.canUpdate && (
             <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">

@@ -1,4 +1,3 @@
-// frontend/src/pages/settings.jsx
 import React, { useState, useEffect } from 'react';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
@@ -58,11 +57,28 @@ function ThemePreview({ themeName, title }) {
 const Settings = () => {
   const domain = useDomain();
   const { repo } = useRepo();
-
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Save donation notice setting
+  const handleDonationNoticeToggle = async (hideDonationNotice) => {
+    try {
+      const currentSettings = await repo.settings.read()
+      const updatedSettings = {
+        ...currentSettings,
+        subscription: {
+          ...currentSettings.subscription,
+          hideDonationNotice
+        }
+      };
+      await repo.settings.write(updatedSettings);
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Failed to save donation notice setting:', error);
+    }
+  };
 
-  // Draft states for two themes
+  // Draft states for two themes (we still keep these as controlled values)
   const currentLight = settings?.appearance?.themeLight ?? DEFAULT_SETTINGS.appearance.themeLight;
   const currentDark  = settings?.appearance?.themeDark  ?? DEFAULT_SETTINGS.appearance.themeDark;
   const [draftLight, setDraftLight] = useState(currentLight);
@@ -141,8 +157,8 @@ const Settings = () => {
     }
   };
 
-  // Persist themes + instant apply for the active OS mode
-  const handleApplyThemes = async () => {
+  // NEW: persist themes immediately on selection
+  const persistThemes = async (nextLight, nextDark) => {
     try {
       const current = await repo.settings.read();
       const updated = {
@@ -151,21 +167,18 @@ const Settings = () => {
         appearance: {
           ...DEFAULT_SETTINGS.appearance,
           ...(current.appearance || {}),
-          themeLight: draftLight,
-          themeDark:  draftDark,
+          themeLight: nextLight,
+          themeDark:  nextDark,
         },
       };
       await repo.settings.write(updated);
       setSettings(updated);
-      applyThemeGlobally(isDarkOS() ? draftDark : draftLight); // instant feedback
+
+      // live-apply only for the active OS mode
+      applyThemeGlobally(isDarkOS() ? nextDark : nextLight);
     } catch (error) {
       console.error('Failed to save themes:', error);
     }
-  };
-
-  const handleResetDrafts = () => {
-    setDraftLight(currentLight);
-    setDraftDark(currentDark);
   };
 
   const handleClearPageEdits = () => repo.restoreAllPages();
@@ -174,16 +187,15 @@ const Settings = () => {
     repo.files.clearChanges();
     repo.restoreAllPages();
     repo.settings.clearChanges();
+    localStorage.clear()
     loadSettings();
   };
 
   if (isLoading) {
-    return (
-      <>
+    return (<>
         <Navbar activePage="Settings" />
         <LoadingSpinner />
-      </>
-    );
+      </>);
   }
 
   const osIsDark = isDarkOS();
@@ -269,10 +281,11 @@ const Settings = () => {
                   <select
                     className="select select-bordered w-full max-w-xs"
                     value={draftLight}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const next = e.target.value;
                       setDraftLight(next);
                       if (!osIsDark) applyThemeGlobally(next); // live-apply only in light OS
+                      await persistThemes(next, draftDark);
                     }}
                   >
                     {THEMES.map((t) => (
@@ -287,10 +300,11 @@ const Settings = () => {
                   <select
                     className="select select-bordered w-full max-w-xs"
                     value={draftDark}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const next = e.target.value;
                       setDraftDark(next);
                       if (osIsDark) applyThemeGlobally(next); // live-apply only in dark OS
+                      await persistThemes(draftLight, next);
                     }}
                   >
                     {THEMES.map((t) => (
@@ -300,29 +314,6 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleApplyThemes}
-                  disabled={draftLight === currentLight && draftDark === currentDark}
-                  title={
-                    draftLight === currentLight && draftDark === currentDark
-                      ? 'Already applied'
-                      : 'Apply & Save'
-                  }
-                >
-                  Apply & Save
-                </button>
-
-                <button
-                  className="btn btn-ghost"
-                  onClick={handleResetDrafts}
-                  disabled={draftLight === currentLight && draftDark === currentDark}
-                >
-                  Reset
-                </button>
-              </div>
-
               {/* Previews */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ThemePreview themeName={draftLight} title="Light Preview" />
@@ -330,11 +321,11 @@ const Settings = () => {
               </div>
 
               <p className="mt-3 text-sm opacity-70">
-                The active theme follows your system setting. Changing the{" "}
-                <span className="font-medium">Light</span> (or{" "}
-                <span className="font-medium">Dark</span>) theme will live-apply
-                only if your OS is currently in that mode. Click{" "}
-                <span className="font-medium">Apply &amp; Save</span> to persist to your site repo.
+                The active theme follows your system setting. Selecting a new{" "}
+                <span className="font-medium">Light</span> or{" "}
+                <span className="font-medium">Dark</span> theme saves instantly
+                and live-applies if your OS is currently in that mode. Changes are
+                included the next time you publish.
               </p>
             </div>
           </div>
