@@ -32,43 +32,6 @@ const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
 
 
-/** -----------------------------------------------
- * Minimal server-side theme variables for theme.css
- * ---------------------------------------------- */
-const THEME_VARS = {
-  light: {
-    '--b1': '255 255 255',
-    '--bc': '0 0 0',
-    '--p':  '16 185 129',
-  },
-  dark: {
-    '--b1': '17 24 39',
-    '--bc': '255 255 255',
-    '--p':  '99 102 241',
-  },
-}
-
-function toVarsBlock(varsObj) {
-  return Object.entries(varsObj)
-    .map(([k, v]) => `${k}: ${v};`)
-    .join('\n');
-}
-
-function buildThemeCss({ light = 'light', dark = 'dark' } = {}) {
-  const lightVars = THEME_VARS[light] || THEME_VARS.light;
-  const darkVars  = THEME_VARS[dark]  || THEME_VARS.dark;
-
-  return `/* generated: theme.css */
-:root {
-${toVarsBlock(lightVars)}
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-${toVarsBlock(darkVars)}
-  }
-}
-`;
-}
 
 /**
  * @typedef {Object} NavItem

@@ -5,7 +5,7 @@
 @plugin "daisyui/theme" { name: light; default: true; }
 @plugin "daisyui/theme" { name: dark; prefersdark: true; }
 
-/* All other built-in themes */
+/* All other built-in themes (had problems with tailwind v4 and daisyui v5. when trying "themes:all" */
 @plugin "daisyui/theme" { name: cupcake; }
 @plugin "daisyui/theme" { name: bumblebee; }
 @plugin "daisyui/theme" { name: emerald; }
@@ -34,11 +34,14 @@
 @plugin "daisyui/theme" { name: coffee; }
 @plugin "daisyui/theme" { name: winter; }
 
-
-/* Tell Tailwind what files to scan (v4 replaces the old "content" config) */
+/* Source files for Tailwind to scan for class names */
 @source "../public/index.html";
 @source "./**/*.{js,jsx,ts,tsx}";
 
+
+.tabs {
+  display: flex !important;
+}
 
 
 /* Style for frontmatter in CodeMirror/EasyMDE */
@@ -344,4 +347,3 @@
       background: #000;
   }
 }
-
