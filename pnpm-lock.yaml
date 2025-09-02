@@ -210,8 +210,8 @@ importers:
         specifier: workspace:*
         version: link:../common
       cartonne:
-        specifier: ^3.0.1
-        version: 3.0.1
+        specifier: ^3.0.2
+        version: 3.0.2
       commander:
         specifier: ^14.0.0
         version: 14.0.0
@@ -272,7 +272,7 @@ importers:
         version: 15.0.2(undici@7.11.0)
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
       kubo:
         specifier: ^0.35.0
         version: 0.35.0
@@ -2808,6 +2808,9 @@ packages:
 
   cartonne@3.0.1:
     resolution: {integrity: sha512-Y8DH//DthEUbfvOMGYj/9K3F1RcWkiVu2dB9tGkiBnMqojAXTpu+TUs9FNNx202H0TQdJgbPsQl7Q6NuJ48dCw==}
+
+  cartonne@3.0.2:
+    resolution: {integrity: sha512-NGjYykWSbNkGlB1Dm5ZhvdUygDI+5ZQtj4ZBeZzRNQwN7iG40csRM92XnTV3peZAA3kvDEejXa5jeQ1Ls5YzVw==}
 
   cborg@4.2.12:
     resolution: {integrity: sha512-z126yLoavS75cdTuiKu61RC3Y3trqtDAgQRa5Q0dpHn1RmqhIedptWXKnk0lQ5yo/GmcV9myvIkzFgZ8GnqSog==}
@@ -10617,6 +10620,13 @@ snapshots:
   caniuse-lite@1.0.30001739: {}
 
   cartonne@3.0.1:
+    dependencies:
+      '@ipld/dag-cbor': 9.2.4
+      multiformats: 13.4.0
+      multihashes-sync: 2.0.0
+      varintes: 2.0.5
+
+  cartonne@3.0.2:
     dependencies:
       '@ipld/dag-cbor': 9.2.4
       multiformats: 13.4.0

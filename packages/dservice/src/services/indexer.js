@@ -136,11 +136,11 @@ export class IndexerService {
     for (const log of chLogsForDomains) {
       // Convert contenthash to CID before storing
       const cid = ensContentHashToCID(log.args.hash)
-      // persist both the contenthash and the blocknumber for the domain
+      // persist both the contenthash and the blocknumber for the domain, as well as txhash
       await this.ipfsService.addToList(
         `contenthash_${domainFromNode[log.args.node]}`,
         'string',
-        `${log.blockNumber}-${cid}`
+        `${log.blockNumber}-${cid}-${log.transactionHash}`
       )
     }
   }
