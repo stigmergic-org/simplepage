@@ -72,6 +72,14 @@ export class TestEnvironmentEvm {
         return this.addresses;
     }
 
+    getBlockNumber() {
+        const result = execSync(
+            `cast block-number --rpc-url ${this.url}`,
+            { encoding: 'utf8' }
+        );
+        return result;
+    }
+
     mintPage(domain, duration, to) {
         // Convert duration to expiration timestamp
         const expiresAt = Math.floor(Date.now() / 1000) + duration;

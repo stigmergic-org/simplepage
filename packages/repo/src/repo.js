@@ -25,6 +25,7 @@ import {
 import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
+import { History } from './history.js'
 import { CHANGE_TYPE } from './constants.js'
 
 
@@ -65,6 +66,7 @@ export class Repo {
     this.unixfs = fs;
     this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
     this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
+    this.history = new History(this.domain, this.dservice);
     
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
@@ -95,6 +97,9 @@ export class Repo {
       (this.templateRoot = await resolveEnsDomain(this.viemClient, TEMPLATE_DOMAIN, this.universalResolver))
     ])
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
+
+    // Initialize history with viem client
+    this.history.init(this.viemClient, this.repoRoot.cid)
 
     await Promise.all([
       this.#ensureRepoData(false, true),

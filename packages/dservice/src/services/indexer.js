@@ -44,8 +44,10 @@ export class IndexerService {
 
   async pollLoop() {
     while (this.isRunning) {
+      this.logger.debug('Polling started')
       this.currentPoll = this.poll()
       await this.currentPoll
+      this.logger.debug('Polling completed')
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, 500))
     }

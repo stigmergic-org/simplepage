@@ -21,7 +21,13 @@ export class TestEnvironmentDservice {
     });
   }
 
-  async start() {
+  async waitUntilBlockIsIndexed(blockNumber) {
+    while (this.dservice.indexer.currentBlock < blockNumber) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  async start({ logToConsole } = {}) {
     this.addresses = await this.evm.start();
     this.kuboApi = await this.kubo.start();
     
@@ -45,8 +51,17 @@ export class TestEnvironmentDservice {
         universalResolver: this.addresses.universalResolver,
         simplePageAddress: this.addresses.simplepage
       },
-      silent: true
+      silent: !logToConsole
     };
+    if (logToConsole) {
+      config.logLevel = 'debug';
+      config.logger = {
+        info: console.log,
+        debug: console.log,
+        error: console.error,
+        warn: console.warn
+      };
+    }
     
     this.dservice = new DService(config);
     await this.dservice.start();

@@ -33,6 +33,13 @@ function fsFromBs(blockstore) {
   return { fs: unixfs(fakeHelia), blockstore }
 }
 
+export const CID_CODES = {
+  dagCbor: dagCbor.code,
+  dagJson: dagJson.code,
+  dagPb: dagPb.code,
+  raw: raw.code
+}
+
 export function browserUnixfs(storage) {
   const blockstore = new HybridBlockstore(storage)
   return fsFromBs(blockstore)

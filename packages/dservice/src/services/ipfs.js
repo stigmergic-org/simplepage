@@ -1,4 +1,5 @@
 import { create } from 'kubo-rpc-client'
+import { concat } from 'uint8arrays/concat'
 import { CarBlock } from 'cartonne'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
@@ -160,7 +161,7 @@ export class IpfsService {
   }
 
   async getHistory(domain) {
-      const getTxHistory = async domain => (await ipfs.getList(`contenthash_${domain}`, 'string')).map(item => {
+      const getTxHistory = async domain => (await this.getList(`contenthash_${domain}`, 'string')).map(item => {
         const [blockNumber, cid, txHash] = item.split('-')
         return { blockNumber, cid: CID.parse(cid), txHash }
       })
@@ -174,44 +175,33 @@ export class IpfsService {
         return car.get(cid).Links
       }
 
-      const collectCidsAndVersions = async cid => {
-        const versions = []
-        // TODOD also get index.html and parse it for version and domain
+      const collectBlocks = async cid => {
         const links = await getLinks(cid)
-        const indexHtml = links.find(link => link.Name === 'index.html')
-        if (indexHtml) {
-          const doc = DOMParser.parseFromString(indexHtml.Value, 'text/html')
-          const version = doc.querySelector('meta[name="version"]').getAttribute('content')
-          const domain = doc.querySelector('meta[name="ens-domain"]').getAttribute('content')
-          versions.push({ version, domain, cid })
+        const { Hash: indexCid } = links.find(link => link.Name === 'index.html')
+        if (indexCid) {
+          const block = await this.client.block.get(indexCid)
+          car.blocks.put(new CarBlock(indexCid, block))
         }
         const prev = links.find(link => link.Name === '_prev')
-        if (!prev) return versions
+        if (!prev) return
         const prevLinks = await getLinks(prev.Hash)
 
         for (const { Name, Hash } of prevLinks) {
           // _prev folder should only contain folders named '0', '1', '2', etc.
           // these folders should point to previous versions of the page
-          if (car.has(Hash)) {
-            continue
+          if (!car.has(Hash)) {
+            await collectBlocks(Hash)
           }
-          versions.push(...(await collectCidsAndVersions(Hash)))
         }
       }
-      const versionMetadata = []
       for (const { cid } of mainHistory) {
-        versionMetadata.push(...(await collectCidsAndVersions(cid)))
+        await collectBlocks(cid)
       }
 
       const metadata = mainHistory.reduce((acc, { cid, txHash }) => {
-        const { version, domain } = versionMetadata.find(({ cid }) => cid.equals(cid))
-        acc.metadata[cid.toString()] = {
-          tx: txHash,
-          version,
-          domain
-        }
+        acc.metadata[cid.toString()] = { tx: txHash }
         return acc
-      }, { metadata: {}, root: mainHistory[0].cid })
+      }, { metadata: {} })
 
       car.put(metadata, { isRoot: true })
       return car.bytes

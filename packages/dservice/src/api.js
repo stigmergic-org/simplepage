@@ -205,6 +205,7 @@ export function createApi({ ipfs, indexer, version, logger }) {
       res.setHeader('Content-Type', 'application/vnd.ipld.car')
       res.send(car)
     } catch (err) {
+      console.log('err', err)
       logger.error('Error retrieving history', { domain: req.query.domain, error: err.message, stack: err.stack })
       res.status(500).json({ detail: err.message })
     }
