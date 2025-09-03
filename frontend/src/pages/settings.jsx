@@ -5,19 +5,12 @@ import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const DEFAULT_SETTINGS = {
-  appearance: {
-    forkStyle: 'rainbow'
-  },
-  subscription: {
-    hideDonationNotice: false
-  }
-}
 
 const Settings = () => {
   const domain = useDomain();
   const { repo } = useRepo();
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [forkStyle, setForkStyle] = useState('rainbow');
+  const [hideDonationNotice, setHideDonationNotice] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   document.title = `Settings - ${domain}`;
@@ -25,13 +18,9 @@ const Settings = () => {
   // Load settings when component mounts
   const loadSettings = async () => {
     try {
-      const loadedSettings = await repo.settings.read();
-      console.log('loadedSettings', loadedSettings)
-      if (Object.keys(loadedSettings).length === 0) {
-        setSettings(DEFAULT_SETTINGS);
-      } else {
-        setSettings(loadedSettings);
-      }
+      const settings = await repo.settings.read();
+      setForkStyle(settings?.appearance?.forkStyle || forkStyle);
+      setHideDonationNotice(settings?.subscription?.hideDonationNotice || hideDonationNotice);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -44,38 +33,14 @@ const Settings = () => {
 
   // Save fork button style to settings
   const handleForkButtonStyleChange = async (newStyle) => {
-    try {
-      const currentSettings = await repo.settings.read()
-      const updatedSettings = {
-        ...currentSettings,
-        appearance: {
-          ...currentSettings.appearance,
-          forkStyle: newStyle
-        }
-      };
-      await repo.settings.write(updatedSettings);
-      setSettings(updatedSettings);
-    } catch (error) {
-      console.error('Failed to save fork button style:', error);
-    }
+    await repo.settings.writeProperty('appearance.forkStyle', newStyle);
+    setForkStyle(newStyle);
   };
 
   // Save donation notice setting
   const handleDonationNoticeToggle = async (hideDonationNotice) => {
-    try {
-      const currentSettings = await repo.settings.read()
-      const updatedSettings = {
-        ...currentSettings,
-        subscription: {
-          ...currentSettings.subscription,
-          hideDonationNotice
-        }
-      };
-      await repo.settings.write(updatedSettings);
-      setSettings(updatedSettings);
-    } catch (error) {
-      console.error('Failed to save donation notice setting:', error);
-    }
+    await repo.settings.writeProperty('subscription.hideDonationNotice', hideDonationNotice);
+    setHideDonationNotice(hideDonationNotice);
   };
 
   const handleClearPageEdits = () => repo.restoreAllPages()
@@ -121,7 +86,7 @@ const Settings = () => {
                 <input
                   type="checkbox"
                   className="toggle toggle-primary"
-                  checked={!settings?.subscription?.hideDonationNotice}
+                  checked={!hideDonationNotice}
                   onChange={(e) => handleDonationNoticeToggle(!e.target.checked)}
                 />
                 <div className="flex flex-col">
@@ -153,7 +118,7 @@ const Settings = () => {
                     name="radio-2"
                     className="radio"
                     value="rainbow"
-                    checked={settings?.appearance?.forkStyle === 'rainbow'}
+                    checked={forkStyle === 'rainbow'}
                     onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button
@@ -181,7 +146,7 @@ const Settings = () => {
                     name="radio-1"
                     className="radio"
                     value="plain"
-                    checked={settings?.appearance?.forkStyle === 'plain'}
+                    checked={forkStyle === 'plain'}
                     onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button

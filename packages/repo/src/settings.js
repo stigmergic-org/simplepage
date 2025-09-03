@@ -2,11 +2,27 @@ import { concat } from 'uint8arrays/concat'
 import all from 'it-all'
 import { CID } from 'multiformats/cid'
 
-import { addFile, rm, ls, assert, CidSet, cp } from '@simplepg/common'
+import { ls, assert } from '@simplepg/common'
 
 export const SETTINGS_FILE = 'settings.json'
 
 const CHANGE_ROOT_KEY = 'spg_settings_change_root'
+
+/**
+ * Validates a dot notation key and throws an error if invalid.
+ * @param {string} key - The key to validate.
+ * @throws {Error} If the key contains invalid dot notation patterns.
+ */
+function validateDotNotation(key) {
+  assert(typeof key === 'string', 'Key must be a string');
+  assert(!key.startsWith('.'), 'Key cannot start with a dot');
+  assert(!key.endsWith('.'), 'Key cannot end with a dot');
+  assert(!key.includes('..'), 'Key cannot contain consecutive dots');
+  
+  // Check for empty segments (which would result from consecutive dots or leading/trailing dots)
+  const segments = key.split('.');
+  assert(!segments.some(segment => segment === ''), 'Key cannot contain empty segments');
+}
 
 /**
  * A class for managing settings in a SimplePage repository.
@@ -97,25 +113,37 @@ export class Settings {
   }
 
   /**
-   * Reads a specific top-level property from settings.
-   * @param {string} key - The property key to read.
+   * Reads a specific property from settings, supporting nested keys with dot notation.
+   * @param {string} key - The property key to read (supports dot notation for nested properties).
    * @returns {Promise<any>} The property value, or undefined if not found.
    */
   async readProperty(key) {
+    validateDotNotation(key)
     const settings = await this.read()
-    return settings[key]
+    return key.split('.').reduce((current, k) => {
+      return current && current[k] !== undefined ? current[k] : undefined
+    }, settings)
   }
 
   /**
-   * Writes a specific top-level property to settings.
-   * @param {string} key - The property key to write.
+   * Writes a specific property to settings, supporting nested keys with dot notation.
+   * @param {string} key - The property key to write (supports dot notation for nested properties).
    * @param {any} value - The property value to write.
    */
   async writeProperty(key, value) {
+    validateDotNotation(key)
     await this.#isReady()
     
     const settings = await this.read()
-    settings[key] = value
+    const keys = key.split('.')
+    const lastKey = keys.pop()
+    const target = keys.reduce((current, k) => {
+      if (!current[k] || typeof current[k] !== 'object') {
+        current[k] = {}
+      }
+      return current[k]
+    }, settings)
+    target[lastKey] = value
     
     return this.write(settings)
   }
@@ -138,14 +166,23 @@ export class Settings {
   }
 
   /**
-   * Deletes a specific top-level property from settings.
-   * @param {string} key - The property key to delete.
+   * Deletes a specific property from settings, supporting nested keys with dot notation.
+   * @param {string} key - The property key to delete (supports dot notation for nested properties).
    */
   async deleteProperty(key) {
+    validateDotNotation(key)
     await this.#isReady()
     
     const settings = await this.read()
-    delete settings[key]
+    const keys = key.split('.')
+    const lastKey = keys.pop()
+    const target = keys.reduce((current, k) => {
+      return current && current[k] ? current[k] : null
+    }, settings)
+    
+    if (target && target.hasOwnProperty(lastKey)) {
+      delete target[lastKey]
+    }
     
     return this.write(settings)
   }

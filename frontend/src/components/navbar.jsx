@@ -34,8 +34,8 @@ const Navbar = ({
   useEffect(() => {
     const loadForkStyle = async () => {
       if (repo) {
-        const settings = await repo.settings.read();
-        setForkStyle(settings?.appearance?.forkStyle || 'rainbow');
+        const forkStyle = await repo.settings.readProperty('appearance.forkStyle') || 'rainbow';
+        setForkStyle(forkStyle);
       }
     };
     loadForkStyle();
