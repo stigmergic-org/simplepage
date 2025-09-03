@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
+import useDarkMode from '../hooks/useDarkMode';
 import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -11,19 +12,6 @@ const THEMES = [
   'fantasy','wireframe','black','luxury','dracula','cmyk','autumn','business',
   'acid','lemonade','night','coffee','winter'
 ];
-
-const DEFAULT_SETTINGS = {
-  appearance: {
-    forkStyle: 'rainbow',
-    themeLight: 'light',
-    themeDark: 'dark',
-  },
-};
-
-const isDarkOS = () =>
-  typeof window !== 'undefined' &&
-  window.matchMedia &&
-  window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 function applyThemeGlobally(theme) {
   // Clear any legacy Tailwind v3 "dark" class and apply DaisyUI theme
@@ -57,129 +45,54 @@ function ThemePreview({ themeName, title }) {
 const Settings = () => {
   const domain = useDomain();
   const { repo } = useRepo();
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const isDarkMode = useDarkMode();
+  const [forkStyle, setForkStyle] = useState('rainbow');
+  const [hideDonationNotice, setHideDonationNotice] = useState(false);
+  const [lightTheme, setLightTheme] = useState('light');
+  const [darkTheme, setDarkTheme] = useState('dark');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Save donation notice setting
-  const handleDonationNoticeToggle = async (hideDonationNotice) => {
-    try {
-      const currentSettings = await repo.settings.read()
-      const updatedSettings = {
-        ...currentSettings,
-        subscription: {
-          ...currentSettings.subscription,
-          hideDonationNotice
-        }
-      };
-      await repo.settings.write(updatedSettings);
-      setSettings(updatedSettings);
-    } catch (error) {
-      console.error('Failed to save donation notice setting:', error);
-    }
-  };
 
-  // Draft states for two themes (we still keep these as controlled values)
-  const currentLight = settings?.appearance?.themeLight ?? DEFAULT_SETTINGS.appearance.themeLight;
-  const currentDark  = settings?.appearance?.themeDark  ?? DEFAULT_SETTINGS.appearance.themeDark;
-  const [draftLight, setDraftLight] = useState(currentLight);
-  const [draftDark,  setDraftDark]  = useState(currentDark);
+  document.title = `Settings - ${domain}`;
 
-  // Page title
-  useEffect(() => {
-    document.title = `Settings - ${domain}`;
-  }, [domain]);
-
-  // Load + migrate + merge + apply
+  // Load settings when component mounts
   const loadSettings = async () => {
     try {
-      const loaded = await repo.settings.read();
-
-      // Migrate from old single "appearance.theme" if present
-      const migrated =
-        loaded?.appearance?.theme
-          ? {
-              ...loaded,
-              appearance: {
-                ...loaded.appearance,
-                themeLight: loaded.appearance.themeLight ?? loaded.appearance.theme,
-                themeDark:  loaded.appearance.themeDark  ?? (loaded.appearance.theme === 'dark' ? 'dark' : 'dark'),
-              },
-            }
-          : loaded;
-
-      const merged =
-        !migrated || Object.keys(migrated).length === 0
-          ? DEFAULT_SETTINGS
-          : {
-              ...DEFAULT_SETTINGS,
-              ...migrated,
-              appearance: {
-                ...DEFAULT_SETTINGS.appearance,
-                ...(migrated.appearance || {}),
-              },
-            };
-
-      setSettings(merged);
-      setDraftLight(merged.appearance.themeLight);
-      setDraftDark(merged.appearance.themeDark);
-
-      // Apply based on current OS mode
-      applyThemeGlobally(isDarkOS() ? merged.appearance.themeDark : merged.appearance.themeLight);
-    } catch (err) {
-      console.error('Failed to load settings:', err);
+      const settings = await repo.settings.read();
+      setForkStyle(settings?.appearance?.forkStyle || forkStyle);
+      setHideDonationNotice(settings?.subscription?.hideDonationNotice || hideDonationNotice);
+      setLightTheme(settings?.appearance?.theme?.light || lightTheme);
+      setDarkTheme(settings?.appearance?.theme?.dark || darkTheme);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
     } finally {
       setIsLoading(false);
     }
   };
-
   useEffect(() => {
     loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo]);
 
-  // Save fork button style to settings (unchanged behavior)
+  // Save fork button style to settings
   const handleForkButtonStyleChange = async (newStyle) => {
-    try {
-      const current = await repo.settings.read();
-      const updated = {
-        ...DEFAULT_SETTINGS,
-        ...current,
-        appearance: {
-          ...DEFAULT_SETTINGS.appearance,
-          ...(current.appearance || {}),
-          forkStyle: newStyle,
-        },
-      };
-      await repo.settings.write(updated);
-      setSettings(updated);
-    } catch (error) {
-      console.error('Failed to save fork button style:', error);
-    }
+    await repo.settings.writeProperty('appearance.forkStyle', newStyle);
+    setForkStyle(newStyle);
   };
 
-  // NEW: persist themes immediately on selection
-  const persistThemes = async (nextLight, nextDark) => {
-    try {
-      const current = await repo.settings.read();
-      const updated = {
-        ...DEFAULT_SETTINGS,
-        ...current,
-        appearance: {
-          ...DEFAULT_SETTINGS.appearance,
-          ...(current.appearance || {}),
-          themeLight: nextLight,
-          themeDark:  nextDark,
-        },
-      };
-      await repo.settings.write(updated);
-      setSettings(updated);
-
-      // live-apply only for the active OS mode
-      applyThemeGlobally(isDarkOS() ? nextDark : nextLight);
-    } catch (error) {
-      console.error('Failed to save themes:', error);
-    }
+  // Save donation notice setting
+  const handleDonationNoticeToggle = async (hideDonationNotice) => {
+    await repo.settings.writeProperty('subscription.hideDonationNotice', hideDonationNotice);
+    setHideDonationNotice(hideDonationNotice);
   };
+
+  const handleThemeChange = async (mode, theme) => {
+    await repo.settings.writeProperty(`appearance.theme.${mode}`, theme);
+    if (mode === 'light') setLightTheme(theme);
+    else setDarkTheme(theme);
+
+    if (isDarkMode && mode === 'dark' || !isDarkMode && mode === 'light') {
+      applyThemeGlobally(theme);
+    }
+  }
 
   const handleClearPageEdits = () => repo.restoreAllPages();
   const handleClearFileEdits = () => repo.files.clearChanges();
@@ -193,12 +106,10 @@ const Settings = () => {
 
   if (isLoading) {
     return (<>
-        <Navbar activePage="Settings" />
-        <LoadingSpinner />
-      </>);
+      <Navbar activePage="Settings" />
+      <LoadingSpinner />
+    </>);
   }
-
-  const osIsDark = isDarkOS();
 
   return (
     <>
@@ -210,6 +121,32 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
+          {/* General Settings */}
+          <div className="border border-base-300 rounded-lg p-6 bg-base-100">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <Icon name="settings" size={5} />
+              General
+            </h2>
+            
+            {/* Donation Notice Toggle */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={!hideDonationNotice}
+                  onChange={(e) => handleDonationNoticeToggle(!e.target.checked)}
+                />
+                <div className="flex flex-col">
+                  <span className="label-text font-medium">Show donation notice</span>
+                  <span className="text-sm text-base-content/60 text-wrap">
+                    <p>When enabled, visitors will see a notice asking for a donation when your subscription is about to expire (in less than 30 days).</p>
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
           {/* Appearance Settings */}
           <div className="border border-base-300 rounded-lg p-6 bg-base-100">
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -229,7 +166,7 @@ const Settings = () => {
                     name="fork-style"
                     className="radio"
                     value="rainbow"
-                    checked={settings?.appearance?.forkStyle === 'rainbow'}
+                    checked={forkStyle === 'rainbow'}
                     onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button
@@ -253,7 +190,7 @@ const Settings = () => {
                     name="fork-style"
                     className="radio"
                     value="plain"
-                    checked={settings?.appearance?.forkStyle === 'plain'}
+                    checked={forkStyle === 'plain'}
                     onChange={(e) => handleForkButtonStyleChange(e.target.value)}
                   />
                   <button
@@ -280,13 +217,8 @@ const Settings = () => {
                   <span className="w-20 text-sm opacity-70">Light</span>
                   <select
                     className="select select-bordered w-full max-w-xs"
-                    value={draftLight}
-                    onChange={async (e) => {
-                      const next = e.target.value;
-                      setDraftLight(next);
-                      if (!osIsDark) applyThemeGlobally(next); // live-apply only in light OS
-                      await persistThemes(next, draftDark);
-                    }}
+                    value={lightTheme}
+                    onChange={(e) => handleThemeChange('light', e.target.value)}
                   >
                     {THEMES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -299,13 +231,8 @@ const Settings = () => {
                   <span className="w-20 text-sm opacity-70">Dark</span>
                   <select
                     className="select select-bordered w-full max-w-xs"
-                    value={draftDark}
-                    onChange={async (e) => {
-                      const next = e.target.value;
-                      setDraftDark(next);
-                      if (osIsDark) applyThemeGlobally(next); // live-apply only in dark OS
-                      await persistThemes(draftLight, next);
-                    }}
+                    value={darkTheme}
+                    onChange={(e) => handleThemeChange('dark', e.target.value)}
                   >
                     {THEMES.map((t) => (
                       <option key={t} value={t}>{t}</option>
