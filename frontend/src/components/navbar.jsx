@@ -324,23 +324,26 @@ const Navbar = ({
               ⟨
             </div>
           )}
-          <div className="overflow-x-auto" ref={tabsContainerRef}>
-            <div className="tabs tabs-border min-w-max">
-              {Object.keys(availableTabs).map((tab) => (
-                <a
-                  key={tab}
-                  role="tab"
-                  className={`tab group ${activePage === tab ? 'tab-active' : ''}`}
-                  onClick={() => availableTabs[tab].onClick()}
-                >
-                  <span className="mr-1">
-                    <Icon name={availableTabs[tab].icon} className={`opacity-${activePage === tab ? '100' : '50'} group-hover:opacity-100`} />
-                  </span>
-                  {tab}
-                </a>
-              ))}
-            </div>
-          </div>
+        <div className="overflow-x-auto" ref={tabsContainerRef}>
+  <div className="tabs tabs-border min-w-max md:min-w-0 md:w-full md:justify-between simple-tabs">
+    {Object.keys(availableTabs).map((tab) => (
+      <a
+        key={tab}
+        role="tab"
+        className={`tab group whitespace-nowrap ${activePage === tab ? 'tab-active' : ''} md:flex-1 md:justify-center`}
+        onClick={() => availableTabs[tab].onClick()}
+      >
+        <span className="mr-1">
+          <Icon
+            name={availableTabs[tab].icon}
+            className={`opacity-${activePage === tab ? '100' : '50'} group-hover:opacity-100`}
+          />
+        </span>
+        {tab}
+      </a>
+    ))}
+  </div>
+</div>
           {/* Right scroll indicator */}
           {canScrollRight && (
             <div className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 z-10 text-base-content/60 text-sm">
