@@ -1,14 +1,6 @@
 import { useEffect } from 'react'
 import { useRepo } from '../hooks/useRepo'
-
-function resolveSystemTheme() {
-  if (typeof window === 'undefined') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-function computeTheme(mode) {
-  return mode === 'system' ? resolveSystemTheme() : (mode === 'dark' ? 'dark' : 'light')
-}
+import useDarkMode from '../hooks/useDarkMode'
 
 function applyTheme(theme) {
   const root = document.documentElement
@@ -18,29 +10,17 @@ function applyTheme(theme) {
 }
 
 export function useApplyThemeFromSettings() {
-  const repo = useRepo()
+  const { repo } = useRepo()
+  const isDarkMode = useDarkMode()
 
   useEffect(() => {
-    let unsub = null
 
-    ;(async () => {
-      try {
-        await repo?.ready
-        const settings = await repo.settings.read()
-        const mode = settings?.appearance?.themeMode || 'system'
-        applyTheme(computeTheme(mode))
-
-        if (mode === 'system' && typeof window !== 'undefined' && window.matchMedia) {
-          const mql = window.matchMedia('(prefers-color-scheme: dark)')
-          const onChange = () => applyTheme(mql.matches ? 'dark' : 'light')
-          mql.addEventListener?.('change', onChange)
-          unsub = () => mql.removeEventListener?.('change', onChange)
-        }
-      } catch {
-        applyTheme(computeTheme('system'))
-      }
+    (async () => {
+      const mode = isDarkMode ? 'dark' : 'light'
+      const { appearance } = await repo.settings.read()
+      const theme = appearance?.theme?.[mode] || mode
+      applyTheme(theme)
     })()
 
-    return () => { if (unsub) unsub() }
-  }, [repo])
+  }, [repo, isDarkMode])
 }
