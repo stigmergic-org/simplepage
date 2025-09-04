@@ -104,12 +104,12 @@ export function populateTheme({ light = 'light', dark = 'dark' } = {}) {
   
   // Generate CSS
   return `/* Generated theme.css - Light: ${light}, Dark: ${dark} */
-:root {
+:root:not([data-theme]) {
 ${toVarsBlock(lightThemeData)}
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
 ${toVarsBlock(darkThemeData)}
   }
 }
