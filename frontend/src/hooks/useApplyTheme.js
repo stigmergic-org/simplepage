@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useRepo } from '../hooks/useRepo'
 import useDarkMode from '../hooks/useDarkMode'
 
-function applyTheme(theme) {
+export function applyTheme(theme) {
   const root = document.documentElement
   root.setAttribute('data-theme', theme)
   root.classList.remove('light', 'dark')

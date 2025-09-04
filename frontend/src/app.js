@@ -1,12 +1,13 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router';
 import './app.css';
 import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
-import { BrowserRouter as Router, Routes, Route } from 'react-router';
-import { useBasename } from './hooks/useBasename';
 import OverridesBanner from './components/OverridesBanner';
+import { useBasename } from './hooks/useBasename';
 import { useDserviceParam } from './hooks/useDserviceParam';
 import { useRpcOverride } from './hooks/useRpcOverride';
+import { useApplyThemeFromSettings } from './hooks/useApplyTheme';
 import { ScrollProvider } from './contexts/ScrollContext';
 
 import View from './pages/view';
@@ -19,7 +20,6 @@ import Settings from './pages/settings';
 import NotFound from './pages/notfound';
 import { ROUTES } from './config/routes';
 
-import { useApplyThemeFromSettings } from './hooks/useApplyThemeFromSettings';
 
 // Must run inside WagmiConfigProvider
 const ThemeBooter = () => {

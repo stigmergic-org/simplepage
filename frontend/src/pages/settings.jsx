@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDomain } from '../hooks/useDomain';
 import { useRepo } from '../hooks/useRepo';
 import useDarkMode from '../hooks/useDarkMode';
+import { applyTheme } from '../hooks/useApplyTheme';
 import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -12,12 +13,6 @@ const THEMES = [
   'fantasy','wireframe','black','luxury','dracula','cmyk','autumn','business',
   'acid','lemonade','night','coffee','winter'
 ];
-
-function applyThemeGlobally(theme) {
-  // Clear any legacy Tailwind v3 "dark" class and apply DaisyUI theme
-  document.documentElement.removeAttribute('class');
-  document.documentElement.setAttribute('data-theme', theme);
-}
 
 // Simple scoped preview card
 function ThemePreview({ themeName, title }) {
@@ -90,7 +85,7 @@ const Settings = () => {
     else setDarkTheme(theme);
 
     if (isDarkMode && mode === 'dark' || !isDarkMode && mode === 'light') {
-      applyThemeGlobally(theme);
+      applyTheme(theme);
     }
   }
 
