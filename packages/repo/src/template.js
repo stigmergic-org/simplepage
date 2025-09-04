@@ -71,41 +71,46 @@ export function populateManifest(domain, { title, description } = {}) {
   return JSON.stringify(manifest)
 }
 
-
-
 /** -----------------------------------------------
- * Minimal server-side theme variables for theme.css
+ * DaisyUI Theme Integration for theme.css
  * ---------------------------------------------- */
-const THEME_VARS = {
-  light: {
-    '--b1': '255 255 255',
-    '--bc': '0 0 0',
-    '--p':  '16 185 129',
-  },
-  dark: {
-    '--b1': '17 24 39',
-    '--bc': '255 255 255',
-    '--p':  '99 102 241',
-  },
-}
 
-function toVarsBlock(varsObj) {
-  return Object.entries(varsObj)
-    .map(([k, v]) => `${k}: ${v};`)
+// Import DaisyUI theme data
+import daisyuiThemes from 'daisyui/theme/object.js';
+
+/**
+ * Converts a theme object to CSS variables block
+ * @param {Object} themeObj - Theme object with CSS variables
+ * @returns {string} CSS variables block
+ */
+function toVarsBlock(themeObj) {
+  return Object.entries(themeObj)
+    .filter(([key]) => key.startsWith('--'))
+    .map(([key, value]) => `  ${key}: ${value};`)
     .join('\n');
 }
 
-function buildThemeCss({ light = 'light', dark = 'dark' } = {}) {
-  const lightVars = THEME_VARS[light] || THEME_VARS.light;
-  const darkVars  = THEME_VARS[dark]  || THEME_VARS.dark;
-
-  return `/* generated: theme.css */
+/**
+ * Generates theme CSS based on user preferences
+ * @param {Object} themePrefs - User theme preferences
+ * @param {string} themePrefs.light - Light theme name (default: 'light')
+ * @param {string} themePrefs.dark - Dark theme name (default: 'dark')
+ * @returns {string} Generated theme CSS
+ */
+export function populateTheme({ light = 'light', dark = 'dark' } = {}) {
+  // Get theme data from DaisyUI
+  const lightThemeData = daisyuiThemes[light] || daisyuiThemes.light;
+  const darkThemeData = daisyuiThemes[dark] || daisyuiThemes.dark;
+  
+  // Generate CSS
+  return `/* Generated theme.css - Light: ${light}, Dark: ${dark} */
 :root {
-${toVarsBlock(lightVars)}
+${toVarsBlock(lightThemeData)}
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
-${toVarsBlock(darkVars)}
+${toVarsBlock(darkThemeData)}
   }
 }
 `;

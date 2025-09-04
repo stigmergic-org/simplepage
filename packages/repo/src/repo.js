@@ -22,7 +22,7 @@ import {
   assert,
 } from '@simplepg/common'
 
-import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
+import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './template.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
 import { CHANGE_TYPE } from './constants.js'
@@ -499,11 +499,12 @@ export class Repo {
 	// 3.	Future extensibility → adding custom site-wide behaviors.
 
     const { appearance } = await this.settings.read();
-    const themePref = {
-      light: appearance?.theme?.light || 'light',
-      dark:  appearance?.theme?.dark  || 'dark',
-    }
-    const themeCss = buildThemeCss(themePref)
+    const themeCss = populateTheme(appearance?.theme)
+    // const themePref = {
+    //   light: appearance?.theme?.light || 'light',
+    //   dark:  appearance?.theme?.dark  || 'dark',
+    // }
+    // const themeCss = buildThemeCss(themePref)
     rootPointer = await addFile(this.unixfs, rootPointer, 'theme.css', themeCss)
     // -------------------------------------------------------
 

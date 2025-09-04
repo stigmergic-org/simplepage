@@ -159,7 +159,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
 
   packages/common:
     dependencies:
@@ -294,6 +294,9 @@ importers:
       '@simplepg/common':
         specifier: workspace:*
         version: link:../common
+      daisyui:
+        specifier: ^5.0.54
+        version: 5.0.54
       idb-keyval:
         specifier: ^6.2.2
         version: 6.2.2
@@ -315,7 +318,7 @@ importers:
         version: 6.0.1
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
       jest-environment-jsdom:
         specifier: ^30.0.5
         version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
