@@ -39,11 +39,6 @@
 @source "./**/*.{js,jsx,ts,tsx}";
 
 
-.tabs {
-  display: flex !important;
-}
-
-
 /* Style for frontmatter in CodeMirror/EasyMDE */
 .cm-frontmatter {
   color: #888 !important;
