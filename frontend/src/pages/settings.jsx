@@ -243,8 +243,8 @@ const Settings = () => {
 
               {/* Previews */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ThemePreview themeName={draftLight} title="Light Preview" />
-                <ThemePreview themeName={draftDark} title="Dark Preview" />
+                <ThemePreview themeName={lightTheme} title="Light Preview" />
+                <ThemePreview themeName={darkTheme} title="Dark Preview" />
               </div>
 
               <p className="mt-3 text-sm opacity-70">
