@@ -206,49 +206,56 @@ const Settings = () => {
                 <span className="label-text font-medium mb-2">Themes</span>
               </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* Light theme selector */}
-                <div className="flex items-center gap-3">
-                  <span className="w-20 text-sm opacity-70">Light</span>
-                  <select
-                    className="select select-bordered w-full max-w-xs"
-                    value={lightTheme}
-                    onChange={(e) => handleThemeChange('light', e.target.value)}
-                  >
-                    {THEMES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Dark theme selector */}
-                <div className="flex items-center gap-3">
-                  <span className="w-20 text-sm opacity-70">Dark</span>
-                  <select
-                    className="select select-bordered w-full max-w-xs"
-                    value={darkTheme}
-                    onChange={(e) => handleThemeChange('dark', e.target.value)}
-                  >
-                    {THEMES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Previews */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ThemePreview themeName={lightTheme} title="Light Preview" />
-                <ThemePreview themeName={darkTheme} title="Dark Preview" />
-              </div>
-
-              <p className="mt-3 text-sm opacity-70">
+              <p className="mb-4 text-sm opacity-70">
                 The active theme follows your system setting. Selecting a new{" "}
                 <span className="font-medium">Light</span> or{" "}
                 <span className="font-medium">Dark</span> theme saves instantly
                 and live-applies if your OS is currently in that mode. Changes are
                 included the next time you publish.
               </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Light theme selector */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-20 text-sm opacity-70">Light</span>
+                    <select
+                      className="select select-bordered w-full max-w-xs"
+                      value={lightTheme}
+                      onChange={(e) => handleThemeChange('light', e.target.value)}
+                    >
+                      {THEMES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <ThemePreview themeName={lightTheme} title="Light Preview" />
+                </div>
+
+                {/* Dark theme selector */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-20 text-sm opacity-70">Dark</span>
+                    <select
+                      className="select select-bordered w-full max-w-xs"
+                      value={darkTheme}
+                      onChange={(e) => handleThemeChange('dark', e.target.value)}
+                    >
+                      {THEMES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <ThemePreview themeName={darkTheme} title="Dark Preview" />
+                </div>
+              </div>
+
+              {/* Previews */}
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ThemePreview themeName={lightTheme} title="Light Preview" />
+                <ThemePreview themeName={darkTheme} title="Dark Preview" />
+              </div> */}
+
             </div>
           </div>
 
