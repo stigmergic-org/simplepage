@@ -9,80 +9,6 @@ export const SETTINGS_FILE = 'settings.json'
 const CHANGE_ROOT_KEY = 'spg_settings_change_root'
 
 
-/* -------------------------------------------------------------------------- */
-/*                                ADDED (NEW)                                 */
-/*  Default settings + helpers to migrate legacy single `appearance.theme`    */
-/*  into the new dual-theme shape (themeLight/themeDark) and to support a     */
-/*  structured diff [{path,from,to}] that the Publish page can format nicely. */
-/* -------------------------------------------------------------------------- */
-
-// ADDED: exported defaults (used by callers/UI and for safe reads)
-export const DEFAULT_SETTINGS = {
-  appearance: {
-    forkStyle: 'rainbow',
-    // dual-theme shape used by Settings UI (follow system: light/dark)
-    themeLight: 'light',
-    themeDark: 'dark',
-  },
-}
-
-// ADDED: shallow-ish deepMerge for small settings trees
-function deepMerge(base, patch) {
-  const out = Array.isArray(base) ? base.slice() : { ...base }
-  for (const [k, v] of Object.entries(patch || {})) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      out[k] = deepMerge(base?.[k] ?? {}, v)
-    } else {
-      out[k] = v
-    }
-  }
-  return out
-}
-
-// ADDED: migrate older single-theme shape -> dual themes
-function migrateAppearanceShape(s) {
-  if (!s || !s.appearance) return s
-  const a = s.appearance
-  // If legacy `appearance.theme` exists and dual-theme keys are missing, fill them
-  if ('theme' in a && (!('themeLight' in a) || !('themeDark' in a))) {
-    return {
-      ...s,
-      appearance: {
-        ...a,
-        themeLight: a.themeLight ?? a.theme ?? 'light',
-        // if old theme was "dark", keep dark; otherwise still give a dark theme default
-        themeDark:  a.themeDark  ?? (a.theme === 'dark' ? 'dark' : 'dark'),
-      },
-    }
-  }
-  return s
-}
-
-// ADDED: structured diff for better UX on Publish screen
-function diffSettings(a, b, prefix = '') {
-  const changes = []
-  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})])
-  for (const k of keys) {
-    const pa = a?.[k]
-    const pb = b?.[k]
-    const path = prefix ? `${prefix}.${k}` : k
-    const bothObjs =
-      pa && pb &&
-      typeof pa === 'object' && typeof pb === 'object' &&
-      !Array.isArray(pa) && !Array.isArray(pb)
-
-    if (bothObjs) {
-      changes.push(...diffSettings(pa, pb, path))
-    } else if (JSON.stringify(pa) !== JSON.stringify(pb)) {
-      changes.push({ path, from: pa, to: pb })
-    }
-  }
-  return changes
-}
-
-/* ------------------------------ END ADDED --------------------------------- */
-
-
 /**
  * Validates a dot notation key and throws an error if invalid.
  * @param {string} key - The key to validate.
@@ -182,12 +108,7 @@ export class Settings {
    */
   async read() {
     await this.#isReady()
-    
-    const content = await this.#cat()
-    const raw = JSON.parse(new TextDecoder().decode(content) || '{}')
-    const migrated = migrateAppearanceShape(raw) || {}
-    const merged = deepMerge(DEFAULT_SETTINGS, migrated)
-    return merged
+    return this.#readJson()
   }
 
   /**
@@ -269,9 +190,10 @@ export class Settings {
    * Reads the content of the settings file from the change root.
    * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
    */
-  async #cat(persisted = false) {
+  async #readJson(persisted = false) {
     await this.#isReady()
-    return concat(await all(this.#fs.cat(persisted ? this.#persistedCid : this.#changeCid)))
+    const bytes = concat(await all(this.#fs.cat(persisted ? this.#persistedCid : this.#changeCid)))
+    return JSON.parse(new TextDecoder().decode(bytes))
   }
 
   /**
@@ -290,14 +212,9 @@ export class Settings {
    */
   async changeDiff() {
     await this.#isReady()
-    const persisted = await this.#cat(true)
-    const change = await this.#cat()
-    const persistedJson = JSON.parse(new TextDecoder().decode(persisted) || '{}')
-    const changeJson = JSON.parse(new TextDecoder().decode(change) || '{}')
+    const persistedJson = await this.#readJson(true)
+    const changeJson = await this.#readJson()
 
-    const persistedNorm = deepMerge(DEFAULT_SETTINGS, migrateAppearanceShape(persistedJson) || {})
-    const changeNorm    = deepMerge(DEFAULT_SETTINGS, migrateAppearanceShape(changeJson) || {})
-    
 
     const compareValues = (persistedVal, changeVal, path = '') => {
       if (persistedVal === changeVal) return []
@@ -316,20 +233,21 @@ export class Settings {
         if (typeof changeVal === 'object' && changeVal !== null) {
           return compareValues({}, changeVal, path)
         } else {
-          return [`${path}: ${JSON.stringify(changeVal)} (added)`]
+          return [{ path, to: changeVal }]
+
         }
       } else if (changeVal === undefined) {
         if (typeof persistedVal === 'object' && persistedVal !== null) {
           return compareValues(persistedVal, {}, path)
         } else {
-          return [`${path}: ${JSON.stringify(persistedVal)} (removed)`]
+          return [{ path, from: persistedVal }]
         }
       }
 
-      return [`${path}: ${JSON.stringify(persistedVal)} -> ${JSON.stringify(changeVal)}`]
+      return [{ path, from: persistedVal, to: changeVal }]
     }
 
-    return diffSettings(persistedNorm, changeNorm)
+    return compareValues(persistedJson, changeJson)
   }
 
   /**

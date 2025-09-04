@@ -15,6 +15,12 @@ import { useChainId } from '../hooks/useChainId';
 import { CHANGE_TYPE } from '@simplepg/repo';
 import { avatarUrlToFile } from '../utils/file-tools';
 
+const formatSettingsChange = ({ path, from, to }) => {
+  if (!from) return `${path}: ${JSON.stringify(to)} (added)`;
+  if (!to) return `${path}: ${JSON.stringify(from)} (removed)`;
+  return `${path}: ${JSON.stringify(from)} -> ${JSON.stringify(to)}`;
+};
+
 const Publish = () => {
   const viemClient = usePublicClient();
   const chainId = useChainId();
@@ -130,7 +136,10 @@ const Publish = () => {
       const traverseDirectory = async (path) => {
         const files = await repo.files.ls(path);
         for (const file of files) {
-          if (file.change) allChangedFiles.push(file);
+          if (file.change) {
+            allChangedFiles.push(file);
+          }
+          // If it's a directory and has changes, recursively check inside
           if (file.type === 'directory' && file.change) {
             await traverseDirectory(file.path);
           }
@@ -250,6 +259,7 @@ const Publish = () => {
       const queryString = hash.split('?')[1];
       const params = new URLSearchParams(queryString);
       const urlDomain = params.get('domain');
+      // Use query parameter domain if available, otherwise use hash-based domain
       if (queryDomain && queryDomain !== domain) {
         setSelectedDomain(queryDomain);
       } else if (urlDomain) {
@@ -284,19 +294,6 @@ const Publish = () => {
   const publishOrFork = selectedDomain === domain ? 'Publish' : 'Fork';
   document.title = `${publishOrFork} - ${selectedDomain}`;
 
-  // --- minimal addition: format object diffs and hide legacy keys
-  const formatSettingsChange = (c) => {
-    const asObj = typeof c === 'object' && c !== null;
-    const path = asObj ? c.path : c;
-
-    // hide legacy entries from the Publish list
-    if (path === 'appearance.theme' || path === 'appearance.themeMode') return null;
-
-    if (!asObj) return String(c);
-    const from = JSON.stringify(c.from);
-    const to = JSON.stringify(c.to);
-    return `${c.path}: ${from} -> ${to}`;
-  };
 
   return (
     <>
