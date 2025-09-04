@@ -5,9 +5,7 @@ import { ICONS } from '../config/icons';
 const Icon = ({ name, size = 4, className = '', ...props }) => {
   const icon = ICONS[name];
   if (!icon) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(`Icon "${name}" not found in ICONS`);
-    }
+    console.warn(`Icon "${name}" not found in ICONS configuration`);
     return null;
   }
 

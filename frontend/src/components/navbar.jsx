@@ -325,7 +325,7 @@ const Navbar = ({
             </div>
           )}
           <div className="overflow-x-auto" ref={tabsContainerRef}>
-            <div className="tabs tabs-bordered min-w-max">
+            <div className="tabs tabs-border min-w-max">
               {Object.keys(availableTabs).map((tab) => (
                 <a
                   key={tab}

@@ -498,10 +498,10 @@ export class Repo {
 	// 2.	UI → sidebar + page metadata can be shown in lists without having to load the full page HTML in the browser editor.
 	// 3.	Future extensibility → adding custom site-wide behaviors.
 
-    const savedSettings = await this.settings.read();
+    const { appearance } = await this.settings.read();
     const themePref = {
-      light: savedSettings?.appearance?.themeLight || 'light',
-      dark:  savedSettings?.appearance?.themeDark  || 'dark',
+      light: appearance?.theme?.light || 'light',
+      dark:  appearance?.theme?.dark  || 'dark',
     }
     const themeCss = buildThemeCss(themePref)
     rootPointer = await addFile(this.unixfs, rootPointer, 'theme.css', themeCss)
