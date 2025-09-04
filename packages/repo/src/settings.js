@@ -8,6 +8,7 @@ export const SETTINGS_FILE = 'settings.json'
 
 const CHANGE_ROOT_KEY = 'spg_settings_change_root'
 
+
 /**
  * Validates a dot notation key and throws an error if invalid.
  * @param {string} key - The key to validate.
@@ -107,9 +108,7 @@ export class Settings {
    */
   async read() {
     await this.#isReady()
-    
-    const content = await this.#cat()
-    return JSON.parse(new TextDecoder().decode(content))
+    return this.#readJson()
   }
 
   /**
@@ -191,9 +190,10 @@ export class Settings {
    * Reads the content of the settings file from the change root.
    * @returns {Promise<Uint8Array>} The file content as a Uint8Array.
    */
-  async #cat(persisted = false) {
+  async #readJson(persisted = false) {
     await this.#isReady()
-    return concat(await all(this.#fs.cat(persisted ? this.#persistedCid : this.#changeCid)))
+    const bytes = concat(await all(this.#fs.cat(persisted ? this.#persistedCid : this.#changeCid)))
+    return JSON.parse(new TextDecoder().decode(bytes))
   }
 
   /**
@@ -206,16 +206,15 @@ export class Settings {
   }
 
   /**
-   * Returns an array of strings representing the changes to the settings.
+   * Returns an array representing the changes to the settings
    * based on the persisted and change CIDs.
-   * @returns {Promise<string[]>} The change diff.
+   *  @returns {Promise<Array<string|{path:string,from:any,to:any}>>}
    */
   async changeDiff() {
     await this.#isReady()
-    const persisted = await this.#cat(true)
-    const change = await this.#cat()
-    const persistedJson = JSON.parse(new TextDecoder().decode(persisted))
-    const changeJson = JSON.parse(new TextDecoder().decode(change))
+    const persistedJson = await this.#readJson(true)
+    const changeJson = await this.#readJson()
+
 
     const compareValues = (persistedVal, changeVal, path = '') => {
       if (persistedVal === changeVal) return []
@@ -234,17 +233,18 @@ export class Settings {
         if (typeof changeVal === 'object' && changeVal !== null) {
           return compareValues({}, changeVal, path)
         } else {
-          return [`${path}: ${JSON.stringify(changeVal)} (added)`]
+          return [{ path, to: changeVal }]
+
         }
       } else if (changeVal === undefined) {
         if (typeof persistedVal === 'object' && persistedVal !== null) {
           return compareValues(persistedVal, {}, path)
         } else {
-          return [`${path}: ${JSON.stringify(persistedVal)} (removed)`]
+          return [{ path, from: persistedVal }]
         }
       }
 
-      return [`${path}: ${JSON.stringify(persistedVal)} -> ${JSON.stringify(changeVal)}`]
+      return [{ path, from: persistedVal, to: changeVal }]
     }
 
     return compareValues(persistedJson, changeJson)

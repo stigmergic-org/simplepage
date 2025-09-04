@@ -15,6 +15,12 @@ import { useChainId } from '../hooks/useChainId';
 import { CHANGE_TYPE } from '@simplepg/repo';
 import { avatarUrlToFile } from '../utils/file-tools';
 
+const formatSettingsChange = ({ path, from, to }) => {
+  if (!from) return `${path}: ${JSON.stringify(to)} (added)`;
+  if (!to) return `${path}: ${JSON.stringify(from)} (removed)`;
+  return `${path}: ${JSON.stringify(from)} -> ${JSON.stringify(to)}`;
+};
+
 const Publish = () => {
   const viemClient = usePublicClient();
   const chainId = useChainId();
@@ -70,7 +76,6 @@ const Publish = () => {
   const [hasExistingContent, setHasExistingContent] = useState(false);
 
   const { data: hash, status, error, reset, writeContract } = useWriteContract()
-
   const { isLoading: isWaiting, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
   const [progress, setProgress] = useState(0);
 
@@ -128,22 +133,18 @@ const Publish = () => {
   const getFileChanges = async () => {
     try {
       const allChangedFiles = [];
-      
       const traverseDirectory = async (path) => {
         const files = await repo.files.ls(path);
-        
         for (const file of files) {
           if (file.change) {
             allChangedFiles.push(file);
           }
-          
           // If it's a directory and has changes, recursively check inside
           if (file.type === 'directory' && file.change) {
             await traverseDirectory(file.path);
           }
         }
       };
-      
       await traverseDirectory('/');
       setFileChanges(allChangedFiles);
     } catch (error) {
@@ -242,12 +243,10 @@ const Publish = () => {
         setErrorMessage('Failed to fetch blank version');
       }
     };
-
     fetchVersionInfo();
   }, [repo]);
 
   useEffect(() => {
-    
     // Use query parameter domain if available, otherwise use hash-based domain
     if (queryDomain && queryDomain !== domain) {
       setSelectedDomain(queryDomain);
@@ -260,7 +259,6 @@ const Publish = () => {
       const queryString = hash.split('?')[1];
       const params = new URLSearchParams(queryString);
       const urlDomain = params.get('domain');
-      
       // Use query parameter domain if available, otherwise use hash-based domain
       if (queryDomain && queryDomain !== domain) {
         setSelectedDomain(queryDomain);
@@ -268,7 +266,6 @@ const Publish = () => {
         setSelectedDomain(urlDomain);
       }
     };
-
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [queryDomain, domain]);
@@ -291,23 +288,18 @@ const Publish = () => {
         setHasExistingContent(false);
       }
     };
-
     checkExistingContent();
   }, [selectedDomain, domain]);
 
   const publishOrFork = selectedDomain === domain ? 'Publish' : 'Fork';
-
   document.title = `${publishOrFork} - ${selectedDomain}`;
+
 
   return (
     <>
-      <Navbar 
-        activePage="Publish"
-      />
+      <Navbar activePage="Publish" />
       <div className="container mx-auto max-w-3xl px-4 py-6">
-        {errorMessage && (
-          <Notice type="error" message={errorMessage} />
-        )}
+        {errorMessage && <Notice type="error" message={errorMessage} />}
         <WalletInfo />
         <TransactionStatus 
           status={status}
@@ -405,18 +397,19 @@ const Publish = () => {
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-2">Settings being {publishOrFork.toLowerCase()}ed:</h2>
               <div className="border border-base-300 rounded-md p-3 bg-base-200">
-                {settingsChangeDiff.length > 0 && (
-                  <div className="mt-2">
-                    <span className="text-sm font-medium text-base-content/80">Changes:</span>
-                    <ul className="mt-1 space-y-1">
-                      {settingsChangeDiff.map((change, index) => (
+                <div className="mt-2">
+                  <span className="text-sm font-medium text-base-content/80">Changes:</span>
+                  <ul className="mt-1 space-y-1">
+                    {settingsChangeDiff
+                      .map(formatSettingsChange)
+                      .filter(Boolean)
+                      .map((line, index) => (
                         <li key={index} className="text-sm text-base-content/60">
-                          <code className="bg-base-300 px-1 rounded text-xs">{change}</code>
+                          <code className="bg-base-300 px-1 rounded text-xs">{line}</code>
                         </li>
                       ))}
-                    </ul>
-                  </div>
-                )}
+                  </ul>
+                </div>
               </div>
             </div>
           )}
