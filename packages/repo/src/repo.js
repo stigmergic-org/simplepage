@@ -22,7 +22,7 @@ import {
   assert,
 } from '@simplepg/common'
 
-import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
+import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './template.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
 import { CHANGE_TYPE } from './constants.js'
@@ -30,6 +30,8 @@ import { CHANGE_TYPE } from './constants.js'
 
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
+
+
 
 /**
  * @typedef {Object} NavItem
@@ -489,6 +491,24 @@ export class Repo {
     // updates settings
     const newSettingsRoot = await this.settings.stage()
     rootPointer = await this.unixfs.cp(newSettingsRoot, rootPointer, SETTINGS_FILE, { force: true })
+
+
+     // --- generate theme.css from saved settings (pre-JS) ---
+    // 1.	Publish flow → when staging/publishing, we need title + description to populate manifest.json and manifest.webmanifest (so sites have proper PWA metadata, favicons, search engine descriptions).
+	// 2.	UI → sidebar + page metadata can be shown in lists without having to load the full page HTML in the browser editor.
+	// 3.	Future extensibility → adding custom site-wide behaviors.
+
+    const { appearance } = await this.settings.read();
+    const themeCss = populateTheme(appearance?.theme)
+    // const themePref = {
+    //   light: appearance?.theme?.light || 'light',
+    //   dark:  appearance?.theme?.dark  || 'dark',
+    // }
+    // const themeCss = buildThemeCss(themePref)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'theme.css', themeCss)
+    // -------------------------------------------------------
+
+    // upgrade unchanged pages (template/avatar changes)
 
     // upgrade all pages that are not in the edits
     // this is needed in case template is updated, or there's a new avatar

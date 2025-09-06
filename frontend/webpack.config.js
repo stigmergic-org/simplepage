@@ -4,6 +4,7 @@ var CopyWebpackPlugin = require('copy-webpack-plugin');
 var fs = require('fs');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
@@ -26,7 +27,10 @@ module.exports = (env, argv) => {
   const version = packageJson.version;
 
   return {
-    entry: './src/index.js',
+    entry: {
+      main: './src/index.js',
+      content: './src/styles/content.css'
+    },
     resolve: {
       extensions: ['.js', '.jsx'],
       fallback: {
@@ -124,6 +128,7 @@ module.exports = (env, argv) => {
       minimize: isProduction,
       minimizer: [
         '...', // Keep existing minimizers
+        ...(isProduction ? [new CssMinimizerPlugin()] : []),
       ],
     },
     module: {
@@ -208,6 +213,8 @@ module.exports = (env, argv) => {
           { from: 'public/manifest.webmanifest', to: 'manifest.webmanifest', noErrorOnMissing: true },
           // Copy PrismJS CSS file
           { from: 'public/styles/prism.css', to: '_css/prism.css' },
+          // Copy static CSS files
+          { from: 'public/theme.css', to: 'theme.css' },
         ],
       }),
       new MiniCssExtractPlugin({
