@@ -23,6 +23,7 @@ import {
 } from '@simplepg/common'
 
 import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './template.js'
+import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
 import { CHANGE_TYPE } from './constants.js'
@@ -417,7 +418,28 @@ export class Repo {
     return sort(navItems)
   }
 
-
+  /**
+   * Searches for pages in the repo.
+   * @param {string[]} keywords - The query to search for.
+   * @returns {AsyncIterator<{ path: string, title: string, description: string, heading: string, match: string, priority: number }>} The iterator of search results.
+   */
+  async *search(keywords = []) {
+    await this.#ensureRepoData()
+    const allPages = await this.getAllPages()
+    // Normalize keywords to lowercase for case-insensitive search
+    const normalizedKeywords = keywords.map(k => k.toLowerCase().trim()).filter(Boolean)
+    if (normalizedKeywords.length === 0) return
+    
+    // Process pages one at a time and yield results immediately
+    for (const path of allPages) {
+      const markdown = await this.getMarkdown(path)
+      const result = searchPage(path, markdown, normalizedKeywords)
+      if (result) {
+        yield result
+      }
+    }
+  }
+  
   /**
    * Checks if a new version of the template is available.
    * @returns {Promise<{
