@@ -4,6 +4,7 @@ var CopyWebpackPlugin = require('copy-webpack-plugin');
 var fs = require('fs');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
@@ -127,6 +128,7 @@ module.exports = (env, argv) => {
       minimize: isProduction,
       minimizer: [
         '...', // Keep existing minimizers
+        ...(isProduction ? [new CssMinimizerPlugin()] : []),
       ],
     },
     module: {
