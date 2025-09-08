@@ -1,8 +1,8 @@
 import { create } from 'kubo-rpc-client'
-import { concat } from 'uint8arrays/concat'
 import { CarBlock } from 'cartonne'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
+import { concat } from 'uint8arrays/concat'
 import varint from 'varint'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
@@ -11,8 +11,8 @@ import { FinalizationMap } from './finalization-map.js'
 import { LRUCache } from 'lru-cache'
 import { JSDOM } from 'jsdom'
 
-const dom = new JSDOM()
-const DOMParser = new dom.window.DOMParser()
+const DOMParser = new JSDOM().window.DOMParser
+const parser = new DOMParser()
 
 const BLOCK_NUMBER_LABEL = 'spg_latest_block_number'
 
@@ -161,6 +161,7 @@ export class IpfsService {
   }
 
   async getHistory(domain) {
+      const auxiliaryHistory = {}
       const getTxHistory = async domain => (await this.getList(`contenthash_${domain}`, 'string')).map(item => {
         const [blockNumber, cid, txHash] = item.split('-')
         return { blockNumber, cid: CID.parse(cid), txHash }
@@ -168,6 +169,7 @@ export class IpfsService {
       const mainHistory = await getTxHistory(domain)
       mainHistory.sort((a, b) => a.blockNumber - b.blockNumber)
       const car = emptyCar()
+
 
       const getLinks = async cid => {
         const block = await this.client.block.get(cid)
@@ -181,6 +183,15 @@ export class IpfsService {
         if (indexCid) {
           const block = await this.client.block.get(indexCid)
           car.blocks.put(new CarBlock(indexCid, block))
+          const data = await all(await this.client.cat(indexCid))
+          const indexContent = new TextDecoder().decode(concat(data))
+          const auxDomain = parser.parseFromString(indexContent, 'text/html').querySelector('meta[name="ens-domain"]').getAttribute('content')
+          if (!auxiliaryHistory[auxDomain]) {
+            auxiliaryHistory[auxDomain] = []
+          }
+          if (auxDomain !== domain) {
+            auxiliaryHistory[auxDomain].push({ cid })
+          }
         }
         const prev = links.find(link => link.Name === '_prev')
         if (!prev) return
@@ -198,12 +209,30 @@ export class IpfsService {
         await collectBlocks(cid)
       }
 
-      const metadata = mainHistory.reduce((acc, { cid, txHash }) => {
+      let result = { metadata: {} }
+      for (const auxDomain in auxiliaryHistory) {
+        console.log('domain', auxDomain)
+        const history = await getTxHistory(auxDomain)
+        const filteredHistory = history.filter(item => !mainHistory.some(main => main.cid.equals(item.cid)))
+        console.log('history', history)
+        result = filteredHistory.reduce((acc, { cid, txHash }) => {
+          acc.metadata[cid.toString()] = { tx: txHash }
+          return acc
+        }, result)
+        console.log('result', result)
+      }
+
+      // const metadata = mainHistory.reduce((acc, { cid, txHash }) => {
+      //   acc.metadata[cid.toString()] = { tx: txHash }
+      //   return acc
+      // }, { metadata: {} })
+      result = mainHistory.reduce((acc, { cid, txHash }) => {
         acc.metadata[cid.toString()] = { tx: txHash }
         return acc
-      }, { metadata: {} })
+      }, result)
+      console.log('result', result)
 
-      car.put(metadata, { isRoot: true })
+      car.put(result, { isRoot: true })
       return car.bytes
   }
 

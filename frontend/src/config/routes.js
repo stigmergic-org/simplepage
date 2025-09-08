@@ -7,5 +7,6 @@ export const ROUTES = {
   PAGES: '/spg-pages',
   FILES: '/spg-files',
   SETTINGS: '/spg-settings',
+  HISTORY: '/spg-history',
   NOT_FOUND: '/spg-notfound',
 }; 

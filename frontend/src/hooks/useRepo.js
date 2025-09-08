@@ -50,6 +50,7 @@ export const useRepo = () => {
   const customDserviceUrl = useDserviceParam('new.simplepage.eth');
   const [dserviceFailed, setDserviceFailed] = useState(false);
   const [rpcFailed, setRpcFailed] = useState(false);
+  const [root, setRoot] = useState(null);
 
   // Create singleton instance if it doesn't exist
   if (!repoInstance) {
@@ -82,8 +83,17 @@ export const useRepo = () => {
     });
   }, [viemClient, chainId]);
 
+  useEffect(() => {
+    const getRoot = async () => {
+      const root = await repoInstance.getRoot();
+      setRoot(root);
+    };
+    getRoot();
+  }, [repoInstance]);
+
   return {
     repo: repoInstance,
+    root,
     dserviceFailed,
     rpcFailed,
   };

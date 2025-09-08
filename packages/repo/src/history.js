@@ -28,10 +28,15 @@ export class History {
   #dservice
   #viemClient
   #repoRoot
+  #initPromise
+  #resolveInitPromise
 
   constructor(domain, dservice) {
     this.#domain = domain
     this.#dservice = dservice
+    this.#initPromise = new Promise((resolve) => {
+      this.#resolveInitPromise = resolve;
+    });
   }
 
   /**
@@ -42,6 +47,7 @@ export class History {
   init(viemClient, repoRootCid) {
     this.#viemClient = viemClient
     this.#repoRoot = repoRootCid
+    this.#resolveInitPromise()
   }
 
   /**
@@ -49,9 +55,7 @@ export class History {
    * @returns {Promise<HistoryEntry[]>} Array of history entries
    */
   async get() {
-    if (!this.#viemClient) {
-      throw new Error('History class must be initialized with viem client before use')
-    }
+    await this.#initPromise
 
     try {
       // Fetch history from the API endpoint
@@ -87,16 +91,20 @@ export class History {
     assert(metadata[this.#repoRoot.toString()], `Repo root CID not part of history`)
     const versionsToCover = new CidSet(Object.keys(metadata))
     const entries = []
+    const processedCids = new Set() // Track processed CIDs for faster lookup
 
     const validateVersionHistory = async (versionPointer) => {
       const node = car.get(versionPointer)
       // check if entry already processed
-      if (entries.find(e => e.cid.equals(versionPointer))) return
+      if (processedCids.has(versionPointer.toString())) return
 
       versionsToCover.delete(versionPointer)
+      processedCids.add(versionPointer.toString())
       const meta = metadata[versionPointer.toString()]
-      const { txValid, blockNumber } = await this.#validateTx(meta.tx, versionPointer)
-      assert(txValid, `Transaction ${meta.tx} is not valid for version ${versionPointer}`)
+      let blockNumber
+      if (meta?.tx) {
+        blockNumber = await this.#validateTx(meta.tx, versionPointer)
+      }
 
       const indexCid = node.Links.find(link => link.Name === 'index.html').Hash
       const indexNode = car.get(indexCid)
@@ -118,21 +126,35 @@ export class History {
       const prev = node.Links.find(link => link.Name === '_prev')
       if (prev) {
         const prevNode = car.get(prev.Hash)
-        for (const link of prevNode.Links) {
-          await validateVersionHistory(link.Hash, versionPointer)
-          entry.parents.push(link.Hash)
-        }
+        // Process parent validations in parallel
+        const parentPromises = prevNode.Links.map(link => 
+          validateVersionHistory(link.Hash, versionPointer)
+        )
+        await Promise.all(parentPromises)
+        entry.parents = prevNode.Links.map(link => link.Hash)
       }
       entries.push(entry)
     }
 
-    while (versionsToCover.size > 0) {
-      const versionPointer = CID.parse(versionsToCover.values().next().value)
-      await validateVersionHistory(versionPointer)
-    }
+    // Process all versions in parallel instead of sequentially
+    const versionPromises = Array.from(versionsToCover).map(versionStr => 
+      validateVersionHistory(CID.parse(versionStr))
+    )
+    await Promise.all(versionPromises)
 
-    // Sort entries by block number
-    entries.sort((a, b) => parseInt(b.blockNumber) - parseInt(a.blockNumber))
+    // First sort by whether entry is a parent of another entry, then by block number
+    entries.sort((a, b) => {
+      if (a.blockNumber && b.blockNumber) {
+        return parseInt(b.blockNumber) - parseInt(a.blockNumber)
+      }
+      if (a.blockNumber) return -1
+      if (b.blockNumber) return 1
+      // Check if either entry is a parent of any other entry
+      const aIsParent = a.parents.find(cid => cid.equals(b.cid))
+      if (aIsParent) return -1
+      const bIsParent = b.parents.find(cid => cid.equals(a.cid))
+      if (bIsParent) return 1
+    })
     return entries
   }
 
@@ -160,7 +182,7 @@ export class History {
     assert(eventName === abiName, `Transaction ${tx} does not contain a ${abiName} log`)
     assert(hash === cidToENSContentHash(cid), `Contenthash mismatch for transaction ${tx}`)
     assert(node === namehash(this.#domain), `Node mismatch for transaction ${tx}`)
-    return { blockNumber, txValid: true }
+    return blockNumber
   }
 
   #getIndexMeta(indexContent) {

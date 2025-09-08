@@ -199,7 +199,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
       jest-fetch-mock:
         specifier: ^3.0.3
         version: 3.0.3(encoding@0.1.13)
@@ -227,6 +227,9 @@ importers:
       it-all:
         specifier: ^3.0.9
         version: 3.0.9
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       kubo-rpc-client:
         specifier: ^5.2.0
         version: 5.2.0(undici@7.11.0)
@@ -272,7 +275,7 @@ importers:
         version: 15.0.2(undici@7.11.0)
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
       kubo:
         specifier: ^0.35.0
         version: 0.35.0

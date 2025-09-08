@@ -29,6 +29,7 @@
     "express": "^5.1.0",
     "express-jsdoc-swagger": "^1.8.0",
     "it-all": "^3.0.9",
+    "jsdom": "^26.1.0",
     "kubo-rpc-client": "^5.2.0",
     "lru-cache": "^11.1.0",
     "multer": "^2.0.2",

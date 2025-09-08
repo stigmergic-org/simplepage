@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useRepo, ensurePageExists } from '../hooks/useRepo';
+import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/Sidebar';
 import TableOfContents from '../components/TableOfContents';
@@ -20,7 +20,7 @@ const View = ({ existingContent }) => {
   const [contentWidth, setContentWidth] = useState(0);
   const [navItems, setNavItems] = useState([]);
   const { path, isVirtual } = usePagePath();
-  const { repo, dserviceFailed } = useRepo();
+  const { repo } = useRepo();
   const { goToNotFound } = useNavigation();
 
   useEffect(() => {

@@ -52,6 +52,8 @@ const EDIT_PREFIX = 'spg_edit_'
  * @param {string} options.apiEndpoint - The api endpoint.
  */
 export class Repo {
+  #repoRootPromise = null
+  #resolveRepoRootPromise = null
   #initPromise = null
   #resolveInitPromise = null
 
@@ -68,6 +70,9 @@ export class Repo {
     this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
     this.history = new History(this.domain, this.dservice);
     
+    this.#repoRootPromise = new Promise((resolve) => {
+      this.#resolveRepoRootPromise = resolve;
+    });
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
     });
@@ -97,6 +102,7 @@ export class Repo {
       (this.templateRoot = await resolveEnsDomain(this.viemClient, TEMPLATE_DOMAIN, this.universalResolver))
     ])
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
+    this.#resolveRepoRootPromise()
 
     // Initialize history with viem client
     this.history.init(this.viemClient, this.repoRoot.cid)
@@ -113,6 +119,11 @@ export class Repo {
 
   get initialized() {
     return Boolean(this.repoRoot && this.templateRoot)
+  }
+
+  async getRoot() {
+    await this.#repoRootPromise;
+    return this.repoRoot.cid;
   }
 
   async #importRepoData(cid) {
