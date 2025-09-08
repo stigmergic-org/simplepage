@@ -85,6 +85,13 @@ export function createApi({ ipfs, indexer, version, logger }) {
   })
   
   // Setup Swagger generation
+  logger.info('Setting up OpenAPI generation', {
+    __dirname,
+    __filename,
+    baseDir: __dirname,
+    filesPattern: [__filename]
+  })
+  
   const options = {
     info: {
       version: version,
@@ -92,8 +99,8 @@ export function createApi({ ipfs, indexer, version, logger }) {
       description: 'API for the SimplePage application',
     },
     baseDir: __dirname,
-    // Use absolute path pattern
-    filesPattern: [join(__dirname, 'api.js')],
+    // Use the current file directly - this should work regardless of global vs local install
+    filesPattern: [__filename],
     // Enable serving UI and JSON
     exposeApiDocs: true,
     apiDocsPath: '/openapi.json',
@@ -104,13 +111,25 @@ export function createApi({ ipfs, indexer, version, logger }) {
   // Generate OpenAPI spec
   const instance = expressJSDocSwagger(app)(options)
 
+  // Add error handling for OpenAPI generation
+  instance.on('error', (error) => {
+    logger.error('OpenAPI generation error', { error: error.message, stack: error.stack })
+  })
+
   // Wait for the spec to be generated
   instance.on('finish', (swaggerDef) => {
+    logger.info('OpenAPI spec generated successfully', { 
+      paths: Object.keys(swaggerDef.paths || {}),
+      pathCount: Object.keys(swaggerDef.paths || {}).length
+    })
+    
     // Setup Swagger UI with custom title and hidden header
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDef, {
       customSiteTitle: 'SimplePage API',
       customCss: '.swagger-ui .topbar { display: none }'
     }))
+    
+    logger.info('Swagger UI setup complete at /docs')
   })
 
   /**
@@ -245,6 +264,20 @@ export function createApi({ ipfs, indexer, version, logger }) {
     res.json({
       version: version
     })
+  })
+
+  // Add a fallback route to manually serve OpenAPI spec
+  app.get('/openapi.json', (req, res) => {
+    logger.info('OpenAPI JSON requested')
+    if (instance && instance.swaggerObject) {
+      logger.info('Serving OpenAPI spec', { 
+        pathCount: Object.keys(instance.swaggerObject.paths || {}).length 
+      })
+      res.json(instance.swaggerObject)
+    } else {
+      logger.warn('OpenAPI spec not ready yet')
+      res.status(503).json({ error: 'OpenAPI spec not ready' })
+    }
   })
   
   return app
