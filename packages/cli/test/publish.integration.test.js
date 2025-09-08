@@ -25,6 +25,9 @@ describe('simplepage publish CLI', () => {
     await testEnv.start();
     addresses = testEnv.addresses
     
+    // Mint subscriptions for new.simplepage.eth
+    testEnv.evm.mintPage('new.simplepage.eth', 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001');
+
     // Set up the resolver for new.simplepage.eth
     testEnv.evm.setResolver(addresses.universalResolver, 'new.simplepage.eth', addresses.resolver1);
     // Set up the dservice text record on new.simplepage.eth
@@ -103,6 +106,7 @@ describe('simplepage publish CLI', () => {
     
     // set up simplepage subscription
     testEnv.evm.updateUnits(ensName, futureTime, 0, userAddress);
+    await testEnv.waitUntilBlockIsIndexed(testEnv.evm.getBlockNumber());
     
     // Create only a single HTML file (no folder structure)
     const htmlContent = '<!DOCTYPE html><html><head><title>Single File Test</title></head><body><h1>Single File Page</h1></body></html>'

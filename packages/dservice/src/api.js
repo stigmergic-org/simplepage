@@ -225,6 +225,14 @@ export function createApi({ ipfs, indexer, version, logger }) {
   app.post('/page', upload.single('file'), async (req, res, next) => {
     try {
       const { domain } = req.query
+
+      const domainsWithSubscription = await ipfs.getList('domains', 'string')
+      if (!domainsWithSubscription.includes(domain)) {
+        logger.warn('Domain does not have a subscription', { domain })
+        res.status(401).json({ detail: `Domain ${domain} does not have a subscription` })
+        return
+      }
+
       const file = req.file
 
       if (!domain) {

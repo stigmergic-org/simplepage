@@ -21,6 +21,12 @@ export class TestEnvironmentDservice {
     });
   }
 
+  async waitUntilBlockIsIndexed(blockNumber) {
+    while (this.dservice.indexer.currentBlock < blockNumber) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
   async start() {
     this.addresses = await this.evm.start();
     this.kuboApi = await this.kubo.start();
