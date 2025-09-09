@@ -8,6 +8,7 @@ import { useRepo } from '../hooks/useRepo';
 import Icon from './Icon';
 import Notice from './Notice';
 import SubscriptionNotice from './SubscriptionNotice';
+import SearchModal from './SearchModal';
 
 const defaultLogo = "/_assets/images/logo.svg";
 
@@ -30,16 +31,37 @@ const Navbar = ({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
   const [forkStyle, setForkStyle] = useState(null);
+  const [searchEnabled, setSearchEnabled] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
-    const loadForkStyle = async () => {
+    const loadSettings = async () => {
       if (repo) {
-        const forkStyle = await repo.settings.readProperty('appearance.forkStyle') || 'rainbow';
-        setForkStyle(forkStyle);
+        setForkStyle(await repo.settings.readProperty('appearance.forkStyle') || 'rainbow');
+        setSearchEnabled(await repo.settings.readProperty('search.enabled') || false);
       }
     };
-    loadForkStyle();
+    loadSettings();
   }, [repo]);
+
+  // Keyboard shortcut for search (Cmd+K on Mac, Ctrl+K on Windows/Linux)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        if (searchEnabled) {
+          setSearchModalOpen(true);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [searchEnabled]);
 
   // Handle quit button click - clear scroll position and navigate to view
   const handleQuitClick = () => {
@@ -256,6 +278,12 @@ const Navbar = ({
       </button>
     </div>
   )
+  const domainTitle = (
+    <span className="text-base font-bold cursor-pointer" onClick={goToRoot} >
+      {domain}
+    </span>
+  )
+  const showSearch = searchEnabled && !editMode
 
   return (<>
     {dserviceFailed && (
@@ -271,6 +299,10 @@ const Navbar = ({
     {activePage !== 'Subscription' && (
       <SubscriptionNotice editMode={editMode} />
     )}
+    <SearchModal 
+      isOpen={searchModalOpen} 
+      onClose={() => setSearchModalOpen(false)} 
+    />
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
@@ -282,15 +314,49 @@ const Navbar = ({
           />
         </div>
         <div className="navbar-center flex items-center justify-center h-full">
-          <span
-            className="text-base font-bold cursor-pointer"
-            onClick={goToRoot}
-          >
-            {domain}
-          </span>
+          {domainTitle}
         </div>
         <div className="navbar-end mr-4">
           <div className="flex gap-2 items-center">
+            {/* Search bar */}
+            {showSearch && (
+              <>
+                {/* Desktop search input - hidden on mobile */}
+                <div className="relative hidden sm:block">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                      <Icon name="search" size={4} className="text-base-content/60" />
+                    </div>
+                    <input 
+                      ref={searchInputRef}
+                      type="text" 
+                      placeholder="Search" 
+                      className={`input input-sm pl-10 pr-16 cursor-pointer w-36`}
+                      onClick={() => setSearchModalOpen(true)}
+                      readOnly
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <kbd className="kbd kbd-xs text-base-content/60">
+                        {navigator.platform.toLowerCase().includes('mac') ? '⌘ ' : 'Ctrl '}K
+                      </kbd>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mobile search button - visible only on mobile */}
+                <div className="block sm:hidden">
+                  <button
+                    className="btn btn-sm bg-transparent ml-2"
+                    onClick={() => setSearchModalOpen(true)}
+                    title="Search"
+                  >
+                    <Icon name="search" size={4} />
+                  </button>
+                </div>
+              </>
+            )}
+
+
             {/* Fork button */}
             {!editMode ? forkButton : (<>
                 {/* Hamburger menu */}

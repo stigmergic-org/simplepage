@@ -9,6 +9,7 @@ import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightAll } from '../utils/prism-config';
+import { generateAnchorId } from '../utils/anchor-utils';
 
 const parser = new DOMParser();
 
@@ -194,10 +195,7 @@ const addHeadingLinks = (parsedContent) => {
 
     // Generate anchor ID from heading text
     const text = heading.textContent || '';
-    const anchorId = text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const anchorId = generateAnchorId(text);
 
     // Set the heading's ID
     heading.id = anchorId;

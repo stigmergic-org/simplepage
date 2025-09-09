@@ -43,6 +43,7 @@ const Settings = () => {
   const isDarkMode = useDarkMode();
   const [forkStyle, setForkStyle] = useState('rainbow');
   const [hideDonationNotice, setHideDonationNotice] = useState(false);
+  const [searchEnabled, setSearchEnabled] = useState(false);
   const [lightTheme, setLightTheme] = useState('light');
   const [darkTheme, setDarkTheme] = useState('dark');
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +58,7 @@ const Settings = () => {
       setHideDonationNotice(settings?.subscription?.hideDonationNotice || hideDonationNotice);
       setLightTheme(settings?.appearance?.theme?.light || lightTheme);
       setDarkTheme(settings?.appearance?.theme?.dark || darkTheme);
+      setSearchEnabled(settings?.search?.enabled || searchEnabled);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -88,6 +90,11 @@ const Settings = () => {
       applyTheme(theme);
     }
   }
+
+  const handleSearchEnabledToggle = async (searchEnabled) => {
+    await repo.settings.writeProperty('search.enabled', searchEnabled);
+    setSearchEnabled(searchEnabled);
+  };
 
   const handleClearPageEdits = () => repo.restoreAllPages();
   const handleClearFileEdits = () => repo.files.clearChanges();
@@ -136,6 +143,22 @@ const Settings = () => {
                   <span className="label-text font-medium">Show donation notice</span>
                   <span className="text-sm text-base-content/60 text-wrap">
                     <p>When enabled, visitors will see a notice asking for a donation when your subscription is about to expire (in less than 30 days).</p>
+                  </span>
+                </div>
+              </label>
+
+              {/* Search Enabled Toggle */}
+              <label className="label cursor-pointer justify-start gap-3 mt-4">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={searchEnabled}
+                  onChange={(e) => handleSearchEnabledToggle(e.target.checked)}
+                />
+                <div className="flex flex-col">
+                  <span className="label-text font-medium">Enable search</span>
+                  <span className="text-sm text-base-content/60 text-wrap">
+                    <p>When enabled, visitors will be able to search the website.</p>
                   </span>
                 </div>
               </label>
@@ -197,8 +220,6 @@ const Settings = () => {
                 </label>
               </div>
             </div>
-
-            <div className="divider"></div>
 
             {/* Theme selectors + dual preview */}
             <div className="form-control">
