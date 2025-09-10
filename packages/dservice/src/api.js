@@ -41,7 +41,11 @@ class HTTPError extends Error {
 
 export function createApi({ ipfs, indexer, version, logger }) {
   const app = express()
-  const upload = multer()
+  const upload = multer({
+    limits: {
+      fileSize: 500 * 1024 * 1024 // 500MB limit
+    }
+  })
 
   // Setup CORS middleware
   const corsOptions = {
@@ -217,9 +221,11 @@ export function createApi({ ipfs, indexer, version, logger }) {
    * @tags Page Operations
    * @summary Upload a new page
    * @param {string} domain.query.required - The domain for the page
-   * @param {FileUpload} request.body.required - CAR file - multipart/form-data
+   * @param {FileUpload} request.body.required - CAR file (max 500MB) - multipart/form-data
    * @returns {PageResponse} 200 - Successfully uploaded page - application/json
    * @returns {ErrorResponse} 400 - Bad request error - application/json
+   * @returns {ErrorResponse} 401 - Unauthorized (domain not subscribed) - application/json
+   * @returns {ErrorResponse} 413 - File too large (max 500MB) - application/json
    * @returns {ErrorResponse} 500 - Server error - application/json
    */
   app.post('/page', upload.single('file'), async (req, res, next) => {
@@ -256,7 +262,12 @@ export function createApi({ ipfs, indexer, version, logger }) {
           error: err.message,
           stack: err.stack 
         })
-        res.status(500).json({ detail: err.message })
+        // Handle multer file size limit error
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          res.status(413).json({ detail: 'File too large. Maximum size is 500MB.' })
+        } else {
+          res.status(500).json({ detail: err.message })
+        }
       }
     }
   })
