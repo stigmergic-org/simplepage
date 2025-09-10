@@ -114,6 +114,8 @@ const SearchModal = ({ isOpen, onClose, initialQuery = '' }) => {
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      // Clear results when we're about to perform the search
+      setResults([]);
       performSearch(query);
     }, 300);
 
@@ -145,7 +147,9 @@ const SearchModal = ({ isOpen, onClose, initialQuery = '' }) => {
       keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     ).join('|')})`, 'gi');
     
-    return text.split(regex).map((part, index) => {
+    const parts = text.split(regex);
+    return parts.map((part, index) => {
+      // Check if this part matches any keyword (case-insensitive)
       const isMatch = keywords.some(keyword => 
         part.toLowerCase() === keyword.toLowerCase()
       );
@@ -224,7 +228,7 @@ const SearchModal = ({ isOpen, onClose, initialQuery = '' }) => {
                               #{highlightKeywords(result.heading, keywords)}
                             </div>
                           )}
-                          {result.match || result.description && (
+                          {(result.match || result.description) && (
                             <div className="text-sm text-base-content/60 mt-1 line-clamp-2">
                               {highlightKeywords(result.match || result.description, keywords)}
                             </div>

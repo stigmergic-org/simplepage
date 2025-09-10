@@ -433,8 +433,9 @@ export class Repo {
     // Process pages one at a time and yield results immediately
     for (const path of allPages) {
       const markdown = await this.getMarkdown(path)
-      const result = searchPage(path, markdown, normalizedKeywords)
-      if (result) {
+      const results = searchPage(path, markdown, normalizedKeywords)
+      // Yield each result separately
+      for (const result of results) {
         yield result
       }
     }
