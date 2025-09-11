@@ -1,7 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app';
-import Plausible from 'plausible-tracker'
+import Plausible from 'plausible-tracker';
+import '../public/styles/content.css';
 
 // Initialize Plausible analytics
 const { enableAutoPageviews } = Plausible({

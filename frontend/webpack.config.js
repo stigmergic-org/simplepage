@@ -27,10 +27,7 @@ module.exports = (env, argv) => {
   const version = packageJson.version;
 
   return {
-    entry: {
-      main: './src/index.js',
-      content: './src/styles/content.css'
-    },
+    entry: './src/index.js',
     resolve: {
       extensions: ['.js', '.jsx'],
       fallback: {
@@ -213,6 +210,7 @@ module.exports = (env, argv) => {
           { from: 'public/manifest.webmanifest', to: 'manifest.webmanifest', noErrorOnMissing: true },
           // Copy PrismJS CSS file
           { from: 'public/styles/prism.css', to: '_css/prism.css' },
+          { from: 'public/styles/content.css', to: '_css/content.css' },
           // Copy static CSS files
           { from: 'public/theme.css', to: 'theme.css' },
         ],
