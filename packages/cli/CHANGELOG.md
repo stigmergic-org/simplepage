@@ -1,5 +1,13 @@
 # @simplepg/cli
 
+## 1.0.6
+
+### Patch Changes
+
+- d6654e1: fix(cli,dservice): clean up shebang and json import for newer node versions
+- Updated dependencies [d07df2b]
+  - @simplepg/common@1.2.2
+
 ## 1.0.5
 
 ### Patch Changes

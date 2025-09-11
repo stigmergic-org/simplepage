@@ -1,5 +1,35 @@
 # @simplepg/frontend
 
+## 1.5.0
+
+### Minor Changes
+
+- 6cfcbcd: feat(frontend,repo): add theming support
+- 6e41c82: feat(frontend,repo): add ability to clear local data in settings"
+- 7e6c880: feat(frontend): show a notice when subscription is about to expire
+- e92aa89: feat(frontend,repo): add support for table of contents sidebar
+- fe14993: feat(frontend,repo): add fork button style to settings
+- 5c7946a: feat(frontend,repo): add support for navigation sidebar
+- 182f998: feat(frontend): add search functionality
+
+### Patch Changes
+
+- 6a64d23: chore(frontend): warn users if DService or RPCs are unavailable
+- 2d3776e: fix(frontend): better dservice and rpc fallback parsing (now supports urls w/o http prefix)
+- 5d548c2: feat(repo): add support for nexted keys in settings
+- Updated dependencies [e8dd7fa]
+- Updated dependencies [6cfcbcd]
+- Updated dependencies [2950d36]
+- Updated dependencies [6e41c82]
+- Updated dependencies [d07df2b]
+- Updated dependencies [fe3e150]
+- Updated dependencies [e92aa89]
+- Updated dependencies [fe14993]
+- Updated dependencies [5d548c2]
+- Updated dependencies [5c7946a]
+  - @simplepg/repo@1.3.0
+  - @simplepg/common@1.2.2
+
 ## 1.4.0
 
 ### Minor Changes
