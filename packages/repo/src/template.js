@@ -123,7 +123,7 @@ ${toVarsBlock(darkThemeData)}
  * @returns {object} Object containing frontmatter data.
  */
 export function parseFrontmatter(markdown) {
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*(?:\n([\s\S]*))?$/;
   const match = markdown.match(frontmatterRegex);
   
   if (!match) {
