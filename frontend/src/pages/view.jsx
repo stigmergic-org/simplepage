@@ -20,9 +20,11 @@ const View = ({ existingContent }) => {
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
   const [navItems, setNavItems] = useState([]);
+  const rootNavItem = navItems.find(item => item.path === '/');
+  const sidebarSemaphoreState = useState(null);
   const { path, isVirtual } = usePagePath();
-  const { repo, dserviceFailed } = useRepo();
-  const { goToNotFound } = useNavigation();
+  const { repo } = useRepo();
+  const { goToNotFound, goToViewWithPreview, goToRoot } = useNavigation();
 
   useEffect(() => {
     const loadContent = async () => {
@@ -102,11 +104,11 @@ const View = ({ existingContent }) => {
       {sidebarToc && (
         <Sidebar
           position="right"
-          defaultOpen={true}
           title="On this page"
           icon="toc"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
+          semaphoreState={sidebarSemaphoreState}
         >
           <TableOfContents content={content} />
         </Sidebar>
@@ -115,11 +117,12 @@ const View = ({ existingContent }) => {
       {navItems.length > 0 && (
         <Sidebar
           position="left"
-          defaultOpen={true}
-          title="Navigation"
+          title={rootNavItem.title || 'Navigation'}
+          onTitleClick={() => { isVirtual ? goToViewWithPreview(rootNavItem.path) : goToRoot() }}
           icon="map"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
+          semaphoreState={sidebarSemaphoreState}
         >
           <SidebarNavigation navItems={navItems} isVirtual={isVirtual} />
         </Sidebar>
