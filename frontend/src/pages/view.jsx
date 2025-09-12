@@ -117,8 +117,8 @@ const View = ({ existingContent }) => {
       {navItems.length > 0 && (
         <Sidebar
           position="left"
-          title={rootNavItem.title || 'Navigation'}
-          onTitleClick={() => { isVirtual ? goToViewWithPreview(rootNavItem.path) : goToRoot() }}
+          title={rootNavItem?.title || 'Navigation'}
+          onTitleClick={() => { isVirtual ? goToViewWithPreview(rootNavItem?.path) : goToRoot() }}
           icon="map"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
