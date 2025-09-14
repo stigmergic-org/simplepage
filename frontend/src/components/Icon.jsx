@@ -1,5 +1,5 @@
 // src/components/Icon.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ICONS } from '../config/icons';
 
 // Predefined size classes map for Tailwind CSS
@@ -22,13 +22,24 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
   if (!sizeClass) {
     throw new Error(`Invalid icon size: ${size}. Valid sizes are: ${Object.keys(SIZE_CLASSES).join(', ')}`);
   }
-  const [svgError, setSvgError] = React.useState(false);
+  const [svgAvailable, setSvgAvailable] = useState(true);
 
-  // Handle image load error
-  const handleImageError = (e) => {
-    console.log('Image error', e);
-    setSvgError(true);
-  };
+  // Check SVG availability since CSS mask doesn't trigger onLoad/onError
+  useEffect(() => {
+    const checkSvgAvailability = async () => {
+      try {
+        const response = await fetch(icon.src, { method: 'HEAD' });
+        if (!response.ok) {
+          setSvgAvailable(false);
+        }
+      } catch (error) {
+        console.log('SVG not available, falling back to emoji:', icon.src);
+        setSvgAvailable(false);
+      }
+    };
+
+    checkSvgAvailability();
+  }, [icon.src]);
 
   // Common props for both fallback and main element
   const commonProps = {
@@ -38,8 +49,8 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     ...props,
   };
 
-  // If SVG fails to load, fall back to displaying the alt text (emoji)
-  if (svgError) {
+  // If SVG is not available, fall back to displaying the alt text (emoji)
+  if (!svgAvailable) {
     return (
       <span 
         {...commonProps}
@@ -53,18 +64,15 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     );
   }
 
-  // Use a single img element with CSS mask
+  // Use a single img element with CSS mask for proper colorization
   return (
     <img
       {...commonProps}
-      src={icon.src}
-      alt={icon.alt}
       style={{
         WebkitMask: `url(${icon.src}) no-repeat center / contain`,
         mask: `url(${icon.src}) no-repeat center / contain`,
         backgroundColor: 'currentColor',
       }}
-      onError={handleImageError}
     />
   );
 };
