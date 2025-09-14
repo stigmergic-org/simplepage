@@ -397,7 +397,7 @@ export class Repo {
         }
         sectionPointer = parentItem.children
       }
-      const virtualNewItem = navItems.find(item => item.path === path && item.virtual)
+      const virtualNewItem = sectionPointer.find(item => item.path === path && item.virtual)
       if (virtualNewItem) {
         virtualNewItem.title = newItem.title
         virtualNewItem.priority = newItem.priority
