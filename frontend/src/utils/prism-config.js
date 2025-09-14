@@ -39,8 +39,6 @@ import 'prismjs/components/prism-jsx';
 import 'prismjs/components/prism-tsx';
 
 
-export const highlightAll = () => {
-  if (Prism) {
-    Prism.highlightAll();
-  }
+export const highlightElement = (element) => {
+  Prism.highlightAllUnder(element);
 };

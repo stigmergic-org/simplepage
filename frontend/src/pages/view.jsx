@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useRepo, ensurePageExists } from '../hooks/useRepo';
+import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/Sidebar';
 import TableOfContents from '../components/TableOfContents';
@@ -8,7 +8,7 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
-import { highlightAll } from '../utils/prism-config';
+import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
 
 const parser = new DOMParser();
@@ -49,6 +49,7 @@ const View = ({ existingContent }) => {
         updateVirtualLinks(parsedContent, basename);
         await updateVirtualMedia(parsedContent, repo);
       }
+      highlightElement(parsedContent.body);
       setContent(parsedContent.body.innerHTML);
     }
     if (repo) {
@@ -72,9 +73,6 @@ const View = ({ existingContent }) => {
     loadNavigation();
   }, [repo, path, isVirtual]);
 
-  useEffect(() => {
-    highlightAll();
-  }, [content]);
 
   // Track content container width
   useEffect(() => {
