@@ -1,5 +1,11 @@
 # @simplepg/common
 
+## 1.2.2
+
+### Patch Changes
+
+- d07df2b: chore(common): deploy updated token renderer (nicer looking simplepage NFTs)
+
 ## 1.2.1
 
 ### Patch Changes

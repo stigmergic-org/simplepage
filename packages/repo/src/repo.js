@@ -22,7 +22,8 @@ import {
   assert,
 } from '@simplepg/common'
 
-import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects } from './template.js'
+import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './template.js'
+import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
 import { History } from './history.js'
@@ -31,6 +32,8 @@ import { CHANGE_TYPE } from './constants.js'
 
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
+
+
 
 /**
  * @typedef {Object} NavItem
@@ -410,7 +413,7 @@ export class Repo {
         }
         sectionPointer = parentItem.children
       }
-      const virtualNewItem = navItems.find(item => item.path === path && item.virtual)
+      const virtualNewItem = sectionPointer.find(item => item.path === path && item.virtual)
       if (virtualNewItem) {
         virtualNewItem.title = newItem.title
         virtualNewItem.priority = newItem.priority
@@ -431,7 +434,29 @@ export class Repo {
     return sort(navItems)
   }
 
-
+  /**
+   * Searches for pages in the repo.
+   * @param {string[]} keywords - The query to search for.
+   * @returns {AsyncIterator<{ path: string, title: string, description: string, heading: string, match: string, priority: number }>} The iterator of search results.
+   */
+  async *search(keywords = []) {
+    await this.#ensureRepoData()
+    const allPages = await this.getAllPages()
+    // Normalize keywords to lowercase for case-insensitive search
+    const normalizedKeywords = keywords.map(k => k.toLowerCase().trim()).filter(Boolean)
+    if (normalizedKeywords.length === 0) return
+    
+    // Process pages one at a time and yield results immediately
+    for (const path of allPages) {
+      const markdown = await this.getMarkdown(path)
+      const results = searchPage(path, markdown, normalizedKeywords)
+      // Yield each result separately
+      for (const result of results) {
+        yield result
+      }
+    }
+  }
+  
   /**
    * Checks if a new version of the template is available.
    * @returns {Promise<{
@@ -505,6 +530,24 @@ export class Repo {
     // updates settings
     const newSettingsRoot = await this.settings.stage()
     rootPointer = await this.unixfs.cp(newSettingsRoot, rootPointer, SETTINGS_FILE, { force: true })
+
+
+     // --- generate theme.css from saved settings (pre-JS) ---
+    // 1.	Publish flow → when staging/publishing, we need title + description to populate manifest.json and manifest.webmanifest (so sites have proper PWA metadata, favicons, search engine descriptions).
+	// 2.	UI → sidebar + page metadata can be shown in lists without having to load the full page HTML in the browser editor.
+	// 3.	Future extensibility → adding custom site-wide behaviors.
+
+    const { appearance } = await this.settings.read();
+    const themeCss = populateTheme(appearance?.theme)
+    // const themePref = {
+    //   light: appearance?.theme?.light || 'light',
+    //   dark:  appearance?.theme?.dark  || 'dark',
+    // }
+    // const themeCss = buildThemeCss(themePref)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'theme.css', themeCss)
+    // -------------------------------------------------------
+
+    // upgrade unchanged pages (template/avatar changes)
 
     // upgrade all pages that are not in the edits
     // this is needed in case template is updated, or there's a new avatar

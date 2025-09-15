@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import Icon from './Icon';
+import { assert } from '@simplepg/common';
 
 const Sidebar = ({ 
   position = 'left', 
-  defaultOpen = true,
-  onToggle,
   children, 
   title,
+  onTitleClick,
   icon,
   className = '',
   width = 'w-64',
   effectiveTop = 64,
-  contentWidth = 0
+  contentWidth = 0,
+  semaphoreState
 }) => {
-  const [isOpen, setIsOpen] = useState(false); // Start closed initially
-  
+  assert(Boolean(semaphoreState), 'Semaphore state is required');
+  const [internalIsOpen, setInternalIsOpen] = useState(false); // Start closed initially
+  const [wouldOverlap, setWouldOverlap] = useState(false);
+  const [semaphore, setSemaphore] = semaphoreState;
+  // Determine if this sidebar should be open based on semaphore or internal state
+  const isOpen = internalIsOpen && (semaphore === position || !wouldOverlap);
+
   useEffect(() => {
     if (!contentWidth) return;
     
@@ -26,9 +32,8 @@ const Sidebar = ({
       // Check if there's enough space for content + sidebar
       // Logic: fullWidth - contentWidth < 2x sidebarWidth
       const totalSpaceNeeded = contentWidth + (sidebarWidth * 2); // Content + space for sidebars on both sides
-      const wouldOverlap = viewportWidth < totalSpaceNeeded;
-      
-      setIsOpen(wouldOverlap ? false : defaultOpen);
+      setWouldOverlap(viewportWidth < totalSpaceNeeded);
+      setInternalIsOpen(!wouldOverlap);
     };
     
     // Set initial state
@@ -40,12 +45,15 @@ const Sidebar = ({
     return () => {
       window.removeEventListener('resize', checkOverlap);
     };
-  }, [defaultOpen, contentWidth, position]);
+  }, [contentWidth, position]);
   
   const handleToggle = () => {
-    setIsOpen(!isOpen);
-    if (onToggle) {
-      onToggle(!isOpen);
+    if (isOpen) {
+      setSemaphore(null);
+      setInternalIsOpen(false);
+    } else {
+      setSemaphore(position);
+      setInternalIsOpen(true);
     }
   };
   
@@ -78,19 +86,22 @@ const Sidebar = ({
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className}`}
+        className={`fixed top-0 ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className} flex flex-col`}
         style={{ 
           paddingTop: `${effectiveTop}px`,
           transition: 'padding-top 0.1s ease-out, transform 0.3s ease-in-out'
         }}
       >
         {/* Sidebar Header */}
-        <div className={`flex items-center justify-between p-4 border-b border-base-300 ${position === 'left' ? 'pl-14' : ''}`}>
+        <div 
+          className={`flex items-center justify-between p-4 border-b border-base-300 flex-shrink-0 ${position === 'left' ? 'pl-16' : ''} ${onTitleClick ? 'cursor-pointer' : ''}`}
+          onClick={onTitleClick}
+        >
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
         </div>
 
         {/* Sidebar Content */}
-        <div className="p-4 overflow-y-auto h-full">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </div>

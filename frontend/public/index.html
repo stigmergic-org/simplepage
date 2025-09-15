@@ -26,10 +26,22 @@
     <meta name="twitter:description" content="A SimplePage template that lets you start fresh">
     <meta name="twitter:image" content="https://new.simplepage.eth.link/_assets/images/logo.png">
 
-    <!-- CSS Preload Pattern -->
+    <!-- Static CSS files -->
+    <link rel="stylesheet" href="/theme.css">
+    
+    <!-- Content CSS files -->
     <% for (const cssFile of htmlWebpackPlugin.files.css || []) { %>
+      <% if (cssFile.includes('content')) { %>
+    <link rel="stylesheet" href="<%= cssFile %>">
+      <% } %>
+    <% } %>
+
+    <!-- Other CSS files -->
+    <% for (const cssFile of htmlWebpackPlugin.files.css || []) { %>
+      <% if (!cssFile.includes('content')) { %>
     <link rel="preload" href="<%= cssFile %>" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="<%= cssFile %>"></noscript>
+      <% } %>
     <% } %>
     
     <!-- PrismJS Syntax Highlighting CSS (preload with rel-swap) -->

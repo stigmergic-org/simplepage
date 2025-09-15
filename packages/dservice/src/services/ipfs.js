@@ -59,6 +59,12 @@ export class IpfsService {
   }
 
   async writeCar(fileBuffer, stageDomain) {
+    // Create abort controller with 3-minute timeout
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => {
+      abortController.abort()
+    }, 3 * 60 * 1000) // 3 minutes
+
     try {
       this.logger.info('Writing CAR file', { stageDomain, bufferSize: fileBuffer.length })
       
@@ -69,15 +75,19 @@ export class IpfsService {
         yield new Uint8Array(fileBuffer)
       })()
       
-      for await (const result of this.client.dag.import(sources)) {
+      // Import with abort signal
+      for await (const result of this.client.dag.import(sources, { signal: abortController.signal })) {
         rootCid = result.root.cid
       }
 
       // Create pin label with timestamp
       const label = `spg_staged_${stageDomain}_${Math.floor(Date.now() / 1000)}`
 
-      // Pin the content recursively with the label
-      await this.client.pin.add(rootCid, { recursive: true, name: label })
+      // Pin the content recursively with the label and abort signal
+      await this.client.pin.add(rootCid, { recursive: true, name: label, signal: abortController.signal })
+
+      // Clear timeout since operation completed successfully
+      clearTimeout(timeoutId)
       this.logger.info('Staged CAR file successfully', { 
         rootCid: rootCid.toString(), 
         label, 
@@ -86,7 +96,16 @@ export class IpfsService {
 
       return rootCid
     } catch (error) {
-      this.logger.error('Error importing CAR file', { 
+      // Clear timeout on error
+      clearTimeout(timeoutId)
+      if (abortController.signal.aborted) {
+        this.logger.error('CAR file operation timed out after 3 minutes', {
+          stageDomain,
+          error: error.message
+        })
+        throw new Error(`CAR file import timed out after 3 minutes. Make sure your CAR file is valid.`)
+      }
+      this.logger.error('Error importing CAR file', {
         error: error.message, 
         stageDomain,
         stack: error.stack 

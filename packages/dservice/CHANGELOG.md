@@ -1,5 +1,17 @@
 # @simplepg/dservice
 
+## 1.3.3
+
+### Patch Changes
+
+- c063484: fix(dservice): require subscription on CAR upload, and timeout on invalid CARs
+- 2950d36: fix(dservice): readCarLite now returns all files in root
+- d6654e1: fix(cli,dservice): clean up shebang and json import for newer node versions
+- f04bdc1: fix(dservice): more resilient openapi generation
+- 011d4d1: fix(dservice): file upload size limit
+- Updated dependencies [d07df2b]
+  - @simplepg/common@1.2.2
+
 ## 1.3.2
 
 ### Patch Changes

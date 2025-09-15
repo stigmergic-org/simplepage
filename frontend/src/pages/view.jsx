@@ -8,7 +8,8 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
-import { highlightAll } from '../utils/prism-config';
+import { highlightElement } from '../utils/prism-config';
+import { generateAnchorId } from '../utils/anchor-utils';
 
 const parser = new DOMParser();
 
@@ -19,9 +20,11 @@ const View = ({ existingContent }) => {
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
   const [navItems, setNavItems] = useState([]);
+  const rootNavItem = navItems.find(item => item.path === '/');
+  const sidebarSemaphoreState = useState(null);
   const { path, isVirtual } = usePagePath();
   const { repo } = useRepo();
-  const { goToNotFound } = useNavigation();
+  const { goToNotFound, goToViewWithPreview, goToRoot } = useNavigation();
 
   useEffect(() => {
     const loadContent = async () => {
@@ -46,7 +49,20 @@ const View = ({ existingContent }) => {
         updateVirtualLinks(parsedContent, basename);
         await updateVirtualMedia(parsedContent, repo);
       }
+      highlightElement(parsedContent.body);
       setContent(parsedContent.body.innerHTML);
+      
+      // Scroll to anchor if there's a hash in the URL
+      const hash = window.location.hash;
+      if (hash) {
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => {
+          const element = document.getElementById(hash.substring(1));
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
     }
     if (repo) {
       loadContent();
@@ -69,9 +85,6 @@ const View = ({ existingContent }) => {
     loadNavigation();
   }, [repo, path, isVirtual]);
 
-  useEffect(() => {
-    highlightAll();
-  }, [content]);
 
   // Track content container width
   useEffect(() => {
@@ -101,11 +114,11 @@ const View = ({ existingContent }) => {
       {sidebarToc && (
         <Sidebar
           position="right"
-          defaultOpen={true}
           title="On this page"
           icon="toc"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
+          semaphoreState={sidebarSemaphoreState}
         >
           <TableOfContents content={content} />
         </Sidebar>
@@ -114,11 +127,12 @@ const View = ({ existingContent }) => {
       {navItems.length > 0 && (
         <Sidebar
           position="left"
-          defaultOpen={true}
-          title="Navigation"
+          title={rootNavItem?.title || 'Navigation'}
+          onTitleClick={Boolean(rootNavItem) ? () => { isVirtual ? goToViewWithPreview(rootNavItem?.path) : goToRoot() } : undefined}
           icon="map"
           effectiveTop={navbarEffectiveTop}
           contentWidth={contentWidth}
+          semaphoreState={sidebarSemaphoreState}
         >
           <SidebarNavigation navItems={navItems} isVirtual={isVirtual} />
         </Sidebar>
@@ -194,10 +208,7 @@ const addHeadingLinks = (parsedContent) => {
 
     // Generate anchor ID from heading text
     const text = heading.textContent || '';
-    const anchorId = text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const anchorId = generateAnchorId(text);
 
     // Set the heading's ID
     heading.id = anchorId;

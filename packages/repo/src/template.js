@@ -71,6 +71,51 @@ export function populateManifest(domain, { title, description } = {}) {
   return JSON.stringify(manifest)
 }
 
+/** -----------------------------------------------
+ * DaisyUI Theme Integration for theme.css
+ * ---------------------------------------------- */
+
+// Import DaisyUI theme data
+import daisyuiThemes from 'daisyui/theme/object.js';
+
+/**
+ * Converts a theme object to CSS variables block
+ * @param {Object} themeObj - Theme object with CSS variables
+ * @returns {string} CSS variables block
+ */
+function toVarsBlock(themeObj) {
+  return Object.entries(themeObj)
+    .filter(([key]) => key.startsWith('--'))
+    .map(([key, value]) => `  ${key}: ${value};`)
+    .join('\n');
+}
+
+/**
+ * Generates theme CSS based on user preferences
+ * @param {Object} themePrefs - User theme preferences
+ * @param {string} themePrefs.light - Light theme name (default: 'light')
+ * @param {string} themePrefs.dark - Dark theme name (default: 'dark')
+ * @returns {string} Generated theme CSS
+ */
+export function populateTheme({ light = 'light', dark = 'dark' } = {}) {
+  // Get theme data from DaisyUI
+  const lightThemeData = daisyuiThemes[light] || daisyuiThemes.light;
+  const darkThemeData = daisyuiThemes[dark] || daisyuiThemes.dark;
+  
+  // Generate CSS
+  return `/* Generated theme.css - Light: ${light}, Dark: ${dark} */
+:root:not([data-theme]) {
+${toVarsBlock(lightThemeData)}
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+${toVarsBlock(darkThemeData)}
+  }
+}
+`;
+}
+
 /**
  * Extracts frontmatter from markdown content.
  * Only parses title (text), description (text), and sidebar (boolean).
@@ -78,7 +123,7 @@ export function populateManifest(domain, { title, description } = {}) {
  * @returns {object} Object containing frontmatter data.
  */
 export function parseFrontmatter(markdown) {
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*(?:\n([\s\S]*))?$/;
   const match = markdown.match(frontmatterRegex);
   
   if (!match) {

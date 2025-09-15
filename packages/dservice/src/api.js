@@ -41,7 +41,11 @@ class HTTPError extends Error {
 
 export function createApi({ ipfs, indexer, version, logger }) {
   const app = express()
-  const upload = multer()
+  const upload = multer({
+    limits: {
+      fileSize: 500 * 1024 * 1024 // 500MB limit
+    }
+  })
 
   // Setup CORS middleware
   const corsOptions = {
@@ -85,6 +89,13 @@ export function createApi({ ipfs, indexer, version, logger }) {
   })
   
   // Setup Swagger generation
+  logger.info('Setting up OpenAPI generation', {
+    __dirname,
+    __filename,
+    baseDir: __dirname,
+    filesPattern: [__filename]
+  })
+  
   const options = {
     info: {
       version: version,
@@ -92,8 +103,8 @@ export function createApi({ ipfs, indexer, version, logger }) {
       description: 'API for the SimplePage application',
     },
     baseDir: __dirname,
-    // Use absolute path pattern
-    filesPattern: [join(__dirname, 'api.js')],
+    // Use the current file directly - this should work regardless of global vs local install
+    filesPattern: [__filename],
     // Enable serving UI and JSON
     exposeApiDocs: true,
     apiDocsPath: '/openapi.json',
@@ -104,13 +115,25 @@ export function createApi({ ipfs, indexer, version, logger }) {
   // Generate OpenAPI spec
   const instance = expressJSDocSwagger(app)(options)
 
+  // Add error handling for OpenAPI generation
+  instance.on('error', (error) => {
+    logger.error('OpenAPI generation error', { error: error.message, stack: error.stack })
+  })
+
   // Wait for the spec to be generated
   instance.on('finish', (swaggerDef) => {
+    logger.info('OpenAPI spec generated successfully', { 
+      paths: Object.keys(swaggerDef.paths || {}),
+      pathCount: Object.keys(swaggerDef.paths || {}).length
+    })
+    
     // Setup Swagger UI with custom title and hidden header
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDef, {
       customSiteTitle: 'SimplePage API',
       customCss: '.swagger-ui .topbar { display: none }'
     }))
+    
+    logger.info('Swagger UI setup complete at /docs')
   })
 
   /**
@@ -216,14 +239,24 @@ export function createApi({ ipfs, indexer, version, logger }) {
    * @tags Page Operations
    * @summary Upload a new page
    * @param {string} domain.query.required - The domain for the page
-   * @param {FileUpload} request.body.required - CAR file - multipart/form-data
+   * @param {FileUpload} request.body.required - CAR file (max 500MB) - multipart/form-data
    * @returns {PageResponse} 200 - Successfully uploaded page - application/json
    * @returns {ErrorResponse} 400 - Bad request error - application/json
+   * @returns {ErrorResponse} 401 - Unauthorized (domain not subscribed) - application/json
+   * @returns {ErrorResponse} 413 - File too large (max 500MB) - application/json
    * @returns {ErrorResponse} 500 - Server error - application/json
    */
   app.post('/page', upload.single('file'), async (req, res, next) => {
     try {
       const { domain } = req.query
+
+      const domainsWithSubscription = await ipfs.getList('domains', 'string')
+      if (!domainsWithSubscription.includes(domain)) {
+        logger.warn('Domain does not have a subscription', { domain })
+        res.status(401).json({ detail: `Domain ${domain} does not have a subscription` })
+        return
+      }
+
       const file = req.file
 
       if (!domain) {
@@ -247,7 +280,12 @@ export function createApi({ ipfs, indexer, version, logger }) {
           error: err.message,
           stack: err.stack 
         })
-        res.status(500).json({ detail: err.message })
+        // Handle multer file size limit error
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          res.status(413).json({ detail: 'File too large. Maximum size is 500MB.' })
+        } else {
+          res.status(500).json({ detail: err.message })
+        }
       }
     }
   })
@@ -263,6 +301,20 @@ export function createApi({ ipfs, indexer, version, logger }) {
     res.json({
       version: version
     })
+  })
+
+  // Add a fallback route to manually serve OpenAPI spec
+  app.get('/openapi.json', (req, res) => {
+    logger.info('OpenAPI JSON requested')
+    if (instance && instance.swaggerObject) {
+      logger.info('Serving OpenAPI spec', { 
+        pathCount: Object.keys(instance.swaggerObject.paths || {}).length 
+      })
+      res.json(instance.swaggerObject)
+    } else {
+      logger.warn('OpenAPI spec not ready yet')
+      res.status(503).json({ error: 'OpenAPI spec not ready' })
+    }
   })
   
   return app

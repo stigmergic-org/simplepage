@@ -109,4 +109,8 @@ export const ICONS = {
     src: `${PREFIX}close.svg`,
     alt: '❌',
   },
+  'search': {
+    src: `${PREFIX}search.svg`,
+    alt: '🔍',
+  },
 };

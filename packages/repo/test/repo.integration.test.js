@@ -96,6 +96,10 @@ describe('Repo Integration Tests', () => {
     addresses = testEnv.addresses;
     parser = new DOMParser()
     
+    // Mint subscriptions for new.simplepage.eth and test.eth
+    testEnv.evm.mintPage('new.simplepage.eth', 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001');
+    testEnv.evm.mintPage('test.eth', 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001');
+
     // Set up the resolver for new.simplepage.eth (template domain)
     testEnv.evm.setResolver(addresses.universalResolver, 'new.simplepage.eth', addresses.resolver1);
     testEnv.evm.setTextRecord(addresses.resolver1, 'new.simplepage.eth', 'dservice', testEnv.dserviceUrl);

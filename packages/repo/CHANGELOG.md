@@ -1,5 +1,30 @@
 # @simplepg/repo
 
+## 1.3.1
+
+### Patch Changes
+
+- 90188be: fix(repo,frontend): properly order navigation items in sidebar
+
+## 1.3.0
+
+### Minor Changes
+
+- 6cfcbcd: feat(frontend,repo): add theming support
+- 2950d36: feat(repo): support settings persistance
+- 6e41c82: feat(frontend,repo): add ability to clear local data in settings"
+- fe3e150: feat(repo): add search functionality
+- e92aa89: feat(frontend,repo): add support for table of contents sidebar
+- fe14993: feat(frontend,repo): add fork button style to settings
+- 5d548c2: feat(repo): add support for nexted keys in settings
+- 5c7946a: feat(frontend,repo): add support for navigation sidebar
+
+### Patch Changes
+
+- e8dd7fa: fix(repo): improve search algorithm
+- Updated dependencies [d07df2b]
+  - @simplepg/common@1.2.2
+
 ## 1.2.0
 
 ### Minor Changes
