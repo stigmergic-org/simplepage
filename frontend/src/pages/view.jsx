@@ -51,6 +51,18 @@ const View = ({ existingContent }) => {
       }
       highlightElement(parsedContent.body);
       setContent(parsedContent.body.innerHTML);
+      
+      // Scroll to anchor if there's a hash in the URL
+      const hash = window.location.hash;
+      if (hash) {
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => {
+          const element = document.getElementById(hash.substring(1));
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
     }
     if (repo) {
       loadContent();
