@@ -162,7 +162,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
 
   packages/common:
     dependencies:
@@ -185,8 +185,8 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3
       cartonne:
-        specifier: ^3.0.1
-        version: 3.0.1
+        specifier: ^3.0.2
+        version: 3.0.2
       cross-fetch:
         specifier: ^4.1.0
         version: 4.1.0(encoding@0.1.13)
@@ -205,7 +205,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
       jest-fetch-mock:
         specifier: ^3.0.3
         version: 3.0.3(encoding@0.1.13)
@@ -216,8 +216,8 @@ importers:
         specifier: workspace:*
         version: link:../common
       cartonne:
-        specifier: ^3.0.1
-        version: 3.0.1
+        specifier: ^3.0.2
+        version: 3.0.2
       commander:
         specifier: ^14.0.0
         version: 14.0.0
@@ -233,6 +233,9 @@ importers:
       it-all:
         specifier: ^3.0.9
         version: 3.0.9
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       kubo-rpc-client:
         specifier: ^5.2.0
         version: 5.2.0(undici@7.11.0)
@@ -2844,8 +2847,8 @@ packages:
   caniuse-lite@1.0.30001739:
     resolution: {integrity: sha512-y+j60d6ulelrNSwpPyrHdl+9mJnQzHBr08xm48Qno0nSk4h3Qojh+ziv2qE6rXf4k3tadF4o1J/1tAbVm1NtnA==}
 
-  cartonne@3.0.1:
-    resolution: {integrity: sha512-Y8DH//DthEUbfvOMGYj/9K3F1RcWkiVu2dB9tGkiBnMqojAXTpu+TUs9FNNx202H0TQdJgbPsQl7Q6NuJ48dCw==}
+  cartonne@3.0.2:
+    resolution: {integrity: sha512-NGjYykWSbNkGlB1Dm5ZhvdUygDI+5ZQtj4ZBeZzRNQwN7iG40csRM92XnTV3peZAA3kvDEejXa5jeQ1Ls5YzVw==}
 
   cborg@4.2.12:
     resolution: {integrity: sha512-z126yLoavS75cdTuiKu61RC3Y3trqtDAgQRa5Q0dpHn1RmqhIedptWXKnk0lQ5yo/GmcV9myvIkzFgZ8GnqSog==}
@@ -10956,7 +10959,7 @@ snapshots:
 
   caniuse-lite@1.0.30001739: {}
 
-  cartonne@3.0.1:
+  cartonne@3.0.2:
     dependencies:
       '@ipld/dag-cbor': 9.2.4
       multiformats: 13.4.0

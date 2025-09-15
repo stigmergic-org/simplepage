@@ -2,12 +2,17 @@ import { create } from 'kubo-rpc-client'
 import { CarBlock } from 'cartonne'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
+import { concat } from 'uint8arrays/concat'
 import varint from 'varint'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
 import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
 import { FinalizationMap } from './finalization-map.js'
 import { LRUCache } from 'lru-cache'
+import { JSDOM } from 'jsdom'
+
+const DOMParser = new JSDOM().window.DOMParser
+const parser = new DOMParser()
 
 const BLOCK_NUMBER_LABEL = 'spg_latest_block_number'
 
@@ -174,7 +179,81 @@ export class IpfsService {
     }
   }
 
+  async getHistory(domain) {
+      const auxiliaryHistory = {}
+      const getTxHistory = async domain => (await this.getList(`contenthash_${domain}`, 'string')).map(item => {
+        const [blockNumber, cid, txHash] = item.split('-')
+        return { blockNumber, cid: CID.parse(cid), txHash }
+      })
+      const mainHistory = await getTxHistory(domain)
+      mainHistory.sort((a, b) => a.blockNumber - b.blockNumber)
+      const car = emptyCar()
 
+
+      const getLinks = async cid => {
+        const block = await this.client.block.get(cid)
+        car.blocks.put(new CarBlock(cid, block))
+        return car.get(cid).Links
+      }
+
+      const collectBlocks = async cid => {
+        const links = await getLinks(cid)
+        const { Hash: indexCid } = links.find(link => link.Name === 'index.html')
+        if (indexCid) {
+          const block = await this.client.block.get(indexCid)
+          car.blocks.put(new CarBlock(indexCid, block))
+          const data = await all(await this.client.cat(indexCid))
+          const indexContent = new TextDecoder().decode(concat(data))
+          const auxDomain = parser.parseFromString(indexContent, 'text/html').querySelector('meta[name="ens-domain"]').getAttribute('content')
+          if (!auxiliaryHistory[auxDomain]) {
+            auxiliaryHistory[auxDomain] = []
+          }
+          if (auxDomain !== domain) {
+            auxiliaryHistory[auxDomain].push({ cid })
+          }
+        }
+        const prev = links.find(link => link.Name === '_prev')
+        if (!prev) return
+        const prevLinks = await getLinks(prev.Hash)
+
+        for (const { Name, Hash } of prevLinks) {
+          // _prev folder should only contain folders named '0', '1', '2', etc.
+          // these folders should point to previous versions of the page
+          if (!car.has(Hash)) {
+            await collectBlocks(Hash)
+          }
+        }
+      }
+      for (const { cid } of mainHistory) {
+        await collectBlocks(cid)
+      }
+
+      let result = { metadata: {} }
+      for (const auxDomain in auxiliaryHistory) {
+        console.log('domain', auxDomain)
+        const history = await getTxHistory(auxDomain)
+        const filteredHistory = history.filter(item => !mainHistory.some(main => main.cid.equals(item.cid)))
+        console.log('history', history)
+        result = filteredHistory.reduce((acc, { cid, txHash }) => {
+          acc.metadata[cid.toString()] = { tx: txHash }
+          return acc
+        }, result)
+        console.log('result', result)
+      }
+
+      // const metadata = mainHistory.reduce((acc, { cid, txHash }) => {
+      //   acc.metadata[cid.toString()] = { tx: txHash }
+      //   return acc
+      // }, { metadata: {} })
+      result = mainHistory.reduce((acc, { cid, txHash }) => {
+        acc.metadata[cid.toString()] = { tx: txHash }
+        return acc
+      }, result)
+      console.log('result', result)
+
+      car.put(result, { isRoot: true })
+      return car.bytes
+  }
 
   async isPageFinalized(cid, domain, blockNumber) {
     assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)

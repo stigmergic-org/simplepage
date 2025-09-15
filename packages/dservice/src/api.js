@@ -216,6 +216,24 @@ export function createApi({ ipfs, indexer, version, logger }) {
     }
   })
 
+  app.get('/history', async (req, res, next) => {
+    try {
+      const { domain } = req.query
+      if (!domain) {
+        logger.warn('Missing domain parameter in GET /history request')
+        throw new HTTPError(400, 'Missing domain parameter')
+      }
+
+      const car = await ipfs.getHistory(domain)
+      res.setHeader('Content-Type', 'application/vnd.ipld.car')
+      res.send(car)
+    } catch (err) {
+      console.log('err', err)
+      logger.error('Error retrieving history', { domain: req.query.domain, error: err.message, stack: err.stack })
+      res.status(500).json({ detail: err.message })
+    }
+  })
+
   /**
    * POST /page
    * @tags Page Operations

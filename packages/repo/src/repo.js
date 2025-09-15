@@ -26,6 +26,7 @@ import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects
 import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
+import { History } from './history.js'
 import { CHANGE_TYPE } from './constants.js'
 
 
@@ -54,6 +55,8 @@ const EDIT_PREFIX = 'spg_edit_'
  * @param {string} options.apiEndpoint - The api endpoint.
  */
 export class Repo {
+  #repoRootPromise = null
+  #resolveRepoRootPromise = null
   #initPromise = null
   #resolveInitPromise = null
 
@@ -68,7 +71,11 @@ export class Repo {
     this.unixfs = fs;
     this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
     this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
+    this.history = new History(this.domain, this.dservice);
     
+    this.#repoRootPromise = new Promise((resolve) => {
+      this.#resolveRepoRootPromise = resolve;
+    });
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
     });
@@ -98,6 +105,10 @@ export class Repo {
       (this.templateRoot = await resolveEnsDomain(this.viemClient, TEMPLATE_DOMAIN, this.universalResolver))
     ])
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
+    this.#resolveRepoRootPromise()
+
+    // Initialize history with viem client
+    this.history.init(this.viemClient, this.repoRoot.cid)
 
     await Promise.all([
       this.#ensureRepoData(false, true),
@@ -111,6 +122,11 @@ export class Repo {
 
   get initialized() {
     return Boolean(this.repoRoot && this.templateRoot)
+  }
+
+  async getRoot() {
+    await this.#repoRootPromise;
+    return this.repoRoot.cid;
   }
 
   async #importRepoData(cid) {

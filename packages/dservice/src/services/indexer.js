@@ -44,8 +44,10 @@ export class IndexerService {
 
   async pollLoop() {
     while (this.isRunning) {
+      this.logger.debug('Polling started')
       this.currentPoll = this.poll()
       await this.currentPoll
+      this.logger.debug('Polling completed')
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, 500))
     }
@@ -136,11 +138,11 @@ export class IndexerService {
     for (const log of chLogsForDomains) {
       // Convert contenthash to CID before storing
       const cid = ensContentHashToCID(log.args.hash)
-      // persist both the contenthash and the blocknumber for the domain
+      // persist both the contenthash and the blocknumber for the domain, as well as txhash
       await this.ipfsService.addToList(
         `contenthash_${domainFromNode[log.args.node]}`,
         'string',
-        `${log.blockNumber}-${cid}`
+        `${log.blockNumber}-${cid}-${log.transactionHash}`
       )
     }
   }

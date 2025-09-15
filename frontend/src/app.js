@@ -17,6 +17,7 @@ import Subscription from './pages/subscription';
 import Pages from './pages/pages';
 import Files from './pages/files';
 import Settings from './pages/settings';
+import History from './pages/history';
 import NotFound from './pages/notfound';
 import { ROUTES } from './config/routes';
 
@@ -48,6 +49,7 @@ const App = (props) => {
             <Route path={ROUTES.PAGES} element={<Pages />} />
             <Route path={ROUTES.FILES} element={<Files />} />
             <Route path={ROUTES.SETTINGS} element={<Settings />} />
+            <Route path={ROUTES.HISTORY} element={<History />} />
             <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
           </Routes>
         </ScrollProvider>

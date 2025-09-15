@@ -92,7 +92,7 @@ describe('Repo Integration Tests', () => {
 
   beforeAll(async () => {
     testEnv = new TestEnvironmentDservice();
-    await testEnv.start();
+    await testEnv.start({ logToConsole: false });
     addresses = testEnv.addresses;
     parser = new DOMParser()
     
@@ -2535,6 +2535,250 @@ Thoughts and insights about technology and development.`,
       await newRepo.close();
     });
   })
+
+  describe('History Tests', () => {
+    let testDomain;
+    let testRepo;
+
+    // Helper function to set up a fresh domain for each test
+    const setupFreshDomain = async (domainSuffix = '') => {
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(7);
+      testDomain = `test${domainSuffix}${timestamp}${randomSuffix}.eth`;
+
+      
+      // .slice(2)solver and contenthash for the new domain
+      testEnv.evm.setResolver(addresses.universalResolver, testDomain, addresses.resolver1);
+      testEnv.evm.setContenthash(addresses.resolver1, testDomain, testDataCid.toString());
+      
+      // Mint the page through SimplePage contract - this will automatically trigger the indexer
+      testEnv.evm.mintPage(testDomain, 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001'); // 1 year duration
+
+      await testEnv.waitUntilBlockIsIndexed(testEnv.evm.getBlockNumber())
+      
+      // Create a new repo instance for this domain
+      const newStorage = new MockStorage();
+      testRepo = new Repo(testDomain, newStorage);
+      await testRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+      
+      return { testDomain, testRepo };
+    };
+
+    beforeAll(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
+    });
+
+    afterEach(async () => {
+      if (testRepo) {
+        await testRepo.close();
+      }
+    });
+
+    it('should return one entry with no changes to repo', async () => {
+      const { testDomain, testRepo } = await setupFreshDomain('nochanges');
+
+      // Get history without making any changes
+      const history = await testRepo.history.get();
+      
+      expect(history).toBeDefined();
+      expect(Array.isArray(history)).toBe(true);
+      expect(history.length).toBe(1);
+      
+      const entry = history[0];
+      expect(entry).toHaveProperty('blockNumber');
+      expect(entry).toHaveProperty('cid');
+      expect(entry).toHaveProperty('parents');
+      expect(entry).toHaveProperty('tx');
+      expect(entry).toHaveProperty('version');
+      expect(entry).toHaveProperty('domain');
+      
+      expect(entry.cid).toBeInstanceOf(CID);
+      expect(entry.parents).toEqual([]);
+      expect(entry.domain).toBe('test.eth');
+      expect(entry.version).toBe('0.4.0');
+    });
+
+    it('should contain two entries after one commit with new entry', async () => {
+      const { testDomain, testRepo } = await setupFreshDomain('onecommit');
+      
+      // Make a change and commit it
+      await testRepo.setPageEdit('/', '# Updated Home\n\nThis is an updated home page.', '<h1>Updated Home</h1><p>This is an updated home page.</p>');
+      
+      const result = await testRepo.stage(testDomain, false);
+      const hash = await walletClient.writeContract(result.prepTx);
+      await client.waitForTransactionReceipt({ hash });
+      await testRepo.finalizeCommit(result.cid);
+
+      // Get history after one commit
+      const history = await testRepo.history.get();
+      
+      expect(history).toBeDefined();
+      expect(Array.isArray(history)).toBe(true);
+      expect(history.length).toBe(2);
+      
+      // Second entry should be the original
+      const firstEntry = history[1];
+      expect(firstEntry.parents).toEqual([]);
+      expect(firstEntry.version).toBe('0.4.0');
+      expect(firstEntry.domain).toBe('test.eth');
+      
+      // First entry should be the new commit
+      const secondEntry = history[0];
+      expect(secondEntry.parents).toHaveLength(1);
+      expect(secondEntry.parents[0]).toEqual(firstEntry.cid);
+      expect(secondEntry.version).toBe('0.4.0');
+      expect(secondEntry.domain).toBe(testDomain);
+      expect(secondEntry.cid.toString()).toBe(result.cid.toString());
+    });
+
+    it('should have entries for each commit with correct versions after multiple commits including version update', async () => {
+      const { testDomain, testRepo } = await setupFreshDomain('multicommit');
+      
+      // First commit: content change without version update
+      await testRepo.setPageEdit('/', '# First Update\n\nFirst content update.', '<h1>First Update</h1><p>First content update.</p>');
+      
+      const firstResult = await testRepo.stage(testDomain, false);
+      const firstHash = await walletClient.writeContract(firstResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: firstHash });
+      await testRepo.finalizeCommit(firstResult.cid);
+
+      // Second commit: content change with version update
+      await testRepo.setPageEdit('/', '# Second Update\n\nSecond content update with version.', '<h1>Second Update</h1><p>Second content update with version.</p>');
+      
+      const secondResult = await testRepo.stage(testDomain, true);
+      const secondHash = await walletClient.writeContract(secondResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: secondHash });
+      await testRepo.finalizeCommit(secondResult.cid);
+
+      // Third commit: another content change without version update
+      await testRepo.setPageEdit('/', '# Third Update\n\nThird content update.', '<h1>Third Update</h1><p>Third content update.</p>');
+      
+      const thirdResult = await testRepo.stage(testDomain, false);
+      const thirdHash = await walletClient.writeContract(thirdResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: thirdHash });
+      await testRepo.finalizeCommit(thirdResult.cid);
+
+      // Get history after multiple commits
+      const history = await testRepo.history.get();
+      
+      expect(history).toBeDefined();
+      expect(Array.isArray(history)).toBe(true);
+      expect(history.length).toBe(4); // Original + 3 commits
+      
+      // Verify parent relationships
+      const originalEntry = history[3];
+      expect(originalEntry.parents).toEqual([]);
+      expect(originalEntry.version).toBe('0.4.0');
+      expect(originalEntry.domain).toBe('test.eth');
+      
+      const firstCommitEntry = history[2];
+      expect(firstCommitEntry.parents).toHaveLength(1);
+      expect(firstCommitEntry.parents[0]).toEqual(originalEntry.cid);
+      expect(firstCommitEntry.version).toBe('0.4.0');
+      expect(firstCommitEntry.domain).toBe(testDomain);
+      expect(firstCommitEntry.cid.toString()).toBe(firstResult.cid.toString());
+      
+      const secondCommitEntry = history[1];
+      expect(secondCommitEntry.parents).toHaveLength(1);
+      expect(secondCommitEntry.parents[0]).toEqual(firstCommitEntry.cid);
+      expect(secondCommitEntry.version).toBe('0.5.0'); // Version should be updated
+      expect(secondCommitEntry.domain).toBe(testDomain);
+      expect(secondCommitEntry.cid.toString()).toBe(secondResult.cid.toString());
+      
+      const thirdCommitEntry = history[0];
+      expect(thirdCommitEntry.parents).toHaveLength(1);
+      expect(thirdCommitEntry.parents[0]).toEqual(secondCommitEntry.cid);
+      expect(thirdCommitEntry.version).toBe('0.5.0'); // Should maintain updated version
+      expect(thirdCommitEntry.domain).toBe(testDomain);
+      expect(thirdCommitEntry.cid.toString()).toBe(thirdResult.cid.toString());
+    }, 100000);
+
+    it('should contain all commits before and after reset without parent relations after hard reset', async () => {
+      const { testDomain, testRepo } = await setupFreshDomain('hardreset');
+      
+      // First commit: content change
+      await testRepo.setPageEdit('/', '# First Update\n\nFirst content update.', '<h1>First Update</h1><p>First content update.</p>');
+      
+      const firstResult = await testRepo.stage(testDomain, false);
+      const firstHash = await walletClient.writeContract(firstResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: firstHash });
+      await testRepo.finalizeCommit(firstResult.cid);
+
+      // Second commit: another content change
+      await testRepo.setPageEdit('/', '# Second Update\n\nSecond content update.', '<h1>Second Update</h1><p>Second content update.</p>');
+      
+      const secondResult = await testRepo.stage(testDomain, false);
+      const secondHash = await walletClient.writeContract(secondResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: secondHash });
+      await testRepo.finalizeCommit(secondResult.cid);
+
+      // Simulate a hard reset by directly setting the contenthash back to new.simplepage.eth
+      // This is outside normal repo functionality - like a hard reset
+      testEnv.evm.setContenthash(addresses.resolver1, testDomain, templateCid.toString());
+
+      // Create a new repo instance to simulate loading after the reset
+      const newStorage = new MockStorage();
+      const newRepo = new Repo(testDomain, newStorage);
+      await newRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      // Make a new commit after the reset
+      await newRepo.setPageEdit('/', '# After Reset\n\nContent after hard reset.', '<h1>After Reset</h1><p>Content after hard reset.</p>');
+      
+      const afterResetResult = await newRepo.stage(testDomain, false);
+      const afterResetHash = await walletClient.writeContract(afterResetResult.prepTx);
+      await client.waitForTransactionReceipt({ hash: afterResetHash });
+      await newRepo.finalizeCommit(afterResetResult.cid);
+
+      // Get history after the reset and new commit
+      const history = await newRepo.history.get();
+      
+      expect(history).toBeDefined();
+      expect(Array.isArray(history)).toBe(true);
+      expect(history.length).toBe(5); // Original + 2 commits before reset + 1 for what we reset to + 1 after reset
+      
+      // Verify the first three entries (before reset) maintain their parent relationships
+      const originalEntry = history[4];
+      expect(originalEntry.parents).toEqual([]);
+      expect(originalEntry.version).toBe('0.4.0');
+      expect(originalEntry.domain).toBe('test.eth');
+      expect(originalEntry.cid.toString()).toBe(testDataCid.toString());
+      
+      const firstCommitEntry = history[3];
+      expect(firstCommitEntry.parents).toHaveLength(1);
+      expect(firstCommitEntry.parents[0]).toEqual(originalEntry.cid);
+      expect(firstCommitEntry.version).toBe('0.4.0');
+      expect(firstCommitEntry.domain).toBe(testDomain);
+      
+      const secondCommitEntry = history[2];
+      expect(secondCommitEntry.parents).toHaveLength(1);
+      expect(secondCommitEntry.parents[0]).toEqual(firstCommitEntry.cid);
+      expect(secondCommitEntry.version).toBe('0.4.0');
+      expect(secondCommitEntry.domain).toBe(testDomain);
+      
+      // The entry after reset should NOT have parent relationships to the previous commits
+      // because it's essentially a new branch starting from the template
+      const templateEntry = history[1];
+      expect(templateEntry.parents).toEqual([]);
+      expect(templateEntry.version).toBe('0.5.0');
+      expect(templateEntry.domain).toBe('new.simplepage.eth');
+      expect(templateEntry.cid.toString()).toBe(templateCid.toString());
+
+      const afterResetEntry = history[0];
+      expect(afterResetEntry.parents).toHaveLength(1);
+      expect(afterResetEntry.parents[0]).toEqual(templateEntry.cid);
+      expect(afterResetEntry.version).toBe('0.5.0'); // Should be template version
+      expect(afterResetEntry.domain).toBe(testDomain);
+      expect(afterResetEntry.cid.toString()).toBe(afterResetResult.cid.toString());
+
+      await newRepo.close();
+    }, 100000);
+  });
 
   describe('Error Handling Tests', () => {
     it('should handle initialization errors gracefully', async () => {

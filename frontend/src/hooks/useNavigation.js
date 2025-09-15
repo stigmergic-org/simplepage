@@ -43,6 +43,8 @@ export const useNavigation = () => {
 
   const goToSettings = () => navigate(ROUTES.SETTINGS);
 
+  const goToHistory = () => navigate(ROUTES.HISTORY);
+
   const goToNotFound = (path = null) => navigate(createUrlWithParams(ROUTES.NOT_FOUND, { path }));
 
   const goToRoot = () => {
@@ -64,6 +66,7 @@ export const useNavigation = () => {
     goToPages,
     goToFiles,
     goToSettings,
+    goToHistory,
     goToNotFound,
     goToRoot,
     isActive,
