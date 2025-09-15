@@ -1,5 +1,18 @@
 # @simplepg/frontend
 
+## 1.5.1
+
+### Patch Changes
+
+- 5bd72b7: fix(frontend): proper icon fallback and tailwind classes
+- 90188be: fix(repo,frontend): properly order navigation items in sidebar
+- 4ca47e3: fix(frontend): don't break when root page isn't in sidebar nav
+- 1d24e9c: fix(frontend): apply syntax highlighting properly
+- 6358f4c: fix(frontend): sidebar can now scroll to last content
+- abc6389: fix(frontedn): search now prooperly navigates to headings
+- Updated dependencies [90188be]
+  - @simplepg/repo@1.3.1
+
 ## 1.5.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @simplepg/repo
 
+## 1.3.1
+
+### Patch Changes
+
+- 90188be: fix(repo,frontend): properly order navigation items in sidebar
+
 ## 1.3.0
 
 ### Minor Changes
