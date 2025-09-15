@@ -86,7 +86,7 @@ const Sidebar = ({
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className}`}
+        className={`fixed top-0 ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className} flex flex-col`}
         style={{ 
           paddingTop: `${effectiveTop}px`,
           transition: 'padding-top 0.1s ease-out, transform 0.3s ease-in-out'
@@ -94,14 +94,14 @@ const Sidebar = ({
       >
         {/* Sidebar Header */}
         <div 
-          className={`flex items-center justify-between p-4 border-b border-base-300 ${position === 'left' ? 'pl-16' : ''} ${onTitleClick ? 'cursor-pointer' : ''}`}
+          className={`flex items-center justify-between p-4 border-b border-base-300 flex-shrink-0 ${position === 'left' ? 'pl-16' : ''} ${onTitleClick ? 'cursor-pointer' : ''}`}
           onClick={onTitleClick}
         >
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
         </div>
 
         {/* Sidebar Content */}
-        <div className="p-4 overflow-y-auto h-full">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </div>
