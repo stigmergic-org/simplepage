@@ -131,27 +131,29 @@ const Publish = () => {
   }, [queryDomain, domain, ownedDomains]);
 
   const getFileChanges = async () => {
-    try {
-      const allChangedFiles = [];
-      const traverseDirectory = async (path) => {
-        const files = await repo.files.ls(path);
-        for (const file of files) {
-          if (file.change) {
-            allChangedFiles.push(file);
-          }
-          // If it's a directory and has changes, recursively check inside
-          if (file.type === 'directory' && file.change) {
-            await traverseDirectory(file.path);
-          }
+  try {
+    const changedFiles = [];
+    const traverseDirectory = async (path) => {
+      const entries = await repo.files.ls(path);
+      for (const entry of entries) {
+        if (entry.type === 'directory') {
+          // Recurse into directories, but don't record them in the list
+          await traverseDirectory(`${path.endsWith('/') ? path : path + '/'}${entry.name}`);
+          continue;
         }
-      };
-      await traverseDirectory('/');
-      setFileChanges(allChangedFiles);
-    } catch (error) {
-      console.error('Error getting file changes:', error);
-      setFileChanges([]);
-    }
-  };
+        // Only record files that changed
+        if (entry.change) {
+          changedFiles.push(entry);
+        }
+      }
+    };
+    await traverseDirectory('/');
+    setFileChanges(changedFiles);
+  } catch (error) {
+    console.error('Error getting file changes:', error);
+    setFileChanges([]);
+  }
+};
 
   const getSettingsChanges = async () => {
     try {
