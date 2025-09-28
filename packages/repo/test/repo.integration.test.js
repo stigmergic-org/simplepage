@@ -1211,8 +1211,8 @@ This is a test.`;
       expect(manifestData.description).toBe('This is a custom description for the page');
       expect(manifestData.icons).toBeDefined();
       expect(manifestData.icons.length).toBe(1);
-      expect(manifestData.icons[0].src).toBe('/_assets/images/logo.svg');
-      expect(manifestData.icons[0].type).toBe('image/svg+xml');
+      expect(manifestData.icons[0].src).toBe('/_assets/images/logo.png');
+      expect(manifestData.icons[0].type).toBe('image/png');
       expect(manifestData.dapp_repository).toBe('https://github.com/stigmergic-org/simplepage');
       expect(manifestData.dapp_contracts).toEqual([]);
 

@@ -73,8 +73,8 @@ export function populateManifest(domain, { title, description } = {}, avatarPath
     })
   } else {
     manifest.icons.push({
-      src: "/_assets/images/logo.svg",
-      type: "image/svg+xml"
+      src: "/_assets/images/logo.png",
+      type: "image/png"
     })
   }
   return JSON.stringify(manifest)
