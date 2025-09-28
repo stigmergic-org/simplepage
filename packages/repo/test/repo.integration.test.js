@@ -1212,7 +1212,6 @@ This is a test.`;
       expect(manifestData.icons).toBeDefined();
       expect(manifestData.icons.length).toBe(1);
       expect(manifestData.icons[0].src).toBe('/_assets/images/logo.svg');
-      expect(manifestData.icons[0].sizes).toBe('192x192');
       expect(manifestData.icons[0].type).toBe('image/svg+xml');
       expect(manifestData.dapp_repository).toBe('https://github.com/stigmergic-org/simplepage');
       expect(manifestData.dapp_contracts).toEqual([]);
@@ -2292,6 +2291,16 @@ Thoughts and insights about technology and development.`,
           expect(html).toContain(page.body);
         }
       }
+
+      // Verify that the webapp manifest also includes the avatar as an icon
+      const manifest = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/manifest.json`);
+      expect(manifest).toBeDefined();
+      
+      const manifestData = JSON.parse(manifest);
+      expect(manifestData.icons).toBeDefined();
+      expect(manifestData.icons.length).toBe(1);
+      expect(manifestData.icons[0].src).toBe('/_files/.avatar.png');
+      expect(manifestData.icons[0].type).toBe('image/png');
     });
 
     it('should use first img tag in page content for social media previews', async () => {

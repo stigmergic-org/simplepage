@@ -1,24 +1,8 @@
 import { toString } from 'uint8arrays/to-string';
 import { assert } from '@simplepg/common'
-import { MIME_TYPES } from '../config/media';
+export { mimeType, mediaType } from '@simplepg/common'
 import imageType from 'image-type';
 
-/**
- * Get MIME type from file path
- * @param {string} path - File path
- * @returns {string|null} MIME type or null if not found
- */
-export const mimeType = (path) => {
-  const extension = path.split('.').pop().toLowerCase()
-  return MIME_TYPES[extension]
-}
-
-/**
- * Get media type from file path
- * @param {string} path - File path
- * @returns {string|null} Media type (image, video, audio) or null if not found
- */
-export const mediaType = path => mimeType(path)?.split('/')[0]
 
 /**
  * Format file size in bytes to human readable format
