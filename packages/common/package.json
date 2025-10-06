@@ -33,7 +33,7 @@
     "cartonne": "^3.0.1",
     "cross-fetch": "^4.1.0",
     "it-all": "^3.0.9",
-    "multiformats": "^13.4.0",
+    "multiformats": "^13.4.1",
     "uint8arrays": "^5.1.0",
     "viem": "^2.31.4"
   }
