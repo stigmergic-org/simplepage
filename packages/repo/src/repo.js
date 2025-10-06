@@ -473,9 +473,8 @@ export class Repo {
     }
   }
 
-  async #renderHtml({ body, markdown }, targetDomain, path, root) {
+  async #renderHtml({ body, markdown }, targetDomain, path, root, avatarPath) {
     const templateHtml = await cat(this.unixfs, root, '/_template.html')
-    const avatarPath = await this.files.getAvatarPath()
     
     // Extract title and description from markdown frontmatter
     const frontmatter = parseFrontmatter(markdown)
@@ -546,6 +545,7 @@ export class Repo {
         })
       }
     }
+    const avatarPath = await this.files.getAvatarPath()
 
     // Add the edits to the new root
     for (const edit of edits) {
@@ -561,13 +561,13 @@ export class Repo {
         case CHANGE_TYPE.NEW:
         case CHANGE_TYPE.UPGRADE:
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
-          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer)
+          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
           break
       }
     }
     const { title, description } = await this.getMetadata('/')
-    const manifest = populateManifest(targetDomain, { title, description })
+    const manifest = populateManifest(targetDomain, { title, description }, avatarPath)
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.json', manifest)
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
     const pages = await this.getAllPages(rootPointer)

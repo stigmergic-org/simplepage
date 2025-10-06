@@ -36,3 +36,20 @@ export const MIME_TYPES = {
   // Documents
   'pdf': 'application/pdf'
 };
+
+/**
+ * Get MIME type from file path
+ * @param {string} path - File path
+ * @returns {string|null} MIME type or null if not found
+ */
+export const mimeType = (path) => {
+  const extension = path.split('.').pop().toLowerCase()
+  return MIME_TYPES[extension]
+}
+
+/**
+ * Get media type from file path
+ * @param {string} path - File path
+ * @returns {string|null} Media type (image, video, audio) or null if not found
+ */
+export const mediaType = path => mimeType(path)?.split('/')[0]

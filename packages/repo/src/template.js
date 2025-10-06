@@ -1,3 +1,5 @@
+import { mimeType } from '@simplepg/common'
+
 export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null) {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
@@ -53,20 +55,27 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     return `<!DOCTYPE html>\n${templateDoc.documentElement.outerHTML}`;
 }
 
-export function populateManifest(domain, { title, description } = {}) {
+export function populateManifest(domain, { title, description } = {}, avatarPath = null) {
   const manifest = {
     name: title || domain,
     short_name: domain,
     description: description || `A SimplePage by ${domain}`,
-    icons: [
-      {
-        src: "/_assets/images/logo.svg",
-        sizes: "192x192",
-        type: "image/svg+xml"
-      }
-    ],
     dapp_repository: "https://github.com/stigmergic-org/simplepage",
-    dapp_contracts: []
+    dapp_contracts: [],
+    icons: [],
+  }
+  // If avatar is present, add it as an icon with proper MIME type
+  if (avatarPath) {
+    const avatarMimeType = mimeType(avatarPath) || 'image/svg+xml'
+    manifest.icons.push({
+      src: avatarPath,
+      type: avatarMimeType
+    })
+  } else {
+    manifest.icons.push({
+      src: "/_assets/images/logo.png",
+      type: "image/png"
+    })
   }
   return JSON.stringify(manifest)
 }
