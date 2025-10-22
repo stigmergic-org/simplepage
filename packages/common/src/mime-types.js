@@ -15,7 +15,7 @@ export const MIME_TYPES = {
   // Videos
   'mp4': 'video/mp4',
   'webm': 'video/webm',
-  'ogg': 'video/ogg',
+  'ogv': 'video/ogg',
   'mov': 'video/quicktime',
   'avi': 'video/x-msvideo',
   'wmv': 'video/x-ms-wmv',
