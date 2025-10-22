@@ -293,7 +293,7 @@ export class IpfsService {
           if (pins.length > 0) {
             cidsWithOtherDomainPins.push(pins[0].cid)
           }
-        } catch (error) {
+        } catch (_error) {
           continue // Ignore errors from ls when CID is not pinned
         }
       }
@@ -304,7 +304,7 @@ export class IpfsService {
         try {
           await all(await this.client.block.rm(cid))
           this.logger.debug('Removed block', { cid: cid.toString() })
-        } catch (error) {
+        } catch (_error) {
           // Block might already be removed or not exist
           this.logger.debug('Block already removed or doesn\'t exist', { 
             cid: cid.toString() 

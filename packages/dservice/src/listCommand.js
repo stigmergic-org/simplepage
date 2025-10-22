@@ -14,10 +14,11 @@ export async function handleListCommand(type, action, name, ipfsApiUrl) {
 
   try {
     switch (action) {
-      case 'show':
+      case 'show': {
         const list = await ipfs.getList(type, 'string')
         console.log(`${type} list:`, list || [])
         break
+      }
       case 'add':
         if (!name) {
           console.error('Name is required for add action')

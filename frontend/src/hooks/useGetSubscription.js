@@ -1,5 +1,4 @@
 import { useReadContract } from 'wagmi';
-import { normalize } from 'viem/ens';
 import { keccak256, encodePacked } from 'viem';
 import { contracts } from '@simplepg/common';
 import { useChainId } from './useChainId';

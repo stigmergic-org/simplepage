@@ -91,7 +91,7 @@ describe('DService', () => {
       // Also clear any existing text record to ensure clean state
       try {
         testEnv.clearTextRecord(testEnv.addresses.resolver1, 'test.eth', 'dservice')
-      } catch (e) {
+      } catch (_e) {
         // Ignore error if text record doesn't exist
       }
 

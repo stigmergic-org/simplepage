@@ -15,7 +15,7 @@ import { useChainId } from '../hooks/useChainId';
 
 const Subscribe = () => {
   const [duration, setDuration] = useState(1);
-  const [progress, setProgress] = useState(0);
+  const [, setProgress] = useState(0);
   const chainId = useChainId();
   const { chainId: accountChainId } = useAccount();
   const { data: hash, status, error, reset, writeContract } = useWriteContract();
@@ -49,14 +49,14 @@ const Subscribe = () => {
 
   document.title = `${isDonationRequest ? 'Donate to' : 'Subscribe'} - ${domain}`;
 
-  const { pageData, subscriptionValid, isLoading: isLoadingPageData } = useGetSubscription(domain);
+  const { pageData, subscriptionValid } = useGetSubscription(domain);
   console.log('subscriptionValid', subscriptionValid);
   const { 
     fee, 
     feeWithMargin, 
     gasEstimate, 
-    isFeeLoading, 
-    isGasLoading,
+    isFeeLoading,
+    // isGasLoading,
   } = useGetSubscriptionFee(duration, domain);
 
 

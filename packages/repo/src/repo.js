@@ -7,7 +7,6 @@ import {
   resolveEnsDomain,
   DService,
   carFromBytes,
-  emptyUnixfs,
   browserUnixfs,
   cidInFs,
   cat,
@@ -178,7 +177,7 @@ export class Repo {
     try {
       await cat(this.unixfs, this.repoRoot.cid, path + 'index.md')
       return true
-    } catch (e) {
+    } catch (_e) {
       return false
     }
   }
@@ -370,7 +369,7 @@ export class Repo {
       if (selectedPath === path) {
         showNavInfo = true
       }
-      let newItem = {
+      const newItem = {
         selected: selectedPath === path,
         path,
         title: meta.title || pathToTitle(meta.path) || path,
@@ -489,7 +488,7 @@ export class Repo {
    */
   async stage(targetDomain, wantUpdateTemplate = false) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
-    let edits = await this.getChanges()
+    const edits = await this.getChanges()
     const filesChanged = await this.files.hasChanges()
     const settingsChanged = await this.settings.hasChanges()
     if (wantUpdateTemplate) {
@@ -559,11 +558,12 @@ export class Repo {
           break
         case CHANGE_TYPE.EDIT:
         case CHANGE_TYPE.NEW:
-        case CHANGE_TYPE.UPGRADE:
+        case CHANGE_TYPE.UPGRADE: {
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
           const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
           break
+        }
       }
     }
     const { title, description } = await this.getMetadata('/')

@@ -14,7 +14,7 @@ export function useDserviceParam(name) {
       try {
         const decoded = decodeURIComponent(value);
         return decoded.startsWith('http') ? decoded : `https://${decoded}`;
-      } catch (e) {
+      } catch (_e) {
         return value;
       }
     }

@@ -76,8 +76,8 @@ const Publish = () => {
   const [hasExistingContent, setHasExistingContent] = useState(false);
 
   const { data: hash, status, error, reset, writeContract } = useWriteContract()
-  const { isLoading: isWaiting, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
-  const [progress, setProgress] = useState(0);
+  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
+  const [, setProgress] = useState(0);
 
   const { subscriptionValid } = useGetSubscription(selectedDomain);
   const { isOwner } = useIsEnsOwner(selectedDomain);
@@ -445,7 +445,7 @@ const Publish = () => {
           {!isOwner && (
             <div className="mb-6 border border-base-300 rounded-md p-2 bg-base-200">
               <span className="text-base-content/70">
-                You are not the manager of {selectedDomain}. Try updating your <a className="link" href={`https://app.ens.domains/${selectedDomain}?tab=ownership`} target="_blank" rel="noopener noreferrer">ENS name's manager in the ENS app</a>.
+                You are not the manager of {selectedDomain}. Try updating your <a className="link" href={`https://app.ens.domains/${selectedDomain}?tab=ownership`} target="_blank" rel="noopener noreferrer">ENS name&apos;s manager in the ENS app</a>.
               </span>
             </div>
           )}

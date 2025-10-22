@@ -1,6 +1,6 @@
 import { toString } from 'uint8arrays/to-string';
-import { assert } from '@simplepg/common'
-export { mimeType, mediaType } from '@simplepg/common'
+import { assert, mimeType as getMimeType, mediaType as getMediaType } from '@simplepg/common'
+export { getMimeType as mimeType, getMediaType as mediaType }
 import imageType from 'image-type';
 
 
@@ -28,7 +28,7 @@ export const formatFileSize = (bytes) => {
  */
 export const encodeFileToDataUrl = (fileContent, filePath) => {
   // Get file extension to determine MIME type
-  const mime = mimeType(filePath);
+  const mime = getMimeType(filePath);
   
   // If we can't determine MIME type, return null
   if (!mime) {

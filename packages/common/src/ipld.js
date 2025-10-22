@@ -7,7 +7,6 @@ import { CARFactory, CarBlock } from "cartonne";
 import all from 'it-all'
 import { concat } from 'uint8arrays/concat'
 import { CID } from 'multiformats/cid'
-import { assert } from './utils.js'
 import { HybridBlockstore } from './blockstore.js'
 import { MemoryBlockstore } from 'blockstore-core/memory'
 
@@ -140,21 +139,16 @@ export async function cp(fs, itemCid, root, path, { force = true } = {}) {
   let changePointer = itemCid
 
   while (pathParts.length > 0) {
-    let fileName = pathParts.pop()
-    let { cid: parentCid } = await fs.stat(root, { path: pathParts.join('/') })
+    const fileName = pathParts.pop()
+    const { cid: parentCid } = await fs.stat(root, { path: pathParts.join('/') })
     changePointer = await fs.cp(changePointer, parentCid, fileName, { force })
   }
   return changePointer
 }
 
 export async function cat(fs, root, path) {
-  try {
-    const chunks = await all(fs.cat(root, { path }))
-    return new TextDecoder().decode(concat(chunks));
-  } catch (error) {
-    // console.error(`Error in cat method for cid ${root} with path ${path}:`, error);
-    throw error;
-  }
+  const chunks = await all(fs.cat(root, { path }))
+  return new TextDecoder().decode(concat(chunks));
 }
 
 export async function lsFull(blockstore, cid) {
@@ -250,7 +244,7 @@ export async function tree(blockstore, cid, path = '/') {
   let bytes
   try {
     bytes = await blockstore.get(cid)
-  } catch (error) {
+  } catch (_error) {
     return [path + ' (not found)']
   }
   const output = [path]

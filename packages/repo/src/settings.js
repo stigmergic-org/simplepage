@@ -179,7 +179,7 @@ export class Settings {
       return current && current[k] ? current[k] : null
     }, settings)
     
-    if (target && target.hasOwnProperty(lastKey)) {
+    if (target && Object.prototype.hasOwnProperty.call(target, lastKey)) {
       delete target[lastKey]
     }
     

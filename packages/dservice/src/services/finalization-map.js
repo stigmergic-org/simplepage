@@ -41,7 +41,7 @@ export class FinalizationMap {
   }
 
   async #set(finalizations) {
-    const oldCid = this.cid
+    // const oldCid = this.cid
     try {
       const cid = await this.client.dag.put(finalizations, { 
         codec: 'dag-cbor',

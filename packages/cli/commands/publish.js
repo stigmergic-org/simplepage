@@ -37,7 +37,7 @@ async function checkSubscription(domain, rpcUrl, simplepage) {
     }
 
     return true
-  } catch (error) {
+  } catch (_error) {
     console.error('\nNo active subscription found.')
     console.error(`\nTo subscribe, visit:`)
     console.error(`https://simplepage.eth.link/spg-subscription/?domain=${domain}`)
@@ -88,7 +88,6 @@ export async function publish(domain, path, options) {
     
     // Collect all entries
     const entries = await all(glob)
-    const firstEntry = entries[0]
 
     if (entries.length === 0) {
       throw new Error('No files found')

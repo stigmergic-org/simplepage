@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "lint": "eslint src/*.js"
+    "lint": "eslint ."
   },
   "keywords": [
     "simplepage",

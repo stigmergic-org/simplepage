@@ -18,7 +18,7 @@ export function useRpcOverride() {
         try {
           const decoded = decodeURIComponent(value);
           overrides[chainId] = decoded.startsWith('http') ? decoded : `https://${decoded}`;
-        } catch (e) {
+        } catch (_e) {
           overrides[chainId] = value;
         }
       }

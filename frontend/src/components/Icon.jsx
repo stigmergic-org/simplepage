@@ -12,34 +12,39 @@ const SIZE_CLASSES = {
 };
 
 const Icon = ({ name, size = 4, className = '', ...props }) => {
-  const icon = ICONS[name];
-  if (!icon) {
-    console.warn(`Icon "${name}" not found in ICONS configuration`);
-    return null;
-  }
-
-  const sizeClass = SIZE_CLASSES[size];
-  if (!sizeClass) {
-    throw new Error(`Invalid icon size: ${size}. Valid sizes are: ${Object.keys(SIZE_CLASSES).join(', ')}`);
-  }
   const [svgAvailable, setSvgAvailable] = useState(true);
+
+  const icon = ICONS[name];
+  const sizeClass = SIZE_CLASSES[size];
 
   // Check SVG availability since CSS mask doesn't trigger onLoad/onError
   useEffect(() => {
+    if (!icon) return;
+    
     const checkSvgAvailability = async () => {
       try {
         const response = await fetch(icon.src, { method: 'HEAD' });
         if (!response.ok) {
           setSvgAvailable(false);
         }
-      } catch (error) {
+      } catch (_error) {
         console.log('SVG not available, falling back to emoji:', icon.src);
         setSvgAvailable(false);
       }
     };
 
     checkSvgAvailability();
-  }, [icon.src]);
+  }, [icon?.src]);
+
+  // Validate icon and size after hooks
+  if (!icon) {
+    console.warn(`Icon "${name}" not found in ICONS configuration`);
+    return null;
+  }
+
+  if (!sizeClass) {
+    throw new Error(`Invalid icon size: ${size}. Valid sizes are: ${Object.keys(SIZE_CLASSES).join(', ')}`);
+  }
 
   // Common props for both fallback and main element
   const commonProps = {

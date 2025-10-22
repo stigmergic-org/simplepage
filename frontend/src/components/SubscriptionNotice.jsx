@@ -7,7 +7,7 @@ import Notice from './Notice';
 
 const SubscriptionNotice = ({ editMode = false }) => {
   const domain = useDomain();
-  const { pageData, subscriptionValid } = useGetSubscription(domain);
+  const { pageData } = useGetSubscription(domain);
   const { goToSubscription } = useNavigation();
   const { repo } = useRepo();
   const [settings, setSettings] = useState({ subscription: { hideDonationNotice: true } });

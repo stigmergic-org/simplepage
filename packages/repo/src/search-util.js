@@ -196,7 +196,7 @@ export function calculateProximityBonus(keywords, textLower) {
  * @param {string} markdown - The original markdown content.
  * @returns {string} The best matching snippet from body content.
  */
-export function findBestMatch(keywords, { title, description, headings, cleanText }, markdown) {
+export function findBestMatch(keywords, { _title, _description, _headings, cleanText }, markdown) {
   // Always return text snippet from body content
   return extractTextSnippet(keywords, cleanText, markdown)
 }
@@ -308,7 +308,6 @@ export function findClosestHeadingBeforeMatch(markdown, keywords) {
 export function findHeadingMatches(markdown, keywords, { title, description, path }) {
   const results = []
   const lines = markdown.split('\n')
-  const cleanText = cleanMarkdownForSearch(markdown)
   
   // Track headings and their content sections
   const headingSections = []

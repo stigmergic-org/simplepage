@@ -3,7 +3,7 @@ import { contracts } from '@simplepg/common';
 import { useChainId } from './useChainId';
 
 const SECONDS_PER_YEAR = 31536000; // 365 days * 24 hours * 60 minutes * 60 seconds
-const MARGIN_MONTHS = 1; // Additional month for price fluctuations
+// const MARGIN_MONTHS = 1; // Additional month for price fluctuations
 const SECONDS_PER_MONTH = SECONDS_PER_YEAR / 12;
 
 export function useGetSubscriptionFee(years = 1, domain) {

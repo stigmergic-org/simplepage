@@ -15,7 +15,7 @@ const sanitizeBigInts = (_, v) => typeof v === 'bigint' ? v.toString() : v
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.printf(({ timestamp, level, message, error, ...meta }) => {
+  winston.format.printf(({ timestamp, level, message, error: _error, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`
 
     if (meta.stack) {

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWaitForTransactionReceipt } from 'wagmi';
 
 const TOAST_DURATION = 10000;
 
-const shortenHash = (hash) => {
-  if (!hash) return '';
-  return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
-};
+// const shortenHash = (hash) => {
+//   if (!hash) return '';
+//   return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
+// };
 
-const TxNotifications = ({ notifications, position = 'top' }) => {
+const TxNotifications = ({ notifications, _position = 'top' }) => {
   const [notificationMap, setNotificationMap] = useState(new Map());
   const timers = useRef(new Map());
 
@@ -63,19 +63,19 @@ const TxNotifications = ({ notifications, position = 'top' }) => {
     }
   }, [transactionReceipt]);
 
-  const handleClose = (hash) => {
-    setNotificationMap(prevMap => {
-      const newMap = new Map(prevMap);
-      newMap.set(hash, { ...newMap.get(hash), display: false });
-      return newMap;
-    });
-    if (timers.current.has(hash)) {
-      clearTimeout(timers.current.get(hash));
-      timers.current.delete(hash);
-    }
-  };
+  // const handleClose = (hash) => {
+  //   setNotificationMap(prevMap => {
+  //     const newMap = new Map(prevMap);
+  //     newMap.set(hash, { ...newMap.get(hash), display: false });
+  //     return newMap;
+  //   });
+  //   if (timers.current.has(hash)) {
+  //     clearTimeout(timers.current.get(hash));
+  //     timers.current.delete(hash);
+  //   }
+  // };
 
-  const activeNotifications = Array.from(notificationMap.values()).filter(n => n.display);
+  // const activeNotifications = Array.from(notificationMap.values()).filter(n => n.display);
 
   // return (
   //   <div className={`toast toast-${position} toast-center mt-16 mb-16`}>

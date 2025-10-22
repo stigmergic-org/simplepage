@@ -1,6 +1,6 @@
 import { Files, FILES_FOLDER } from '../src/files.js'
 import { CHANGE_TYPE } from '../src/constants.js'
-import { emptyUnixfs, ls, CidSet } from '@simplepg/common'
+import { emptyUnixfs, ls } from '@simplepg/common'
 import { jest } from '@jest/globals'
 import { CID } from 'multiformats/cid'
 

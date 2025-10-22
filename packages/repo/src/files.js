@@ -199,12 +199,12 @@ export class Files {
     const split = path.split('/').filter(Boolean)
     split.pop() // remove file name
     const revSplit = split.reverse()
-    let tmpPath = []
+    const tmpPath = []
     while (revSplit.length > 0) {
       tmpPath.push(revSplit.pop())
       try { // ls will ensure the folder is in the local blockstore, if it's under changeRoot
         await this.ls(tmpPath.join('/'))
-      } catch (e) {}
+      } catch (_e) { /* Ignore errors, folder may not exist */ }
     }
     
     // Add file to changeRoot
@@ -223,7 +223,7 @@ export class Files {
     if (avatarPath) {
       try {
         await this.rm(avatarPath)
-      } catch (e) {}
+      } catch (_e) { /* Ignore errors, avatar may not exist */ }
     }
     await this.add('/.avatar.' + fileExt, content, { forceAvatar: true })
   }

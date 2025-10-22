@@ -20,8 +20,8 @@ const Files = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('name'); // 'name', 'modified', 'lastModified'
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
+  const [sortBy] = useState('name'); // 'name', 'modified', 'lastModified'
+  const [sortOrder] = useState('asc'); // 'asc', 'desc'
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [copiedFile, setCopiedFile] = useState(null);
@@ -65,14 +65,14 @@ const Files = () => {
     }
   };
 
-  const handleSort = (newSortBy) => {
-    if (sortBy === newSortBy) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(newSortBy);
-      setSortOrder('asc');
-    }
-  };
+  // const handleSort = (newSortBy) => {
+  //   if (sortBy === newSortBy) {
+  //     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  //   } else {
+  //     setSortBy(newSortBy);
+  //     setSortOrder('asc');
+  //   }
+  // };
 
   const sortFiles = (fileList) => {
     return [...fileList].sort((a, b) => {
@@ -82,11 +82,12 @@ const Files = () => {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        case 'modified':
+        case 'modified': {
           // Sort by change type (new, edited, deleted, published)
           const typeOrder = { [CHANGE_TYPE.NEW]: 0, [CHANGE_TYPE.EDIT]: 1, [CHANGE_TYPE.DELETE]: 2, undefined: 3 };
           comparison = (typeOrder[a.change] || 3) - (typeOrder[b.change] || 3);
           break;
+        }
         case 'lastModified':
           // For now, sort by name as a fallback
           comparison = a.name.localeCompare(b.name);

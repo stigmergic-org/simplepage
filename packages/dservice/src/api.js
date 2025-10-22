@@ -4,7 +4,7 @@ import swaggerUi from 'swagger-ui-express'
 import multer from 'multer'
 import cors from 'cors'
 import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { dirname } from 'path'
 
 // Get current file's directory
 const __filename = fileURLToPath(import.meta.url)
@@ -39,7 +39,7 @@ class HTTPError extends Error {
  * @property {string} file.required - The CAR file to upload - binary
  */
 
-export function createApi({ ipfs, indexer, version, logger }) {
+export function createApi({ ipfs, _indexer, version, logger }) {
   const app = express()
   const upload = multer({
     limits: {
@@ -146,7 +146,7 @@ export function createApi({ ipfs, indexer, version, logger }) {
    * @returns {ErrorResponse} 404 - Not found error - application/json
    * @returns {ErrorResponse} 400 - Bad request error - application/json
    */
-  app.get('/page', async (req, res, next) => {
+  app.get('/page', async (req, res, _next) => {
     try {
       const { cid } = req.query
       if (!cid) {
@@ -186,7 +186,7 @@ export function createApi({ ipfs, indexer, version, logger }) {
    * @returns {ErrorResponse} 404 - Not found error - application/json
    * @returns {ErrorResponse} 400 - Bad request error - application/json
    */
-  app.get('/file', async (req, res, next) => {
+  app.get('/file', async (req, res, _next) => {
     try {
       const { cid } = req.query
       if (!cid) {
@@ -228,7 +228,7 @@ export function createApi({ ipfs, indexer, version, logger }) {
    * @returns {ErrorResponse} 413 - File too large (max 500MB) - application/json
    * @returns {ErrorResponse} 500 - Server error - application/json
    */
-  app.post('/page', upload.single('file'), async (req, res, next) => {
+  app.post('/page', upload.single('file'), async (req, res, _next) => {
     try {
       const { domain } = req.query
 

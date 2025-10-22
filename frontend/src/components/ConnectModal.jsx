@@ -35,7 +35,7 @@ const ConnectModal = ({ children }) => {
                   rel="noopener noreferrer"
                   className="link link-primary text-center"
                 >
-                  I don't have a wallet
+                  I don&apos;t have a wallet
                 </a>
               </div>
             </div>

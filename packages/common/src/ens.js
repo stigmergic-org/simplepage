@@ -218,7 +218,7 @@ export async function resolveEnsOwner(viemClient, ensName, chainId) {
             }
             return owner;
         }
-    } catch (e) {
+    } catch (_e) {
         // Optionally log or handle error
     }
     return null;

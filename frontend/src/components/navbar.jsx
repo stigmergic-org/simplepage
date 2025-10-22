@@ -32,7 +32,7 @@ const Navbar = ({
   const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
   const [forkStyle, setForkStyle] = useState(null);
   const [searchEnabled, setSearchEnabled] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
+  // const [searchFocused, setSearchFocused] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const searchInputRef = useRef(null);
 
@@ -121,7 +121,7 @@ const Navbar = ({
   };
 
   // Check if in edit mode
-  const editMode = activePage && (availableTabs.hasOwnProperty(activePage) || availableMenuItems.find(i => i.label === activePage));
+  const editMode = activePage && (Object.prototype.hasOwnProperty.call(availableTabs, activePage) || availableMenuItems.find(i => i.label === activePage));
 
 
   useEffect(() => {

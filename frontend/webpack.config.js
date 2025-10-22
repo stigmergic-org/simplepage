@@ -1,7 +1,7 @@
-var path = require('path');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var CopyWebpackPlugin = require('copy-webpack-plugin');
-var fs = require('fs');
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const fs = require('fs');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
@@ -165,7 +165,7 @@ module.exports = (env, argv) => {
               // Handle Font Awesome SVGs as assets
               type: 'asset/resource',
               generator: {
-                filename: (pathData) => {
+                filename: (_pathData) => {
                   return '_assets/svg/[hash][ext]';
                 }
               }
@@ -176,7 +176,7 @@ module.exports = (env, argv) => {
           test: /\.(png|jpg|jpeg|gif|ico)$/,
           type: 'asset/resource',
           generator: {
-            filename: (pathData) => {
+            filename: (_pathData) => {
               return '_assets/images/[hash][ext]';
             }
           }
@@ -185,7 +185,7 @@ module.exports = (env, argv) => {
           test: /\.(woff|woff2|eot|ttf)$/,
           type: 'asset/resource',
           generator: {
-            filename: (pathData) => {
+            filename: (_pathData) => {
               return '_assets/fonts/[hash][ext]';
             }
           }

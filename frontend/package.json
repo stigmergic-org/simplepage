@@ -9,7 +9,8 @@
     "start": "serve dist",
     "build:analyze": "webpack --mode=production --env analyze=true",
     "stage": "simplepage publish new.simplepage.eth dist",
-    "validate-html": "node validate-html.js"
+    "validate-html": "node validate-html.js",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",

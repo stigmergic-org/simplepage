@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Run linter
+        run: pnpm lint
+
       - name: Ensure kubo binary is available
         run: |
           echo "=== Ensuring kubo binary is available ==="

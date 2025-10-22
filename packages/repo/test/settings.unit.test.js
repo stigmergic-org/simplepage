@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals'
 import { CID } from 'multiformats/cid'
-import { emptyUnixfs, ls } from '@simplepg/common'
+import { emptyUnixfs } from '@simplepg/common'
 import { Settings, SETTINGS_FILE } from '../src/settings.js'
 
 // Mock storage for testing
@@ -51,7 +51,6 @@ describe('Settings Unit Tests', () => {
   let mockStorage;
   let mockEnsureRepoData;
   let repoRootCid;
-  let settingsCid;
 
   beforeEach(async () => {
     // Create actual filesystem
@@ -64,7 +63,6 @@ describe('Settings Unit Tests', () => {
     
     // Add settings.json to repo root
     repoRootCid = await fs.cp(settingsBytes, emptyDir, 'settings.json');
-    settingsCid = settingsBytes;
     
     // Mock ensureRepoData function
     mockEnsureRepoData = jest.fn().mockResolvedValue(undefined);

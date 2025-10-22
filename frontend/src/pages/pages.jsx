@@ -79,7 +79,7 @@ const Pages = () => {
     if (!newFileName || newFileName === '/') {
       return false;
     }
-    const pattern = /^\/[a-z0-9\-\/]+$/;
+    const pattern = /^\/[a-z0-9\-/]+$/;
     if (!pattern.test(newFileName)) {
       return false;
     }
@@ -163,7 +163,7 @@ const Pages = () => {
   // Get all items to display (existing pages + new edits)
   const getAllItems = () => {
     const existingPages = new Set(allPages);
-    const editPaths = new Set(unstagedEdits.map(edit => edit.path));
+    // const editPaths = new Set(unstagedEdits.map(edit => edit.path));
     const allItems = [...allPages]; // Start with existing pages
     
     // Add unstaged edits that aren't yet pages
@@ -177,7 +177,7 @@ const Pages = () => {
   };
 
   const getItemStatus = (path) => {
-    const isExistingPage = allPages.includes(path);
+    // const isExistingPage = allPages.includes(path);
     const edit = unstagedEdits.find(edit => edit.path === path);
     
     
@@ -244,7 +244,7 @@ const Pages = () => {
                     <tbody>
                       {allItems.map((path, index) => {
                         const status = getItemStatus(path);
-                        const isExistingPage = allPages.includes(path);
+                        // const isExistingPage = allPages.includes(path);
                         return (
                           <tr key={index}>
                             <td>

@@ -12,7 +12,6 @@ import { resolveEnsDomain } from '@simplepg/common'
 import { TestEnvironmentDservice } from '@simplepg/test-utils';
 
 import { Repo } from '../src/repo.js';
-import { CHANGE_TYPE } from '../src/constants.js';
 
 
 // Mock DOMParser for Node.js environment
@@ -791,7 +790,7 @@ This is a test page with custom title and description.`;
       }
       
       // Verify edits exist
-      let changes = await repo.getChanges();
+      const changes = await repo.getChanges();
       const paths = changes.map(change => change.path);
       expect(changes.length).toBe(5);
       expect(paths).toContain('/');
@@ -1502,7 +1501,7 @@ This is a test.`;
       await repo.deletePage('/contact/');
 
       // Verify the deletion is staged
-      let changes = await repo.getChanges();
+      const changes = await repo.getChanges();
       expect(changes.length).toBe(1);
       expect(changes[0].type).toBe('delete');
       expect(changes[0].path).toBe('/contact/');
@@ -1730,7 +1729,7 @@ This is a test.`;
 
       // Intercept logger calls to track file requests
       const originalInfo = testEnv.dservice.logger.info;
-      testEnv.dservice.logger.info = function(msg, { url, method } = {}) {
+      testEnv.dservice.logger.info = function(msg, { url, _method } = {}) {
         // Track requests to the /file endpoint
         if (msg === 'Incoming request' && url && url.includes('/file')) {
           fileEndpointCallCount++;
