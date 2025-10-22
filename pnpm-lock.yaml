@@ -285,9 +285,6 @@ importers:
       '@simplepg/test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      eslint:
-        specifier: ^9.34.0
-        version: 9.34.0(jiti@2.5.1)
       ipfsd-ctl:
         specifier: ^15.0.2
         version: 15.0.2(undici@7.11.0)
