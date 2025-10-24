@@ -74,6 +74,7 @@ const Publish = () => {
   const [stagedRoot, setStagedRoot] = useState(null);
   const [allowOverwrite, setAllowOverwrite] = useState(false);
   const [hasExistingContent, setHasExistingContent] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   const { data: hash, status, error, reset, writeContract } = useWriteContract()
   const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash })
@@ -181,6 +182,8 @@ const Publish = () => {
       return;
     }
 
+    setIsPreparing(true);
+    
     try {
       if (ensAvatar) {
         const data = await avatarUrlToFile(ensAvatar);
@@ -198,6 +201,8 @@ const Publish = () => {
     } catch (error) {
       console.error('Error publishing content:', error);
       setErrorMessage(error.message || 'An error occurred while publishing content.');
+    } finally {
+      setIsPreparing(false);
     }
   };
 
@@ -454,6 +459,7 @@ const Publish = () => {
             <button
               onClick={handlePublish}
               disabled={
+                isPreparing ||
                 !selectedDomain || showAddForm ||
                 !address || !isOwner ||
                 selectedDomain === 'new.simplepage.eth' ||
@@ -463,7 +469,14 @@ const Publish = () => {
               }
               className="btn btn-primary"
             >
-              {publishOrFork}
+              {isPreparing ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  <span>Preparing...</span>
+                </>
+              ) : (
+                publishOrFork
+              )}
             </button>
           </div>
         </TransactionStatus>

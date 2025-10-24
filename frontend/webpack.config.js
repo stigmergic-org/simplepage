@@ -218,7 +218,7 @@ module.exports = (env, argv) => {
       new MiniCssExtractPlugin({
         filename: '_css/[name].[contenthash].css',
       }),
-      {
+      isProduction && {
         apply: (compiler) => {
           compiler.hooks.afterEmit.tap('CreateCopyPlugin', (compilation) => {
             const outputPath = compilation.outputOptions.path;
