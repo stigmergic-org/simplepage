@@ -52,6 +52,15 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     setMeta('twitter:description', descriptionText)
     if (imageUrl) setMeta('twitter:image', imageUrl)
 
+    // RSS autodiscovery
+    const head = templateDoc.querySelector('head')
+    const rssLink = templateDoc.createElement('link')
+    rssLink.setAttribute('rel', 'alternate')
+    rssLink.setAttribute('type', 'application/rss+xml')
+    rssLink.setAttribute('title', `${titleText} RSS Feed`)
+    rssLink.setAttribute('href', '/rss.xml')
+    head.appendChild(rssLink)
+
     return `<!DOCTYPE html>\n${templateDoc.documentElement.outerHTML}`;
 }
 
@@ -127,7 +136,7 @@ ${toVarsBlock(darkThemeData)}
 
 /**
  * Extracts frontmatter from markdown content.
- * Only parses title (text), description (text), and sidebar (boolean).
+ * Parses title, description, sidebar, RSS fields, and timestamps.
  * @param {string} markdown - The markdown content.
  * @returns {object} Object containing frontmatter data.
  */
@@ -142,9 +151,28 @@ export function parseFrontmatter(markdown) {
   const frontmatterLines = match[1].split('\n');
   const frontmatter = {};
   
+  let isInTagsList = false;
+  
   for (const line of frontmatterLines) {
     // Skip empty lines
     if (!line.trim()) continue;
+    
+    // Handle YAML list items (lines starting with -)
+    if (line.trim().startsWith('-')) {
+      if (isInTagsList) {
+        const tagMatch = line.trim().match(/^-\s*(.+)$/);
+        if (tagMatch) {
+          let tagValue = tagMatch[1].trim();
+          // Remove quotes if present
+          if ((tagValue.startsWith('"') && tagValue.endsWith('"')) || 
+              (tagValue.startsWith("'") && tagValue.endsWith("'"))) {
+            tagValue = tagValue.slice(1, -1);
+          }
+          frontmatter.tags.push(tagValue);
+        }
+      }
+      continue;
+    }
     
     // Match key: value pattern
     const keyValueMatch = line.match(/^([^:]+):\s*(.*)$/);
@@ -152,19 +180,54 @@ export function parseFrontmatter(markdown) {
       const key = keyValueMatch[1].trim();
       let value = keyValueMatch[2].trim();
       
-      // Only parse specific fields
-      if (key === 'title' || key === 'description') {
+      // Reset tags list flag when we encounter a new key
+      isInTagsList = false;
+      
+      // Parse text fields (title, description, language)
+      if (key === 'title' || key === 'description' || key === 'language') {
         // Remove quotes if present
         if ((value.startsWith('"') && value.endsWith('"')) || 
             (value.startsWith("'") && value.endsWith("'"))) {
           value = value.slice(1, -1);
         }
         frontmatter[key] = value;
-      } else if (key === 'sidebar-toc') {
-        // Parse as boolean
+      } 
+      // Parse boolean fields
+      else if (key === 'sidebar-toc' || key === 'rss') {
         frontmatter[key] = value.toLowerCase() === 'true';
-      } else if (key === 'sidebar-nav-prio') {
-        frontmatter[key] = parseInt(value)
+      } 
+      // Parse number fields
+      else if (key === 'sidebar-nav-prio') {
+        frontmatter[key] = parseInt(value);
+      }
+      // Parse ISO timestamp fields (dates or datetimes)
+      else if (key === 'created' || key === 'updated') {
+        // Remove quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) || 
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        frontmatter[key] = value;
+      }
+      // Parse tags list start
+      else if (key === 'tags' && value === '') {
+        // YAML list format: tags: followed by dashes
+        frontmatter.tags = [];
+        isInTagsList = true;
+      }
+      // Parse tags (comma-separated or array notation)
+      else if (key === 'tags' && value !== '') {
+        // Remove quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) || 
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        // Remove array brackets if present
+        if (value.startsWith('[') && value.endsWith(']')) {
+          value = value.slice(1, -1);
+        }
+        // Split by comma and clean up
+        frontmatter.tags = value.split(',').map(tag => tag.trim().replace(/['"]/g, '')).filter(Boolean);
       }
       // Ignore all other fields
     }
@@ -174,7 +237,12 @@ export function parseFrontmatter(markdown) {
 }
 
 export function populateRedirects(pages) {
-  return pages.map(page => {
+  const pageRedirects = pages.map(page => {
     return `${page}* ${page} 200`
   }).join('\n')
+  
+  // Add RSS feed redirect
+  const rssRedirect = '/feed  /rss.xml  301'
+  
+  return `${rssRedirect}\n${pageRedirects}`
 }

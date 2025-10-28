@@ -78,6 +78,8 @@ const ls = async (kubo, path) => {
 
 jest.setTimeout(10000);
 
+import Parser from 'rss-parser';
+
 describe('Repo Integration Tests', () => {
   let testEnv;
   let addresses;
@@ -2592,6 +2594,284 @@ Thoughts and insights about technology and development.`,
       await expect(repo.stage('test.eth', true)).rejects.toThrow('Template root not found');
 
       await repo.close()
+    });
+  });
+
+  describe('RSS Feed Generation', () => {
+    const rssParser = new Parser();
+    
+    beforeAll(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
+    });
+
+    beforeEach(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'test.eth', testDataCid.toString());
+      await repo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+    });
+
+    it('should generate RSS feed with items when pages have rss: true', async () => {
+      // Set up root page with metadata
+      const rootMarkdown = `---
+title: My Test Blog
+description: A blog about testing
+language: en
+---
+# Welcome to my blog`;
+      await repo.setPageEdit('/', rootMarkdown, '<h1>Welcome to my blog</h1>');
+
+      // Add a blog post with RSS enabled
+      const blogPost1 = `---
+title: First Blog Post
+description: A short summary of my first post
+rss: true
+created: 2024-01-15T10:00:00Z
+updated: 2024-01-16T12:00:00Z
+tags:
+  - tutorial
+  - introduction
+---
+# First Blog Post
+
+This is my first post with an image!
+
+![Test Image](/images/test.png)
+
+Some content here.`;
+      await repo.setPageEdit('/blog/post1/', blogPost1, '<h1>First Blog Post</h1><p>This is my first post with an image!</p><img src="/images/test.png" /><p>Some content here.</p>');
+
+      // Add another blog post with RSS enabled
+      const blogPost2 = `---
+title: Second Blog Post
+description: My second post
+rss: true
+created: 2024-01-20T10:00:00Z
+tags:
+  - update
+---
+# Second Blog Post
+
+More content.`;
+      await repo.setPageEdit('/blog/post2/', blogPost2, '<h1>Second Blog Post</h1><p>More content.</p>');
+
+      // Add a page without RSS
+      const aboutPage = `---
+title: About
+description: About page
+---
+# About
+
+This page should not appear in RSS.`;
+      await repo.setPageEdit('/about/', aboutPage, '<h1>About</h1><p>This page should not appear in RSS.</p>');
+
+      // Stage the changes
+      const { cid } = await repo.stage('test.eth', false);
+
+      // Verify RSS file was created
+      const files = await ls(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}`);
+      expect(files).toContain('rss.xml');
+
+      // Read and verify RSS content
+      const rssContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/rss.xml`);
+      
+      // Verify XML structure
+      expect(rssContent).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+      expect(rssContent).toContain('<rss version="2.0"');
+      expect(rssContent).toContain('xmlns:atom="http://www.w3.org/2005/Atom"');
+      expect(rssContent).toContain('xmlns:content="http://purl.org/rss/1.0/modules/content/"');
+      expect(rssContent).toContain('xmlns:dc="http://purl.org/dc/elements/1.1/"');
+      expect(rssContent).toContain('xmlns:media="http://search.yahoo.com/mrss/"');
+
+      // Verify channel metadata
+      expect(rssContent).toContain('<title>My Test Blog</title>');
+      expect(rssContent).toContain('<description>A blog about testing</description>');
+      expect(rssContent).toContain('<language>en</language>');
+      expect(rssContent).toContain('https://test.eth.link');
+      expect(rssContent).toContain('<atom:link href="https://test.eth.link/rss.xml" rel="self" type="application/rss+xml" />');
+
+      // Verify items are present (should be ordered by date descending)
+      expect(rssContent).toContain('<title>Second Blog Post</title>'); // Newer post
+      expect(rssContent).toContain('<title>First Blog Post</title>');
+      
+      // Verify item details for first post
+      expect(rssContent).toContain('<link>https://test.eth.link/blog/post1</link>');
+      expect(rssContent).toContain('<description>A short summary of my first post</description>');
+      expect(rssContent).toContain('<atom:updated>2024-01-16T12:00:00Z</atom:updated>');
+      expect(rssContent).toContain('<dc:modified>2024-01-16T12:00:00Z</dc:modified>');
+      expect(rssContent).toContain('<category>tutorial</category>');
+      expect(rssContent).toContain('<category>introduction</category>');
+      expect(rssContent).toContain('<guid isPermaLink="true">https://test.eth.link/blog/post1</guid>');
+      
+      // Verify NO enclosure tag for images (images are in content:encoded instead)
+      expect(rssContent).not.toContain('enclosure url="https://test.eth.link/images/test.png"');
+      
+      // Verify HTML content is in CDATA
+      expect(rssContent).toContain('<content:encoded><![CDATA[');
+
+      // Validate RSS XML structure using rss-parser
+      const feed = await rssParser.parseString(rssContent);
+      
+      // Verify channel structure
+      expect(feed.title).toBe('My Test Blog');
+      expect(feed.link).toBe('https://test.eth.link');
+      expect(feed.description).toBe('A blog about testing');
+      expect(Array.isArray(feed.items)).toBe(true);
+      expect(feed.items.length).toBe(2); // Two blog posts
+      
+      // Verify feed has atom:link self reference
+      expect(rssContent).toContain('<atom:link href="https://test.eth.link/rss.xml" rel="self" type="application/rss+xml" />');
+      
+      // Verify first post (has image, updated date, and tags)
+      const firstPost = feed.items.find(item => item.link.includes('post1'));
+      expect(firstPost).toBeDefined();
+      expect(firstPost.title).toBe('First Blog Post');
+      expect(firstPost.content).toBeDefined(); // content:encoded should exist
+      // The image is in content:encoded XML but rss-parser doesn't expose it in item.content
+      // So verify it's in the raw XML instead
+      expect(rssContent).toContain('<img src="/images/test.png"');
+      expect(firstPost.categories).toContain('tutorial');
+      expect(firstPost.categories).toContain('introduction');
+      expect(rssContent).not.toContain('<enclosure'); // Images don't use enclosure
+      
+      // Verify second post (simpler)
+      const secondPost = feed.items.find(item => item.link.includes('post2'));
+      expect(secondPost).toBeDefined();
+      expect(secondPost.title).toBe('Second Blog Post');
+      expect(secondPost.categories).toContain('update');
+
+      // Verify about page is NOT in RSS
+      expect(rssContent).not.toContain('About page');
+      
+      // Verify _redirects contains /feed redirect
+      const redirectsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/_redirects`);
+      expect(redirectsContent).toContain('/feed  /rss.xml  301');
+    });
+
+    it('should not generate RSS feed when no pages have rss: true', async () => {
+      // Add pages without RSS
+      const page1 = `---
+title: Page 1
+description: First page
+---
+# Page 1`;
+      await repo.setPageEdit('/page1/', page1, '<h1>Page 1</h1>');
+
+      const page2 = `---
+title: Page 2
+description: Second page
+---
+# Page 2`;
+      await repo.setPageEdit('/page2/', page2, '<h1>Page 2</h1>');
+
+      // Stage the changes
+      const { cid } = await repo.stage('test.eth', false);
+
+      // Verify RSS file was NOT created
+      const files = await ls(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}`);
+      expect(files).not.toContain('rss.xml');
+      
+      // Verify _redirects still contains /feed redirect (defensive)
+      const redirectsContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/_redirects`);
+      expect(redirectsContent).toContain('/feed  /rss.xml  301');
+    });
+
+    it('should skip RSS items without created date', async () => {
+      // Add a blog post with RSS but no created date
+      const invalidPost = `---
+title: Invalid Post
+description: Missing created date
+rss: true
+---
+# Invalid Post`;
+      await repo.setPageEdit('/blog/invalid/', invalidPost, '<h1>Invalid Post</h1>');
+
+      // Add a valid post
+      const validPost = `---
+title: Valid Post
+rss: true
+created: 2024-01-15T10:00:00Z
+---
+# Valid Post`;
+      await repo.setPageEdit('/blog/valid/', validPost, '<h1>Valid Post</h1>');
+
+      // Stage the changes
+      const { cid } = await repo.stage('test.eth', false);
+
+      // Verify RSS file was created
+      const files = await ls(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}`);
+      expect(files).toContain('rss.xml');
+
+      // Read RSS content
+      const rssContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/rss.xml`);
+      
+      // Verify only valid post is in feed
+      expect(rssContent).toContain('Valid Post');
+      expect(rssContent).not.toContain('Invalid Post');
+      
+      // Validate RSS structure using rss-parser
+      const feed = await rssParser.parseString(rssContent);
+      expect(feed.items.length).toBe(1);
+      expect(feed.items[0].title).toBe('Valid Post');
+      expect(feed.items[0].content).toBeDefined(); // Should have content:encoded
+      // Should NOT have categories or enclosures (no media in this post)
+      expect(rssContent).not.toContain('<category>');
+      expect(rssContent).not.toContain('<enclosure');
+    });
+
+    it('should handle audio/video media with enclosure tags', async () => {
+      // Add a blog post with audio
+      const audioPost = `---
+title: Podcast Episode
+rss: true
+created: 2024-01-15T10:00:00Z
+---
+# Podcast Episode
+
+Listen to my podcast:
+
+![Episode](/audio/episode1.mp3)`;
+      await repo.setPageEdit('/podcast/ep1/', audioPost, '<h1>Podcast Episode</h1>');
+
+      // Stage the changes
+      const { cid } = await repo.stage('test.eth', false);
+
+      // Read RSS content
+      const rssContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/rss.xml`);
+      
+      // Verify enclosure tag for audio (images and video should use enclosure too)
+      expect(rssContent).toContain('<enclosure url="https://test.eth.link/audio/episode1.mp3" type="audio/mpeg"');
+      
+      // Validate RSS with enclosure using rss-parser
+      const feed = await rssParser.parseString(rssContent);
+      expect(feed.items.length).toBe(1);
+      expect(feed.items[0].title).toBe('Podcast Episode');
+      expect(rssContent).toContain('<enclosure url="https://test.eth.link/audio/episode1.mp3" type="audio/mpeg"'); // Should have enclosure for audio
+    });
+
+    it('should add RSS autodiscovery link to HTML pages', async () => {
+      // Add a page
+      const page = `---
+title: Test Page
+---
+# Test Page`;
+      await repo.setPageEdit('/test/', page, '<h1>Test Page</h1>');
+
+      // Stage the changes
+      const { cid } = await repo.stage('test.eth', false);
+
+      // Read HTML content
+      const htmlContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${cid.toString()}/test/index.html`);
+      
+      // Parse HTML
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Verify RSS link exists
+      const rssLink = doc.querySelector('link[rel="alternate"][type="application/rss+xml"]');
+      expect(rssLink).toBeTruthy();
+      expect(rssLink.getAttribute('href')).toBe('/rss.xml');
+      expect(rssLink.getAttribute('title')).toContain('RSS Feed');
     });
   });
 }); 

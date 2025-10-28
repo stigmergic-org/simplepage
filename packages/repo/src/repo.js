@@ -21,7 +21,8 @@ import {
   assert,
 } from '@simplepg/common'
 
-import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './template.js'
+import { populateTemplate, populateManifest, parseFrontmatter, populateRedirects, populateTheme } from './utils/template.js'
+import { generateRssItem, generateRssFeed } from './utils/rss.js'
 import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
@@ -480,6 +481,7 @@ export class Repo {
     return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath)
   }
 
+
   /**
    * Stages the current edits for a commit.
    * @param {string} targetDomain - The domain of the target repository.
@@ -546,6 +548,9 @@ export class Repo {
     }
     const avatarPath = await this.files.getAvatarPath()
 
+    // Collect RSS items while processing edits
+    const rssItems = []
+    
     // Add the edits to the new root
     for (const edit of edits) {
       const mdPath = edit.path + 'index.md'
@@ -562,14 +567,27 @@ export class Repo {
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
           const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
+          
+          // Generate RSS item if applicable
+          const rssItem = generateRssItem(edit, targetDomain)
+          if (rssItem) {
+            rssItems.push(rssItem)
+          }
           break
         }
       }
     }
-    const { title, description } = await this.getMetadata('/')
-    const manifest = populateManifest(targetDomain, { title, description }, avatarPath)
+    const rootMetadata = await this.getMetadata('/')
+    const manifest = populateManifest(targetDomain, rootMetadata, avatarPath)
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.json', manifest)
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
+    
+    // Generate RSS feed
+    const rssXml = generateRssFeed(rssItems, targetDomain, rootMetadata)
+    if (rssXml) {
+      rootPointer = await addFile(this.unixfs, rootPointer, 'rss.xml', rssXml)
+    }
+    
     const pages = await this.getAllPages(rootPointer)
     const redirects = populateRedirects(pages)
     rootPointer = await addFile(this.unixfs, rootPointer, '_redirects', redirects)

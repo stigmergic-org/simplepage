@@ -1,4 +1,4 @@
-import { parseFrontmatter } from './template.js'
+import { parseFrontmatter } from './utils/template.js'
 
 /**
  * Extracts headings from markdown content.
