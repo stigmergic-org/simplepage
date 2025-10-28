@@ -148,7 +148,7 @@ export function populateRssFeed(channel, items, options = {}) {
   });
   
   // Limit items
-  let feedItems = sortedItems.slice(0, maxItems);
+  const feedItems = sortedItems.slice(0, maxItems);
   
   // Calculate lastBuildDate (max of updated or pubDate)
   let lastBuildDate = new Date(0);
