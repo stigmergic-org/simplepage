@@ -9,10 +9,15 @@ import { useChainId } from './useChainId';
 let repoInstance = null;
 
 // Utility functions for creating default content
-const createDefaultMarkdown = (title, actualFileName) => `---
+const createDefaultMarkdown = (title, actualFileName) => {
+  // Get current date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
+  return `---
 title: ${title}
 description: ${title} description
 sidebar-toc: false
+created: ${today}
 ---
 
 # ${title}
@@ -22,6 +27,7 @@ Simply edit this markdown content to customize your page.
 This page can be linked to like this: [\`${actualFileName}\`](${actualFileName}).
 
 `;
+};
 
 const createDefaultBody = (title, actualFileName) => `<h1>${title}</h1>
 <p>Simply edit this markdown content to customize your page.</p>
