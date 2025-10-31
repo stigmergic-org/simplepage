@@ -9,7 +9,12 @@ export default function OverridesBanner({ dserviceUrl, rpcOverrides }) {
     <Notice
       type="info"
       className="z-50"
-      onClose={() => setVisible(false)}
+      onClose={() => {
+        setVisible(false);
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent('overrides-banner-visibility-change'));
+        });
+      }}
     >
       {dserviceUrl && (
         <>

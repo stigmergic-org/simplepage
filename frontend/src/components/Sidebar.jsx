@@ -86,10 +86,10 @@ const Sidebar = ({
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className} flex flex-col`}
+        className={`fixed ${positionClasses} h-full ${width} bg-base-100 ${borderClass} border-base-300 transform transition-all duration-300 ease-in-out z-40 ${transformClasses} ${className} flex flex-col`}
         style={{ 
-          paddingTop: `${effectiveTop}px`,
-          transition: 'padding-top 0.1s ease-out, transform 0.3s ease-in-out'
+          top: `${effectiveTop}px`,
+          transition: 'top 0.1s ease-out, transform 0.3s ease-in-out'
         }}
       >
         {/* Sidebar Header */}
@@ -118,7 +118,7 @@ const Sidebar = ({
         return wouldOverlap ? (
           <div 
             className="fixed inset-0 z-30"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', top: `${effectiveTop}px` }}
             onClick={handleToggle}
           />
         ) : null;

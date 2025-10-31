@@ -181,24 +181,9 @@ const Navbar = ({
       const navbar = document.querySelector('.navbar')?.parentElement;
       if (navbar) {
         navbarElement = navbar;
-        const height = navbar.offsetHeight;
-        
-        // Calculate effective top based on current visibility
+
         const rect = navbar.getBoundingClientRect();
-        let effectiveTop;
-        
-        if (rect.top >= 0) {
-          // Navbar fully visible
-          effectiveTop = height;
-        } else if (rect.bottom <= 0) {
-          // Navbar fully hidden
-          effectiveTop = 0;
-        } else {
-          // Navbar partially visible
-          const visibleHeight = rect.bottom;
-          const ratio = Math.max(0, Math.min(1, visibleHeight / height));
-          effectiveTop = Math.max(0, height * ratio);
-        }
+        const effectiveTop = Math.max(0, rect.bottom);
 
         onNavbarInfoChange(effectiveTop);
       }
@@ -233,16 +218,15 @@ const Navbar = ({
     const timeoutId = setTimeout(setupObservers, 100);
 
     // Listen for window resize and scroll
-    const handleUpdate = () => {
-      updateNavbarInfo();
-    };
-    window.addEventListener('resize', handleUpdate);
-    window.addEventListener('scroll', handleUpdate);
+    window.addEventListener('resize', updateNavbarInfo);
+    window.addEventListener('scroll', updateNavbarInfo);
+    window.addEventListener('overrides-banner-visibility-change', updateNavbarInfo);
 
     return () => {
       clearTimeout(timeoutId);
-      window.removeEventListener('resize', handleUpdate);
-      window.removeEventListener('scroll', handleUpdate);
+      window.removeEventListener('resize', updateNavbarInfo);
+      window.removeEventListener('scroll', updateNavbarInfo);
+      window.removeEventListener('overrides-banner-visibility-change', updateNavbarInfo);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node bin/simplepage-dservice.js",
-    "dev": "./bin/simplepage-dservice.js --rpc https://eth.drpc.org -c 11155111 --disable-indexing --log-level info --api-port 8001",
+    "dev": "./bin/simplepage-dservice.js --rpc https://sepolia.drpc.org -c 11155111 --disable-indexing --log-level info --api-port 8001",
+    "dev:mainnet": "./bin/simplepage-dservice.js --rpc https://eth.drpc.org -c 1 --disable-indexing --log-level info --api-port 8001",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint ."
   },
