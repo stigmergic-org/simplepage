@@ -161,6 +161,7 @@ export class Repo {
   async setPageEdit(path, markdown, body, type) {
     assert(path.startsWith('/'), 'Path must start with /')
     assert(path.endsWith('/'), 'Path must end with /')
+    assert(!path.startsWith('/rss'), 'Cannot create page at reserved path /rss')
     await this.#initPromise;
     if (!type) {
       type = await this.#pageExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW
