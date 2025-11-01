@@ -98,16 +98,16 @@ importers:
         version: 10.4.21(postcss@8.5.6)
       babel-loader:
         specifier: ^10.0.0
-        version: 10.0.0(@babel/core@7.28.4)(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 10.0.0(@babel/core@7.28.4)(webpack@5.100.2)
       copy-webpack-plugin:
         specifier: ^13.0.0
-        version: 13.0.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 13.0.0(webpack@5.100.2)
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 7.1.2(webpack@5.100.2)
       css-minimizer-webpack-plugin:
         specifier: ^7.0.2
-        version: 7.0.2(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 7.0.2(webpack@5.100.2)
       daisyui:
         specifier: ^5.0.54
         version: 5.0.54
@@ -116,19 +116,19 @@ importers:
         version: 17.2.1
       file-loader:
         specifier: ^6.2.0
-        version: 6.2.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 6.2.0(webpack@5.100.2)
       html-webpack-plugin:
         specifier: ^5.6.3
-        version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 5.6.3(webpack@5.100.2)
       mini-css-extract-plugin:
         specifier: ^2.9.4
-        version: 2.9.4(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 2.9.4(webpack@5.100.2)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
       postcss-loader:
         specifier: ^8.1.1
-        version: 8.1.1(postcss@8.5.6)(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 8.1.1(postcss@8.5.6)(webpack@5.100.2)
       postcss-nesting:
         specifier: ^13.0.2
         version: 13.0.2(postcss@8.5.6)
@@ -140,7 +140,7 @@ importers:
         version: 14.2.5
       style-loader:
         specifier: ^4.0.0
-        version: 4.0.0(webpack@5.100.2(webpack-cli@6.0.1))
+        version: 4.0.0(webpack@5.100.2)
       tailwindcss:
         specifier: ^4.1.14
         version: 4.1.14
@@ -197,8 +197,8 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4
       blockstore-idb:
-        specifier: ^2.0.3
-        version: 2.0.3
+        specifier: ^3.0.1
+        version: 3.0.1
       cartonne:
         specifier: ^3.0.1
         version: 3.0.1
@@ -1535,8 +1535,14 @@ packages:
   '@libp2p/interface@2.10.5':
     resolution: {integrity: sha512-Z52n04Mph/myGdwyExbFi5S/HqrmZ9JOmfLc2v4r2Cik3GRdw98vrGH19PFvvwjLwAjaqsweCtlGaBzAz09YDw==}
 
+  '@libp2p/interface@3.1.0':
+    resolution: {integrity: sha512-RE7/XyvC47fQBe1cHxhMvepYKa5bFCUyFrrpj8PuM0E7JtzxU7F+Du5j4VXbg2yLDcToe0+j8mB7jvwE2AThYw==}
+
   '@libp2p/logger@5.1.21':
     resolution: {integrity: sha512-V1TWlZM5BuKkiGQ7En4qOnseVP82JwDIpIfNjceUZz1ArL32A5HXJjLQnJchkZ3VW8PVciJzUos/vP6slhPY6Q==}
+
+  '@libp2p/logger@6.2.0':
+    resolution: {integrity: sha512-/8SzfpRtuXiEifQg6udjVmG4iMRcO4Vj/sJO1nBjq8JXpJrGrQxStTIq4HaHHWkFrClFOhtAMch4BQKDk/UotQ==}
 
   '@libp2p/peer-id@5.1.8':
     resolution: {integrity: sha512-pGaM4BwjnXdGtAtd84L4/wuABpsnFYE+AQ+h3GxNFme0IsTaTVKWd1jBBE5YFeKHBHGUOhF3TlHsdjFfjQA7TA==}
@@ -1625,6 +1631,9 @@ packages:
     resolution: {integrity: sha512-w8CVbdkDrVXFJbfBSlDfafDR6BAkpDmv1bC1UJVCoVny5tW2RKAdn9i68Xf7asYT4TnUhl/hN4zfUiKQq9II4g==}
     engines: {node: '>=16.0.0'}
 
+  '@multiformats/dns@1.0.10':
+    resolution: {integrity: sha512-6X200ceQLns0b/CU0S/So16tGjB5eIXHJ1xvJMPoWaKFHWSgfpW2EhkWJrqap4U3+c37zcowVR0ToPXeYEL7Vw==}
+
   '@multiformats/dns@1.0.6':
     resolution: {integrity: sha512-nt/5UqjMPtyvkG9BQYdJ4GfLK3nMqGpFZOzf4hAmIa0sJh2LlS9YKXZ4FgwBDsaHvzZqR/rUFIywIc7pkHNNuw==}
 
@@ -1633,6 +1642,9 @@ packages:
 
   '@multiformats/multiaddr@12.5.1':
     resolution: {integrity: sha512-+DDlr9LIRUS8KncI1TX/FfUn8F2dl6BIxJgshS/yFQCNB5IAF0OGzcwB39g5NLE22s4qqDePv0Qof6HdpJ/4aQ==}
+
+  '@multiformats/multiaddr@13.0.1':
+    resolution: {integrity: sha512-XToN915cnfr6Lr9EdGWakGJbPT0ghpg/850HvdC+zFX8XvpLZElwa8synCiwa8TuvKNnny6m8j8NVBNCxhIO3g==}
 
   '@multiformats/murmur3@2.1.8':
     resolution: {integrity: sha512-6vId1C46ra3R1sbJUOFCZnsUIveR9oF20yhPmAFxPm0JfrX3/ZRCgP3YDrBzlGoEppOXnA9czHeYc0T9mB6hbA==}
@@ -2290,6 +2302,7 @@ packages:
 
   '@walletconnect/ethereum-provider@2.21.1':
     resolution: {integrity: sha512-SSlIG6QEVxClgl1s0LMk4xr2wg4eT3Zn/Hb81IocyqNSGfXpjtawWxKxiC5/9Z95f1INyBD6MctJbL/R1oBwIw==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/events@1.0.1':
     resolution: {integrity: sha512-NPTqaoi0oPBVNuLv7qPaJazmGHs5JGyO8eEAk5VGKmJzDR7AHzD4k6ilox5kxk1iwiOnFopBOOMLs86Oa76HpQ==}
@@ -2334,9 +2347,11 @@ packages:
 
   '@walletconnect/sign-client@2.21.0':
     resolution: {integrity: sha512-z7h+PeLa5Au2R591d/8ZlziE0stJvdzP9jNFzFolf2RG/OiXulgFKum8PrIyXy+Rg2q95U9nRVUF9fWcn78yBA==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/sign-client@2.21.1':
     resolution: {integrity: sha512-QaXzmPsMnKGV6tc4UcdnQVNOz4zyXgarvdIQibJ4L3EmLat73r5ZVl4c0cCOcoaV7rgM9Wbphgu5E/7jNcd3Zg==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/time@1.0.2':
     resolution: {integrity: sha512-uzdd9woDcJ1AaBZRhqy5rNC9laqWGErfc4dxA9a87mPdKOgWMD85mcFo9dIYIts/Jwocfwn07EC6EzclKubk/g==}
@@ -2349,9 +2364,11 @@ packages:
 
   '@walletconnect/universal-provider@2.21.0':
     resolution: {integrity: sha512-mtUQvewt+X0VBQay/xOJBvxsB3Xsm1lTwFjZ6WUwSOTR1X+FNb71hSApnV5kbsdDIpYPXeQUbGt2se1n5E5UBg==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/universal-provider@2.21.1':
     resolution: {integrity: sha512-Wjx9G8gUHVMnYfxtasC9poGm8QMiPCpXpbbLFT+iPoQskDDly8BwueWnqKs4Mx2SdIAWAwuXeZ5ojk5qQOxJJg==}
+    deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
 
   '@walletconnect/utils@2.21.0':
     resolution: {integrity: sha512-zfHLiUoBrQ8rP57HTPXW7rQMnYxYI4gT9yTACxVW6LhIFROTF6/ytm5SKNoIvi4a5nX5dfXG4D9XwQUCu8Ilig==}
@@ -2728,8 +2745,11 @@ packages:
   blockstore-core@5.0.4:
     resolution: {integrity: sha512-v7wtBEpW2J/kKljN7Z2u4Tnwr7qwnOvW1aPVfynIxEdejlVC7gg4z9k6iJt7n5XMGkdNnH4HOmVcjYcaMnu7yg==}
 
-  blockstore-idb@2.0.3:
-    resolution: {integrity: sha512-YyMan8RqJPbi66UsEkS4pOsi1T7/ewzrqLgPxCxi8+prCqR7yUlzOM16yS23Y9uX8qYlAIa7Rl3v1pqRScrXvg==}
+  blockstore-core@6.1.1:
+    resolution: {integrity: sha512-swHp4vMywzPbsfDQiPzaAHL2A/5Qz5exlh69LNoPRv+tg23wD6N8IWDFdzXw34RsRQKXm+UWQIRcde+uppMRuA==}
+
+  blockstore-idb@3.0.1:
+    resolution: {integrity: sha512-4QSrT/ceQi3AhLFfm67SVCjfsjZD3p+Z7ocpW8bUlXK5WCD3yuWD3VBEqYSbDlkdOBYWD1B4q7zKhpY6v7C5/Q==}
 
   bn.js@5.2.2:
     resolution: {integrity: sha512-v2YAxEmKaBLahNwE1mjp4WON6huMNeuDvagFZW+ASCuA/ku0bXR9hSMw0XpiqMoA3+rmnyck/tPRSFQkoC9Cuw==}
@@ -4262,11 +4282,20 @@ packages:
   interface-blockstore@5.3.2:
     resolution: {integrity: sha512-oA9Pjkxun/JHAsZrYEyKX+EoPjLciTzidE7wipLc/3YoHDjzsnXRJzAzFJXNUvogtY4g7hIwxArx8+WKJs2RIg==}
 
+  interface-blockstore@6.0.1:
+    resolution: {integrity: sha512-AVcUbMwrhiO4RqDljUitUt3aoon6MD2fblsN7vEVBDsmHFQT0LIOODVK5Qxe28h1uUvVykyZqmo09f6w55KiJg==}
+
   interface-datastore@8.3.2:
     resolution: {integrity: sha512-R3NLts7pRbJKc3qFdQf+u40hK8XWc0w4Qkx3OFEstC80VoaDUABY/dXA2EJPhtNC+bsrf41Ehvqb6+pnIclyRA==}
 
+  interface-datastore@9.0.2:
+    resolution: {integrity: sha512-jebn+GV/5LTDDoyicNIB4D9O0QszpPqT09Z/MpEWvf3RekjVKpXJCDguM5Au2fwIFxFDAQMZe5bSla0jMamCNg==}
+
   interface-store@6.0.3:
     resolution: {integrity: sha512-+WvfEZnFUhRwFxgz+QCQi7UC6o9AM0EHM9bpIe2Nhqb100NHCsTvNAn4eJgvgV2/tmLo1MP9nGxQKEcZTAueLA==}
+
+  interface-store@7.0.1:
+    resolution: {integrity: sha512-OPRRUO3Cs6Jr/t98BrJLQp1jUTPgrRH0PqFfuNoPAqd+J7ABN1tjFVjQdaOBiybYJTS/AyBSZnZVWLPvp3dW3w==}
 
   internal-slot@1.1.0:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
@@ -4602,6 +4631,9 @@ packages:
 
   it-stream-types@2.0.2:
     resolution: {integrity: sha512-Rz/DEZ6Byn/r9+/SBCuJhpPATDF9D+dz5pbgSUyBsCDtza6wtNATrz/jz1gDyNanC3XdLboriHnOC925bZRBww==}
+
+  it-to-buffer@4.0.10:
+    resolution: {integrity: sha512-dXNHSILSPVv+31nxav+egNxWA/RpSuAHCSurJCLxkFDpmzAyYPJwIkPfLkYiHLoJqyE6Z5nVFILp6aDvz9V5pw==}
 
   it-to-stream@1.0.0:
     resolution: {integrity: sha512-pLULMZMAB/+vbdvbZtebC0nWBTbG581lk6w8P7DfIIIKUfa8FbY7Oi0FxZcFPbxvISs7A9E+cMpLDBc1XhpAOA==}
@@ -5514,6 +5546,10 @@ packages:
     resolution: {integrity: sha512-mxLDbbGIBEXTJL0zEx8JIylaj3xQ7Z/7eEVjcF9fJX4DBiH9oqe+oahYnlKKxm0Ci9TlWTyhSHgygxMxjIB2jw==}
     engines: {node: '>=18'}
 
+  p-queue@9.0.0:
+    resolution: {integrity: sha512-KO1RyxstL9g1mK76530TExamZC/S2Glm080Nx8PE5sTd7nlduDQsAfEl4uXX+qZjLiwvDauvzXavufy3+rJ9zQ==}
+    engines: {node: '>=20'}
+
   p-retry@6.2.1:
     resolution: {integrity: sha512-hEt02O4hUct5wtwg4H4KcWgDdm+l1bOaEy/hWzd8xtXB9BqxTWBBhb+2ImAtH4Cv4rPjV76xN3Zumqk3k3AhhQ==}
     engines: {node: '>=16.17'}
@@ -5521,6 +5557,10 @@ packages:
   p-timeout@6.1.4:
     resolution: {integrity: sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg==}
     engines: {node: '>=14.16'}
+
+  p-timeout@7.0.1:
+    resolution: {integrity: sha512-AxTM2wDGORHGEkPCt8yqxOTMgpfbEHqF51f/5fJCmwFC3C/zNcGT63SymH2ttOAaiIws2zVg4+izQCjrakcwHg==}
+    engines: {node: '>=20'}
 
   p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
@@ -5666,6 +5706,7 @@ packages:
   plausible-tracker@0.3.9:
     resolution: {integrity: sha512-hMhneYm3GCPyQon88SZrVJx+LlqhM1kZFQbuAgXPoh/Az2YvO1B6bitT9qlhpiTdJlsT5lsr3gPmzoVjb5CDXA==}
     engines: {node: '>=10'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
@@ -6017,6 +6058,9 @@ packages:
   race-signal@1.1.3:
     resolution: {integrity: sha512-Mt2NznMgepLfORijhQMncE26IhkmjEphig+/1fKC0OtaKwys/gpvpmswSjoN01SS+VO951mj0L4VIDXdXsjnfA==}
 
+  race-signal@2.0.0:
+    resolution: {integrity: sha512-P31bLhE4ByBX/70QDXMutxnqgwrF1WUXea1O8DXuviAgkdbQ1iQMQotNgzJIBC9yUSn08u/acZrMUhgw7w6GpA==}
+
   radix3@1.1.2:
     resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
 
@@ -6260,6 +6304,11 @@ packages:
 
   semver@7.7.2:
     resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.7.3:
+    resolution: {integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -6557,6 +6606,10 @@ packages:
   superstruct@1.0.4:
     resolution: {integrity: sha512-7JpaAoX2NGyoFlI9NBh66BQXGONc+uE+MRS5i2iOBKuS4e+ccgMDjATgZldkah+33DakBxDHiss9kvUcGAO8UQ==}
     engines: {node: '>=14.0.0'}
+
+  supports-color@10.2.2:
+    resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
+    engines: {node: '>=18'}
 
   supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
@@ -7055,6 +7108,9 @@ packages:
 
   weald@1.0.4:
     resolution: {integrity: sha512-+kYTuHonJBwmFhP1Z4YQK/dGi3jAnJGCYhyODFpHK73rbxnp9lnZQj7a2m+WVgn8fXr5bJaxUpF6l8qZpPeNWQ==}
+
+  weald@1.1.1:
+    resolution: {integrity: sha512-PaEQShzMCz8J/AD2N3dJMc1hTZWkJeLKS2NMeiVkV5KDHwgZe7qXLEzyodsT/SODxWDdXJJqocuwf3kHzcXhSQ==}
 
   webextension-polyfill@0.10.0:
     resolution: {integrity: sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==}
@@ -9047,6 +9103,15 @@ snapshots:
       progress-events: 1.0.1
       uint8arraylist: 2.4.8
 
+  '@libp2p/interface@3.1.0':
+    dependencies:
+      '@multiformats/dns': 1.0.10
+      '@multiformats/multiaddr': 13.0.1
+      main-event: 1.0.1
+      multiformats: 13.4.1
+      progress-events: 1.0.1
+      uint8arraylist: 2.4.8
+
   '@libp2p/logger@5.1.21':
     dependencies:
       '@libp2p/interface': 2.10.5
@@ -9054,6 +9119,14 @@ snapshots:
       interface-datastore: 8.3.2
       multiformats: 13.4.1
       weald: 1.0.4
+
+  '@libp2p/logger@6.2.0':
+    dependencies:
+      '@libp2p/interface': 3.1.0
+      '@multiformats/multiaddr': 13.0.1
+      interface-datastore: 9.0.2
+      multiformats: 13.4.1
+      weald: 1.1.1
 
   '@libp2p/peer-id@5.1.8':
     dependencies:
@@ -9233,7 +9306,7 @@ snapshots:
       '@ethereumjs/tx': 4.2.0
       '@types/debug': 4.1.12
       debug: 4.4.3
-      semver: 7.7.2
+      semver: 7.7.3
       superstruct: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -9261,10 +9334,19 @@ snapshots:
       '@types/debug': 4.1.12
       debug: 4.4.3
       pony-cause: 2.1.11
-      semver: 7.7.2
+      semver: 7.7.3
       uuid: 9.0.1
     transitivePeerDependencies:
       - supports-color
+
+  '@multiformats/dns@1.0.10':
+    dependencies:
+      buffer: 6.0.3
+      dns-packet: 5.6.1
+      hashlru: 2.3.0
+      p-queue: 9.0.0
+      progress-events: 1.0.1
+      uint8arrays: 5.1.0
 
   '@multiformats/dns@1.0.6':
     dependencies:
@@ -9286,6 +9368,13 @@ snapshots:
       '@chainsafe/netmask': 2.0.0
       '@multiformats/dns': 1.0.6
       abort-error: 1.0.1
+      multiformats: 13.4.1
+      uint8-varint: 2.0.4
+      uint8arrays: 5.1.0
+
+  '@multiformats/multiaddr@13.0.1':
+    dependencies:
+      '@chainsafe/is-ip': 2.1.0
       multiformats: 13.4.1
       uint8-varint: 2.0.4
       uint8arrays: 5.1.0
@@ -10781,17 +10870,17 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
 
-  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
 
-  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack-dev-server@5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))':
+  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1)(webpack-dev-server@5.2.2)(webpack@5.100.2)':
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
@@ -11011,7 +11100,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  babel-loader@10.0.0(@babel/core@7.28.4)(webpack@5.100.2(webpack-cli@6.0.1)):
+  babel-loader@10.0.0(@babel/core@7.28.4)(webpack@5.100.2):
     dependencies:
       '@babel/core': 7.28.4
       find-up: 5.0.0
@@ -11132,14 +11221,26 @@ snapshots:
       it-merge: 3.0.12
       multiformats: 13.4.1
 
-  blockstore-idb@2.0.3:
+  blockstore-core@6.1.1:
     dependencies:
-      blockstore-core: 5.0.4
-      idb: 8.0.3
-      interface-blockstore: 5.3.2
-      interface-store: 6.0.3
+      '@libp2p/logger': 6.2.0
+      interface-blockstore: 6.0.1
+      interface-store: 7.0.1
+      it-all: 3.0.9
+      it-filter: 3.1.4
+      it-merge: 3.0.12
       multiformats: 13.4.1
-      race-signal: 1.1.3
+
+  blockstore-idb@3.0.1:
+    dependencies:
+      blockstore-core: 6.1.1
+      idb: 8.0.3
+      interface-blockstore: 6.0.1
+      interface-store: 7.0.1
+      it-all: 3.0.9
+      it-to-buffer: 4.0.10
+      multiformats: 13.4.1
+      race-signal: 2.0.0
 
   bn.js@5.2.2: {}
 
@@ -11540,7 +11641,7 @@ snapshots:
 
   cookie@1.0.2: {}
 
-  copy-webpack-plugin@13.0.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  copy-webpack-plugin@13.0.0(webpack@5.100.2):
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
@@ -11602,7 +11703,7 @@ snapshots:
     dependencies:
       postcss: 8.5.6
 
-  css-loader@7.1.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  css-loader@7.1.2(webpack@5.100.2):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       postcss: 8.5.6
@@ -11615,7 +11716,7 @@ snapshots:
     optionalDependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
 
-  css-minimizer-webpack-plugin@7.0.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  css-minimizer-webpack-plugin@7.0.2(webpack@5.100.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.30
       cssnano: 7.1.1(postcss@8.5.6)
@@ -12464,7 +12565,7 @@ snapshots:
     dependencies:
       flat-cache: 4.0.1
 
-  file-loader@6.2.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  file-loader@6.2.0(webpack@5.100.2):
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
@@ -12787,7 +12888,7 @@ snapshots:
       relateurl: 0.2.7
       terser: 5.43.1
 
-  html-webpack-plugin@5.6.3(webpack@5.100.2(webpack-cli@6.0.1)):
+  html-webpack-plugin@5.6.3(webpack@5.100.2):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -12928,12 +13029,24 @@ snapshots:
       interface-store: 6.0.3
       multiformats: 13.4.1
 
+  interface-blockstore@6.0.1:
+    dependencies:
+      interface-store: 7.0.1
+      multiformats: 13.4.1
+
   interface-datastore@8.3.2:
     dependencies:
       interface-store: 6.0.3
       uint8arrays: 5.1.0
 
+  interface-datastore@9.0.2:
+    dependencies:
+      interface-store: 7.0.1
+      uint8arrays: 5.1.0
+
   interface-store@6.0.3: {}
+
+  interface-store@7.0.1: {}
 
   internal-slot@1.1.0:
     dependencies:
@@ -13293,6 +13406,10 @@ snapshots:
       race-signal: 1.1.3
 
   it-stream-types@2.0.2: {}
+
+  it-to-buffer@4.0.10:
+    dependencies:
+      uint8arrays: 5.1.0
 
   it-to-stream@1.0.0:
     dependencies:
@@ -14140,7 +14257,7 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  mini-css-extract-plugin@2.9.4(webpack@5.100.2(webpack-cli@6.0.1)):
+  mini-css-extract-plugin@2.9.4(webpack@5.100.2):
     dependencies:
       schema-utils: 4.3.2
       tapable: 2.2.2
@@ -14470,6 +14587,11 @@ snapshots:
       eventemitter3: 5.0.1
       p-timeout: 6.1.4
 
+  p-queue@9.0.0:
+    dependencies:
+      eventemitter3: 5.0.1
+      p-timeout: 7.0.1
+
   p-retry@6.2.1:
     dependencies:
       '@types/retry': 0.12.2
@@ -14477,6 +14599,8 @@ snapshots:
       retry: 0.13.1
 
   p-timeout@6.1.4: {}
+
+  p-timeout@7.0.1: {}
 
   p-try@2.2.0: {}
 
@@ -14650,7 +14774,7 @@ snapshots:
     dependencies:
       postcss: 8.5.6
 
-  postcss-loader@8.1.1(postcss@8.5.6)(webpack@5.100.2(webpack-cli@6.0.1)):
+  postcss-loader@8.1.1(postcss@8.5.6)(webpack@5.100.2):
     dependencies:
       cosmiconfig: 9.0.0
       jiti: 1.21.7
@@ -14944,6 +15068,8 @@ snapshots:
 
   race-signal@1.1.3: {}
 
+  race-signal@2.0.0: {}
+
   radix3@1.1.2: {}
 
   randombytes@2.1.0:
@@ -15212,6 +15338,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.7.2: {}
+
+  semver@7.7.3: {}
 
   send@0.19.0:
     dependencies:
@@ -15604,7 +15732,7 @@ snapshots:
     dependencies:
       '@tokenizer/token': 0.3.0
 
-  style-loader@4.0.0(webpack@5.100.2(webpack-cli@6.0.1)):
+  style-loader@4.0.0(webpack@5.100.2):
     dependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
 
@@ -15615,6 +15743,8 @@ snapshots:
       postcss-selector-parser: 7.1.0
 
   superstruct@1.0.4: {}
+
+  supports-color@10.2.2: {}
 
   supports-color@5.5.0:
     dependencies:
@@ -15706,7 +15836,7 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terser-webpack-plugin@5.3.14(webpack@5.100.2(webpack-cli@6.0.1)):
+  terser-webpack-plugin@5.3.14(webpack@5.100.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.29
       jest-worker: 27.5.1
@@ -16130,6 +16260,11 @@ snapshots:
       ms: 3.0.0-canary.202508261828
       supports-color: 9.4.0
 
+  weald@1.1.1:
+    dependencies:
+      ms: 3.0.0-canary.202508261828
+      supports-color: 10.2.2
+
   webextension-polyfill@0.10.0: {}
 
   webidl-conversions@3.0.1: {}
@@ -16157,9 +16292,9 @@ snapshots:
   webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2):
     dependencies:
       '@discoveryjs/json-ext': 0.6.3
-      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
-      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
-      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2))(webpack-dev-server@5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2))(webpack@5.100.2(webpack-cli@6.0.1))
+      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)
+      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1)(webpack@5.100.2)
+      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1)(webpack-dev-server@5.2.2)(webpack@5.100.2)
       colorette: 2.0.20
       commander: 12.1.0
       cross-spawn: 7.0.6
@@ -16174,7 +16309,7 @@ snapshots:
       webpack-bundle-analyzer: 4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       webpack-dev-server: 5.2.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)(webpack-cli@6.0.1)(webpack@5.100.2)
 
-  webpack-dev-middleware@7.4.2(webpack@5.100.2(webpack-cli@6.0.1)):
+  webpack-dev-middleware@7.4.2(webpack@5.100.2):
     dependencies:
       colorette: 2.0.20
       memfs: 4.17.2
@@ -16213,7 +16348,7 @@ snapshots:
       serve-index: 1.9.1
       sockjs: 0.3.24
       spdy: 4.0.2
-      webpack-dev-middleware: 7.4.2(webpack@5.100.2(webpack-cli@6.0.1))
+      webpack-dev-middleware: 7.4.2(webpack@5.100.2)
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
@@ -16256,7 +16391,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.2
       tapable: 2.2.2
-      terser-webpack-plugin: 5.3.14(webpack@5.100.2(webpack-cli@6.0.1))
+      terser-webpack-plugin: 5.3.14(webpack@5.100.2)
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     optionalDependencies:
