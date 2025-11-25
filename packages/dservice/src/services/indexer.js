@@ -134,14 +134,18 @@ export class IndexerService {
     // filter logs for domains we care about
     const chLogsForDomains = chLogs.filter(log => domainFromNode[log.args.node])
     for (const log of chLogsForDomains) {
-      // Convert contenthash to CID before storing
-      const cid = ensContentHashToCID(log.args.hash)
-      // persist both the contenthash and the blocknumber for the domain
-      await this.ipfsService.addToList(
-        `contenthash_${domainFromNode[log.args.node]}`,
-        'string',
-        `${log.blockNumber}-${cid}`
-      )
+      try {
+        // Convert contenthash to CID before storing
+        const cid = ensContentHashToCID(log.args.hash)
+        // persist both the contenthash and the blocknumber for the domain
+        await this.ipfsService.addToList(
+          `contenthash_${domainFromNode[log.args.node]}`,
+          'string',
+          `${log.blockNumber}-${cid}`
+        )
+      } catch (err) {
+        this.logger.warn('Error persisting contenthash', { hash: log.args.hash, blockNumber: log.blockNumber, error: err.message })
+      }
     }
   }
 
