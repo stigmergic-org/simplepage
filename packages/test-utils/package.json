@@ -14,7 +14,7 @@
     "@simplepg/dservice": "workspace:*",
     "ipfsd-ctl": "^15.0.2",
     "kubo": "^0.35.0",
-    "kubo-rpc-client": "^5.2.0",
+    "kubo-rpc-client": "^6.0.2",
     "multiformats": "^13.4.1",
     "uint8arrays": "^5.1.0",
     "viem": "^2.31.4"
