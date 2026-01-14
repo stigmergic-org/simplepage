@@ -512,6 +512,22 @@ export class Repo {
     const { cid: newFilesRoot, unchangedCids: unchangedFileCids } = await this.files.stage()
     rootPointer = await this.unixfs.cp(newFilesRoot, rootPointer, FILES_FOLDER, { force: true })
 
+    /**
+     * *** icon upload ***
+     * If the user staged files under `/_assets/**` via Files (which live at `/_files/_assets/**`),
+     * we mirror that directory into the site root at `/_assets/**` so runtime paths like
+     * `/_assets/images/icon.svg` resolve correctly and the diff shows only that file change.
+     */
+    {
+      const filesTop = await ls(this.blockstore, newFilesRoot)
+      const stagedAssetsCid = filesTop.find(([name]) => name === '_assets')?.[1]
+      if (stagedAssetsCid) {
+        // Copy the entire _assets subtree into the site root
+        rootPointer = await this.unixfs.cp(stagedAssetsCid, rootPointer, '_assets', { force: true })
+      }
+    }
+    // *** icon upload ***
+
     // updates settings
     const newSettingsRoot = await this.settings.stage()
     rootPointer = await this.unixfs.cp(newSettingsRoot, rootPointer, SETTINGS_FILE, { force: true })

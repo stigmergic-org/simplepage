@@ -48,6 +48,15 @@ const Settings = () => {
   const [darkTheme, setDarkTheme] = useState('dark');
   const [isLoading, setIsLoading] = useState(true);
 
+  // ---- small site-icon preview + upload ----
+  const ICON_PREVIEW_KEY = `sp-icon-preview:${domain}`;
+  const ICON_NAME_KEY = `sp-icon-name:${domain}`;
+  const ICON_TARGET_KEY = `sp-icon-target:${domain}`; // path from manifest.json
+  const [iconPreviewUrl, setIconPreviewUrl] = useState(null);
+  const [iconName, setIconName] = useState('');
+  const [iconTargetPath, setIconTargetPath] = useState('/_assets/images/logo.svg');
+  // -----------------------------------------------------------------------------
+
   document.title = `Settings - ${domain}`;
 
   // Load settings when component mounts
@@ -68,6 +77,55 @@ const Settings = () => {
   useEffect(() => {
     loadSettings();
   }, [repo]);
+
+  // ---- initialize icon preview from localStorage or manifest.json ----
+  useEffect(() => {
+    let cancelled = false;
+
+    const fromLocalUrl = localStorage.getItem(ICON_PREVIEW_KEY);
+    const fromLocalName = localStorage.getItem(ICON_NAME_KEY);
+    const fromLocalTarget = localStorage.getItem(ICON_TARGET_KEY);
+
+    if (fromLocalUrl && fromLocalTarget) {
+      setIconPreviewUrl(fromLocalUrl);
+      setIconName(fromLocalName || (fromLocalTarget.split('/').pop() || 'logo.svg'));
+      setIconTargetPath(fromLocalTarget);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch('/manifest.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`manifest fetch failed: ${res.status}`);
+        const manifest = await res.json();
+        const firstIcon = Array.isArray(manifest?.icons) && manifest.icons.length > 0 ? manifest.icons[0] : null;
+        const src = firstIcon?.src || '/_assets/images/logo.svg';
+        if (cancelled) return;
+
+        setIconTargetPath(src);
+        setIconPreviewUrl(src);
+        const derivedName = src.split('/').pop() || 'logo.svg';
+        setIconName(derivedName);
+
+        localStorage.setItem(ICON_TARGET_KEY, src);
+        localStorage.setItem(ICON_PREVIEW_KEY, src);
+        localStorage.setItem(ICON_NAME_KEY, derivedName);
+      } catch (err) {
+        console.warn('Could not initialize icon preview from manifest:', err);
+        if (!cancelled) {
+          setIconTargetPath('/_assets/images/logo.svg');
+          setIconPreviewUrl('/_assets/images/logo.svg');
+          setIconName('logo.svg');
+          localStorage.setItem(ICON_TARGET_KEY, '/_assets/images/logo.svg');
+          localStorage.setItem(ICON_PREVIEW_KEY, '/_assets/images/logo.svg');
+          localStorage.setItem(ICON_NAME_KEY, 'logo.svg');
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain]);
 
   // Save fork button style to settings
   const handleForkButtonStyleChange = async (newStyle) => {
@@ -105,6 +163,28 @@ const Settings = () => {
     localStorage.clear()
     loadSettings();
   };
+
+  // ---- upload icon => stage file directly at manifest's src path; show miniature preview; persist locally ----
+  const onIconFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !iconTargetPath) return;
+
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      await repo.files.add(iconTargetPath, buf); // stage to the path used by manifest.json
+
+      // Show/persist miniature preview immediately
+      const blobUrl = URL.createObjectURL(file);
+      setIconPreviewUrl(blobUrl);
+      setIconName(file.name);
+      localStorage.setItem(ICON_PREVIEW_KEY, blobUrl);
+      localStorage.setItem(ICON_NAME_KEY, file.name);
+      // iconTargetPath is unchanged (we keep manifest.json untouched)
+    } catch (err) {
+      console.error('Failed to stage site icon:', err);
+    }
+  };
+  // -----------------------------------------------------------------------------------
 
   if (isLoading) {
     return (<>
@@ -220,6 +300,45 @@ const Settings = () => {
                 </label>
               </div>
             </div>
+
+            {/* ---- Site Icon uploader + tiny persistent preview ---- */}
+            <div className="form-control mb-6">
+              <label className="label">
+                <span className="label-text font-medium mb-2">Site Icon</span>
+              </label>
+
+              <div className="flex items-center gap-4">
+                {/* Miniature preview tile */}
+                <div className="w-16 h-16 rounded-lg border border-base-300 bg-base-200 overflow-hidden flex items-center justify-center">
+                  {iconPreviewUrl ? (
+                    <img
+                      src={iconPreviewUrl}
+                      alt="site icon preview"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-xs opacity-60">No icon</div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="file"
+                    accept=".svg,.png,.ico,.jpg,.jpeg,.webp"
+                    className="file-input file-input-bordered file-input-sm w-full max-w-xs"
+                    onChange={onIconFileSelected}
+                  />
+                  <div className="text-xs opacity-70">
+                    <span className="mr-1">Current:</span>
+                    <code>{iconName || (iconTargetPath.split('/').pop() || 'logo.svg')}</code>
+                  </div>
+                  <div className="text-xs opacity-60">
+                    Uploading stages the file to <code>{iconTargetPath}</code>. The manifest remains unchanged; publish to make it live.
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* -------------------------------------------------------------------- */}
 
             {/* Theme selectors + dual preview */}
             <div className="form-control">
