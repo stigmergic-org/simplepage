@@ -1,15 +1,17 @@
 import React from 'react';
 import { useAccount, useDisconnect, useEnsName, useConnect, useSwitchChain } from 'wagmi';
 import { useChainId } from '../hooks/useChainId';
+import { getNetworkName } from '../utils/networks';
 
-const WalletInfo = () => {
+const WalletInfo = ({ expectedChainId: propExpectedChainId, noBottomMargin = false }) => {
   const { address, isConnected, chainId: accountChainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { connect, connectors } = useConnect();
   const { data: ensName } = useEnsName({
     address: address,
   });
-  const expectedChainId = useChainId();
+  const globalExpectedChainId = useChainId();
+  const expectedChainId = propExpectedChainId ?? globalExpectedChainId;
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   
   // Check if we need to switch networks
@@ -31,21 +33,10 @@ const WalletInfo = () => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const getChainName = (chainId) => {
-    switch (chainId) {
-      case 1:
-        return 'Ethereum Mainnet';
-      case 11155111:
-        return 'Sepolia Testnet';
-      case 1337:
-        return 'Localhost';
-      default:
-        return `Chain ${chainId}`;
-    }
-  };
+
 
   return (
-    <div className={`flex items-center justify-between p-4 border mb-8 rounded-md ${
+    <div className={`flex items-center justify-between p-4 border ${noBottomMargin ? '' : 'mb-8'} rounded-md ${
       needsNetworkSwitch ? 'border-warning bg-warning/10' : 'border-base-300'
     }`}>
       <div className="flex items-center space-x-3">
@@ -57,13 +48,13 @@ const WalletInfo = () => {
             : 'bg-red-500'
         } rounded-full`}></div>
         <div>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium !mb-0">
             {isConnected ? ensName || formatAddress(address) : 'Wallet not connected'}
           </p>
           {isConnected && accountChainId && (
-            <p className={`text-xs ${needsNetworkSwitch ? 'text-warning' : 'text-gray-500'}`}>
-              Connected to: {getChainName(accountChainId)}
-              {needsNetworkSwitch && ` (Expected: ${getChainName(expectedChainId)})`}
+            <p className={`text-xs ${needsNetworkSwitch ? 'text-warning' : 'text-gray-500'} !mb-0`}>
+              Connected to: {getNetworkName(accountChainId) || `Unsupported chain ${accountChainId}`}
+              {needsNetworkSwitch && ` (Expected: ${getNetworkName(expectedChainId) || `Unsupported chain ${expectedChainId}`})`}
             </p>
           )}
         </div>
@@ -75,7 +66,7 @@ const WalletInfo = () => {
             disabled={isSwitching}
             className="btn btn-warning btn-sm"
           >
-            {isSwitching ? 'Switching...' : `Switch to ${getChainName(expectedChainId)}`}
+            {isSwitching ? 'Switching...' : `Switch to ${getNetworkName(expectedChainId) || `Unsupported chain ${expectedChainId}`}`}
           </button>
         )}
         {isConnected ? (
