@@ -11,6 +11,7 @@ import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
 import { setupIframeListener, sendWalletState, sendTxResult } from '../utils/web3FormProtocol';
+import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
 
@@ -146,7 +147,7 @@ const View = ({ existingContent }) => {
 
       <div id="content" className="min-h-70 flex items-center justify-center pt-8">
         <div id="content-container" className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <ContentArea content={content} />
         </div>
       </div>
     </>
@@ -212,6 +213,24 @@ const addWeb3FormListeners = (parsedContent) => {
     // Skip if already processed
     if (iframe.classList.contains('web3-listener-added')) return;
 
+    // Debug: Monitor iframe src changes
+    const originalSrc = iframe.src;
+    const srcObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+          const newSrc = iframe.src;
+          if (newSrc !== originalSrc) {
+            console.log('🔄 Parent: Iframe src changed:', {
+              from: originalSrc,
+              to: newSrc,
+              iframeId: iframe.id || iframe.className
+            });
+          }
+        }
+      });
+    });
+    srcObserver.observe(iframe, { attributes: true, attributeFilter: ['src'] });
+
     // Set up message listener for this iframe
     const cleanup = setupIframeListener(iframe, {
       onTxRequest: (data) => {
@@ -237,14 +256,17 @@ const addWeb3FormListeners = (parsedContent) => {
         });
       },
 
-      onResize: (height) => {
-        // Update this specific iframe's height
-        iframe.style.height = `${height}px`;
+      onResize: (_height) => {
+        console.log('📏 Parent: Resize request received but IGNORED for testing');
+        // iframe.style.height = `${height}px`; // DISABLED
       }
     });
 
-    // Store cleanup function for potential future use
-    iframe._web3Cleanup = cleanup;
+    // Store combined cleanup function
+    iframe._web3Cleanup = () => {
+      cleanup();
+      srcObserver.disconnect();
+    };
 
     // Mark as processed
     iframe.classList.add('web3-listener-added');

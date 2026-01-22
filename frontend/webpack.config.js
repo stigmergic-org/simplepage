@@ -201,7 +201,8 @@ module.exports = (env, argv) => {
         templateParameters: {
           version: version
         },
-        inject: false // Disable automatic injection since we're handling it manually
+        inject: false, // Disable automatic injection since we're handling it manually
+        chunks: ['main'] // Only include main bundle, exclude web3form
       }),
       // Generate web3form.html for iframe
       new HtmlWebpackPlugin({
