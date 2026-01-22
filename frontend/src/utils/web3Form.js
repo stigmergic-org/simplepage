@@ -10,7 +10,7 @@ export const web3FormIframe = ({ uri }) => {
       key="${randomKey}"
       src="/_assets/web3form.html?uri=${encodedUri}"
       class="web3-form-iframe"
-      style="width: 100%; border: 1px solid #ccc; min-height: 300px;"
+      style="width: 100%; border: 1px solid #ccc;"
       loading="lazy"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
     ></iframe>

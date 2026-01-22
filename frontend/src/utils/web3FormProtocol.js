@@ -13,6 +13,16 @@ export const WEB3_RESIZE = 'WEB3_RESIZE';
 export const WALLET_STATE = 'WALLET_STATE';
 export const IFRAME_READY = 'IFRAME_READY';
 
+
+const sendMessage = (target, { type, data }) => {
+  if (!target || !target.postMessage) {
+    console.error('Could not find postMessage target')
+  }
+  console.log('posting msg', type, data)
+  target.postMessage({ type, data }, window.location.origin);
+};
+
+
 /**
  * PARENT WINDOW FUNCTIONS
  * Used by view.jsx to handle messages from iframes
@@ -33,13 +43,6 @@ export const handleParentMessage = (event, { onTxRequest, onIframeReady, onResiz
   const { type, data } = event.data;
 
   switch (type) {
-    case WEB3_TX_REQUEST:
-      console.log('📨 Parent: Received tx request from iframe:', data);
-      if (onTxRequest) {
-        onTxRequest(data, event.source, event.origin);
-      }
-      break;
-
     case IFRAME_READY:
       console.log('📨 Parent: Iframe ready');
       if (onIframeReady) {
@@ -56,20 +59,6 @@ export const handleParentMessage = (event, { onTxRequest, onIframeReady, onResiz
 
     default:
       console.log('📨 Parent: Unknown message type:', type);
-  }
-};
-
-/**
- * Send wallet state to iframe (parent side)
- * @param {Window} iframeWindow - iframe.contentWindow
- * @param {Object} walletState - { address, chainId, isConnected }
- */
-export const sendWalletState = (iframeWindow, walletState) => {
-  if (iframeWindow && iframeWindow.postMessage) {
-    iframeWindow.postMessage({
-      type: WALLET_STATE,
-      data: walletState
-    }, window.location.origin);
   }
 };
 
@@ -97,44 +86,31 @@ export const sendTxResult = (iframeWindow, result) => {
  * @returns {Function} cleanup function
  */
 export const setupIframeListener = (iframeElement, { onTxRequest, onIframeReady, onResize }) => {
+  const iframeSrc = iframeElement.src;
+
   const handleMessage = (event) => {
-    // Only process messages from this specific iframe
-    if (event.source !== iframeElement.contentWindow) return;
+    console.log(event)
+    console.log(iframeElement)
+    // Verify origin
+    if (event.origin !== window.location.origin) return;
+
+    // For now, accept all messages and log them
+    console.log('Message received:', event.data.type, 'from iframe src:', iframeSrc);
 
     const { type, data } = event.data;
 
     switch (type) {
-      case WEB3_TX_REQUEST:
-        console.log('📨 Parent: Received tx request from iframe');
-        if (onTxRequest) {
-          onTxRequest(data);
-        }
-        break;
-
-      case IFRAME_READY:
-        console.log('📨 Parent: Iframe ready');
-        if (onIframeReady) {
-          onIframeReady();
-        }
-        break;
-
       case WEB3_RESIZE:
-        console.log('📨 Parent: Resize request:', data.height);
-        if (onResize) {
-          onResize(data.height);
-        }
+        console.log('Processing RESIZE, height:', data.height);
+        onResize?.(data.height);
         break;
-
       default:
-        console.log('📨 Parent: Unknown message type:', type);
+        console.log('Unknown message type:', type);
     }
   };
 
   window.addEventListener('message', handleMessage);
-
-  return () => {
-    window.removeEventListener('message', handleMessage);
-  };
+  return () => window.removeEventListener('message', handleMessage);
 };
 
 /**
@@ -158,42 +134,22 @@ export const useParentMessageHandler = ({ onTxRequest, onIframeReady, onResize }
  * Used by web3form-app.jsx to communicate with parent
  */
 
-/**
- * Send transaction request to parent (iframe side)
- * @param {Object} txData - Transaction data
- */
-export const sendTxRequest = (txData) => {
-  if (window.parent && window.parent.postMessage) {
-    window.parent.postMessage({
-      type: WEB3_TX_REQUEST,
-      data: txData
-    }, window.location.origin);
-  }
-};
-
-/**
- * Send resize notification to parent (iframe side)
- * @param {number} height - New height in pixels
- */
 export const sendResize = (height) => {
-  if (window.parent && window.parent.postMessage) {
-    window.parent.postMessage({
-      type: WEB3_RESIZE,
-      data: { height: Math.ceil(height) }
-    }, window.location.origin);
-  }
+  sendMessage(window.parent, {
+    type: WEB3_RESIZE,
+    data: { height: Math.ceil(height) }
+  })
 };
 
-/**
- * Send iframe ready notification to parent (iframe side)
- */
 export const sendIframeReady = () => {
-  if (window.parent && window.parent.postMessage) {
-    window.parent.postMessage({
-      type: IFRAME_READY
-    }, window.location.origin);
-  }
+  sendMessage(window.parent, {
+    type: IFRAME_READY
+  })
 };
+
+
+
+
 
 /**
  * Handle messages from parent (iframe side)
@@ -228,47 +184,53 @@ export const handleIframeMessage = (event, { onWalletState, onTxResult }) => {
   }
 };
 
-/**
- * Hook for iframe to handle parent messages
- * @param {Object} handlers - Handler functions
- * @returns {Function} cleanup function
- */
-export const useIframeMessageHandler = ({ onWalletState, onTxResult }) => {
-  React.useEffect(() => {
-    const handleMessage = (event) => {
-      handleIframeMessage(event, { onWalletState, onTxResult });
-    };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [onWalletState, onTxResult]);
-};
 
 /**
  * Hook for iframe auto-resize
  * @param {React.RefObject} containerRef - Reference to container element
  * @param {number} debounceMs - Debounce delay in milliseconds (default: 100)
  */
-export const useAutoResize = (containerRef, debounceMs = 100) => {
-  React.useEffect(() => {
-    if (!containerRef.current) return;
 
-    let timeoutId;
-    const resizeObserver = new ResizeObserver((entries) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        for (let entry of entries) {
-          const { height } = entry.contentRect;
-          sendResize(height);
-        }
-      }, debounceMs);
-    });
 
-    resizeObserver.observe(containerRef.current);
+/**
+ * Connect web3 form protocol to an iframe element
+ * Handles all message passing, event listeners, and cleanup
+ * @param {HTMLIFrameElement} iframeElement - The iframe element
+ * @returns {Function} cleanup function
+ */
+export const connectWeb3FormProtocol = (iframeElement) => {
+  if (iframeElement.classList.contains('web3-protocol-connected')) {
+    return () => {};
+  }
 
-    return () => {
-      resizeObserver.disconnect();
-      clearTimeout(timeoutId);
-    };
-  }, [containerRef, debounceMs]);
+  console.log('calling setup')
+  const cleanup = setupIframeListener(iframeElement, {
+    onTxRequest: (data) => {
+      setTimeout(() => {
+        sendTxResult(iframeElement.contentWindow, {
+          success: true,
+          hash: '0x' + Math.random().toString(16).substr(2, 64),
+          isConfirmed: false
+        });
+      }, 1000);
+    },
+
+    onIframeReady: () => {
+      // sendWalletState(iframeElement.contentWindow, {
+      //   address: null,
+      //   chainId: 1,
+      //   isConnected: false
+      // });
+    },
+
+    onResize: (height) => {
+      console.log('frame resize')
+      iframeElement.style.height = `${height}px`;
+      console.log(iframeElement.style.height)
+    }
+  });
+
+  iframeElement.classList.add('web3-protocol-connected');
+  return cleanup;
 };

@@ -10,7 +10,6 @@ import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
-import { setupIframeListener, sendWalletState, sendTxResult } from '../utils/web3FormProtocol';
 import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
@@ -51,7 +50,7 @@ const View = ({ existingContent }) => {
         updateVirtualLinks(parsedContent, basename);
         await updateVirtualMedia(parsedContent, repo);
       }
-      addWeb3FormListeners(parsedContent);
+
       highlightElement(parsedContent.body);
       setContent(parsedContent.body.innerHTML);
       
@@ -205,73 +204,7 @@ const updateVirtualLinks = (parsedContent, basename) => {
   });
 };
 
-// Function to add listeners to web3 form iframes in parsed content
-const addWeb3FormListeners = (parsedContent) => {
-  const iframes = parsedContent.querySelectorAll('.web3-form-iframe');
 
-  iframes.forEach((iframe) => {
-    // Skip if already processed
-    if (iframe.classList.contains('web3-listener-added')) return;
-
-    // Debug: Monitor iframe src changes
-    const originalSrc = iframe.src;
-    const srcObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
-          const newSrc = iframe.src;
-          if (newSrc !== originalSrc) {
-            console.log('🔄 Parent: Iframe src changed:', {
-              from: originalSrc,
-              to: newSrc,
-              iframeId: iframe.id || iframe.className
-            });
-          }
-        }
-      });
-    });
-    srcObserver.observe(iframe, { attributes: true, attributeFilter: ['src'] });
-
-    // Set up message listener for this iframe
-    const cleanup = setupIframeListener(iframe, {
-      onTxRequest: (data) => {
-        console.log('Received transaction request from iframe:', data);
-        // TODO: Implement actual transaction execution using wagmi/viem
-        // For now, just send a mock success response
-        setTimeout(() => {
-          sendTxResult(iframe.contentWindow, {
-            success: true,
-            hash: '0x' + Math.random().toString(16).substr(2, 64),
-            isConfirmed: false
-          });
-        }, 1000);
-      },
-
-      onIframeReady: () => {
-        console.log('Iframe is ready to receive messages');
-        // TODO: Send current wallet state to iframe
-        sendWalletState(iframe.contentWindow, {
-          address: null, // TODO: Get from wagmi
-          chainId: 1,    // TODO: Get from wagmi
-          isConnected: false // TODO: Get from wagmi
-        });
-      },
-
-      onResize: (_height) => {
-        console.log('📏 Parent: Resize request received but IGNORED for testing');
-        // iframe.style.height = `${height}px`; // DISABLED
-      }
-    });
-
-    // Store combined cleanup function
-    iframe._web3Cleanup = () => {
-      cleanup();
-      srcObserver.disconnect();
-    };
-
-    // Mark as processed
-    iframe.classList.add('web3-listener-added');
-  });
-};
 
 // Function to add heading links to parsed content
 const addHeadingLinks = (parsedContent) => {
