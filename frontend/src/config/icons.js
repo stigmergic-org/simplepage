@@ -21,6 +21,10 @@ export const ICONS = {
     src: `${PREFIX}edit.svg`,
     alt: '✏️',
   },
+  'external-link': {
+    src: `${PREFIX}external-link.svg`,
+    alt: '↗️',
+  },
   'error': {
     src: `${PREFIX}error.svg`,
     alt: '❌',

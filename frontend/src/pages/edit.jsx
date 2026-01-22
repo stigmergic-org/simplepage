@@ -14,7 +14,7 @@ import { web3FormIframe, isWeb3Uri } from '../utils/web3Form';
 const renderer = new Renderer();
 renderer.image = (href, title, text) => {
   if (isWeb3Uri(href)) {
-    return web3FormIframe({ uri: href });
+    return web3FormIframe({ uri: href, metadata: text });
   }
   // Parse width and height from title if it contains '=WxH' format
   let extraParams = '';

@@ -34,3 +34,56 @@ export const getNetworkName = (chainId) => {
   };
   return networks[chainId] || null;
 };
+
+/**
+ * Get block explorer domain for a chain ID (without https://)
+ * @param {number} chainId - The chain ID
+ * @returns {string} The explorer domain
+ */
+export const getBlockExplorerDomain = (chainId) => {
+  const domains = {
+    // Mainnets
+    1: 'etherscan.io',                    // Ethereum
+    10: 'optimistic.etherscan.io',         // Optimism
+    8453: 'basescan.org',                   // Base
+    42161: 'arbiscan.io',                   // Arbitrum One
+    59144: 'lineascan.build',               // Linea
+    57073: 'explorer.inkonchain.com',      // Ink
+    1301: 'unichain.blockscout.com',       // Unichain
+    534352: 'scrollscan.com',               // Scroll
+
+    // Testnets
+    11155111: 'sepolia.etherscan.io',            // Sepolia
+    11155420: 'sepolia-optimistic.etherscan.io',  // Optimism Sepolia
+    84532: 'sepolia.basescan.org',               // Base Sepolia
+    421614: 'sepolia.arbiscan.io',               // Arbitrum Sepolia
+    59141: 'sepolia.lineascan.build',            // Linea Sepolia
+    57073: 'explorer-sepolia.inkonchain.com',   // Ink Sepolia (same chain ID as mainnet?)
+    1302: 'unichain-sepolia.blockscout.com',     // Unichain Sepolia
+    534351: 'sepolia.scrollscan.com',            // Scroll Sepolia
+  };
+
+  return domains[chainId] || 'etherscan.io'; // Fallback to mainnet
+};
+
+/**
+ * Get full block explorer URL for an address
+ * @param {number} chainId - The chain ID
+ * @param {string} address - The contract/address
+ * @returns {string} Full explorer URL
+ */
+export const getBlockExplorerAddressUrl = (chainId, address) => {
+  const domain = getBlockExplorerDomain(chainId);
+  return `https://${domain}/address/${address}`;
+};
+
+/**
+ * Get full block explorer URL for a transaction
+ * @param {number} chainId - The chain ID
+ * @param {string} txHash - The transaction hash
+ * @returns {string} Full explorer URL
+ */
+export const getBlockExplorerTxUrl = (chainId, txHash) => {
+  const domain = getBlockExplorerDomain(chainId);
+  return `https://${domain}/tx/${txHash}`;
+};

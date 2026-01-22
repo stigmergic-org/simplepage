@@ -84,7 +84,15 @@ export const parseWeb3Uri = (uri) => {
       // Explicit type with value: "type!value" format
       const [type, ...valueParts] = segment.split('!');
       const value = valueParts.join('!'); // Rejoin in case value contains !
-      
+
+      // Validate that the type is a valid Solidity type
+      if (!isValidSolidityType(type)) {
+        return {
+          uri,
+          error: `Invalid Solidity type "${type}" in web3 URI. Only valid Solidity types are supported.`,
+        };
+      }
+
       if (!value) {
         // Invalid format per ERC-6860 - use "type!0x" for no default input
         args.push({
@@ -210,5 +218,89 @@ export const validateWeb3Uri = (parsed) => {
   return {
     valid: errors.length === 0,
     errors,
+  };
+};
+
+/**
+ * Validates if a string is a valid Solidity type
+ * @param {string} type - Type to validate
+ * @returns {boolean} True if valid Solidity type
+ */
+export const isValidSolidityType = (type) => {
+  if (!type || typeof type !== 'string') return false;
+
+  const lowerType = type.toLowerCase();
+
+  // Basic types
+  if (['bool', 'address', 'string', 'bytes'].includes(lowerType)) {
+    return true;
+  }
+
+  // Integer types (int/uint with optional size)
+  if (/^u?int(8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160|168|176|184|192|200|208|216|224|232|240|248|256)?$/.test(lowerType)) {
+    return true;
+  }
+
+  // Fixed-size bytes
+  if (/^bytes(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32)?$/.test(lowerType)) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Parses markdown metadata for form title and parameter names
+ * @param {string} metadata - Raw metadata string from markdown
+ * @returns {Object} Parsed metadata with formTitle and params
+ */
+export const parseWeb3Metadata = (metadata) => {
+  if (!metadata || typeof metadata !== 'string') {
+    return { formTitle: '', params: null };
+  }
+
+  // Match pattern: "Form Title params=(name1,name2,name3)"
+  const paramsMatch = metadata.match(/^(.+?)\s+params=\(([^)]+)\)$/);
+  if (paramsMatch) {
+    const [, formTitle, paramsStr] = paramsMatch;
+    return {
+      formTitle: formTitle.trim(),
+      params: paramsStr.split(',').map(p => p.trim()).filter(Boolean)
+    };
+  }
+
+  // Fallback: treat entire string as form title
+  return { formTitle: metadata.trim(), params: null };
+};
+
+/**
+ * Validates that metadata params match URI arguments
+ * @param {Object} parsedUri - Result from parseWeb3Uri
+ * @param {Array} params - Parameter names from metadata
+ * @returns {Object} Validation result with user-friendly error message
+ */
+export const validateMetadataMatch = (parsedUri, params) => {
+  const errors = [];
+
+  if (!parsedUri) {
+    errors.push('Unable to parse the web3 link. Please check the URL format.');
+    return { valid: false, errors };
+  }
+
+  if (!parsedUri.args || parsedUri.args.length === 0) {
+    return { valid: true, errors: [] }; // No args to validate
+  }
+
+  if (params && params.length > 0) {
+    if (params.length !== parsedUri.args.length) {
+      const paramWord = params.length === 1 ? 'parameter' : 'parameters';
+      const argWord = parsedUri.args.length === 1 ? 'argument' : 'arguments';
+      errors.push(`Parameter mismatch: The form description specifies ${params.length} ${paramWord}, but the web3 link expects ${parsedUri.args.length} ${argWord}.`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
   };
 };
