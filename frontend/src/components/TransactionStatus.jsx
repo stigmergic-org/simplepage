@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '../config/routes';
 import { useChainId } from '../hooks/useChainId';
+import { DOMAIN_SUFFIX } from '../config/domain';
 import Notice from './Notice';
 
 function getExplorerUrl(hash, chainId) {
@@ -53,7 +54,7 @@ const TransactionStatus = ({
 
   const getRedirectUrl = () => {
     if (publishedDomain) {
-      return `https://${publishedDomain}.link`;
+      return `https://${publishedDomain}${DOMAIN_SUFFIX}`;
     }
     return redirectPath || ROUTES.VIEW;
   };

@@ -12,6 +12,7 @@ import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import WalletInfo from '../components/WalletInfo';
 import { useChainId } from '../hooks/useChainId';
+import { DOMAIN_SUFFIX } from '../config/domain';
 
 const Subscribe = () => {
   const [duration, setDuration] = useState(1);
@@ -147,7 +148,7 @@ const Subscribe = () => {
                   </p>
                   {!isDonationRequest && (
                   <ul className="list-disc list-inside text-gray-600">
-                    <li>Accessible via <a href={`https://${domain}.link`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">{domain}.link</a></li>
+                    <li>Accessible via <a href={`https://${domain}${DOMAIN_SUFFIX}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">{domain}{DOMAIN_SUFFIX}</a></li>
                     <li>Unlimited edits</li>
                     <li>Edit history</li>
                     <li>Early adopter status</li>

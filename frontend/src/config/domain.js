@@ -1,0 +1,1 @@
+export const DOMAIN_SUFFIX = process.env.NETWORK === 'sepolia' ? '.sepoliaens.eth.link' : '.link';
