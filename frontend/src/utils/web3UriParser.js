@@ -2,231 +2,19 @@
  * Web3 URI Parser - ERC-6860 Compliant
  * 
  * Parses web3:// URIs according to ERC-6860 specification:
- * - web3://[userinfo@]contract[:chainId]/path[?query]
- * - Auto-mode path: [/method/arg1/arg2/...] (arguments are path segments)
- * - Type specifications: [type!]value (explicit) or [type!] (required, no value)
- * - Auto-detection rules for arguments without explicit types
+ * - web3://contract[:chainId]/method[/type!value...]?[query]
+ * - Type specifications: type!value (explicit type with value)
+ * - Query parameters: value, payable, returns, mode
  */
 
-/**
- * Checks if a string is a valid web3 URI
- * @param {string} href - The URI to validate
- * @returns {boolean} True if valid web3 URI
- */
-export const isWeb3Uri = (href = '') =>
-  typeof href === 'string' && href.toLowerCase().startsWith('web3://');
-
-/**
- * Escapes HTML characters for safe display
- * @param {string} text - Text to escape
- * @returns {string} Escaped HTML
- */
-export const escapeHtml = (text = '') =>
-  text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/https?:\/\//g, 'https://');
-
-/**
- * Validates a web3 URI according to ERC-6860 spec
- * Returns structured object or error message
- * @param {string} uri - The URI to validate
- * @returns {Object|null} Parsed URI object or null if invalid
- */
-export const parseWeb3Uri = (uri) => {
-  // Return null for empty input
-  if (!uri || uri.trim() === '') {
-    return null;
-  }
-
-  // Basic validation - must start with web3://
-  const rest = uri.slice(uri.indexOf('://') + 3);
-  const [authorityAndPath, fragment] = rest.split('#');
-  const [pathPart, queryString] = authorityAndPath.split('?');
-  const [authority, ...pathSegmentsRaw] = pathPart.split('/');
-
-  if (!authority) {
-    return {
-      uri,
-      error: 'Missing contract authority in web3 URI',
-    };
-  }
-
-  // Parse authority: [userinfo@]contract[:chainId]
-  let userinfo, contract, chainId;
-  const contractSegment = authority;
-  if (contractSegment.includes('@')) {
-    [userinfo, contractSegment] = contractSegment.split('@');
-  } else {
-    contract = contractSegment;
-  }
-
-  if (contract.includes(':')) {
-    [contract, chainId] = contract.split(':');
-    chainId = Number.parseInt(chainId, 10) || undefined;
-  } else {
-    contract = contract;
-  }
-
-  // Parse path segments
-  const pathSegments = pathSegmentsRaw.map(decodeURIComponent).filter(Boolean);
-  const method = pathSegments[0] || 'call';
-
-  // Parse arguments from path segments (everything after method)
-  const args = [];
-  for (let i = 1; i < pathSegments.length; i++) {
-    const segment = pathSegments[i];
-    
-    if (segment.includes('!')) {
-      // Explicit type with value: "type!value" format
-      const [type, ...valueParts] = segment.split('!');
-      const value = valueParts.join('!'); // Rejoin in case value contains !
-
-      // Validate that the type is a valid Solidity type
-      if (!isValidSolidityType(type)) {
-        return {
-          uri,
-          error: `Invalid Solidity type "${type}" in web3 URI. Only valid Solidity types are supported.`,
-        };
-      }
-
-      if (!value) {
-        // Invalid format per ERC-6860 - use "type!0x" for no default input
-        args.push({
-          label: type, // Use type as label
-          type: type.toLowerCase(), // Convert to lowercase
-          placeholder: '0x', // Use 0x as placeholder for no default input
-          required: true // Required since no explicit value provided
-        });
-      } else {
-        // Valid format with value
-        args.push({
-          label: value, // Use value as label
-          type: type.toLowerCase(), // Convert to lowercase
-          placeholder: value, // Use value as placeholder
-          required: !value // Required if no value provided
-        });
-      }
-    } else {
-      // No explicit type, auto-detect based on value
-      let detectedType = 'address'; // Default
-      let placeholder = segment;
-      
-      // Auto-detection rules from ERC-6860 spec
-      if (/^\d+$/.test(segment)) {
-        detectedType = 'uint256';
-        placeholder = segment;
-      } else if (/^0x[a-fA-F0-9]{64}$/.test(segment)) {
-        detectedType = 'bytes32';
-        placeholder = segment;
-      } else if (/^0x[a-fA-F0-9]{40}$/.test(segment)) {
-        detectedType = 'address';
-        placeholder = segment;
-      } else if (/^0x[a-fA-F0-9]+$/.test(segment)) {
-        detectedType = 'bytes';
-        placeholder = segment;
-      } else if (segment === 'true' || segment === 'false') {
-        detectedType = 'bool';
-        placeholder = segment;
-      } else {
-        // Treat as domain name or string
-        detectedType = 'address';
-        placeholder = segment;
-      }
-      
-      args.push({
-        label: segment,
-        type: detectedType,
-        placeholder: placeholder,
-        required: false // All auto-detected arguments are optional
-      });
-    }
-  }
-
-  // Parse query parameters
-  let value = null;
-  let payable = false;
-  let mode = 'auto';
-  
-  if (queryString) {
-    // Handle malformed query strings like "value0.01eth"
-    if (queryString.includes('=')) {
-      const params = new URLSearchParams(queryString);
-      value = params.get('value') || null;
-      payable = params.get('payable') === 'true' || params.get('stateMutability') === 'payable';
-      mode = params.get('mode') || 'auto';
-    } else {
-      // Try to parse simple format like "value0.01eth"
-      const valueMatch = queryString.match(/^value(.+)$/);
-      if (valueMatch) {
-        value = valueMatch[1];
-        payable = true; // Assume payable if value is specified
-      }
-    }
-  }
-
-  return {
-    uri,
-    userinfo,
-    contract,
-    chainId: chainId || 1, // Default to mainnet (chain ID 1) when undefined
-    method,
-    args,
-    value,
-    payable,
-    mode,
-    fragment,
-  };
-};
-
-/**
- * Validates that a parsed web3 URI has all required components
- * @param {Object} parsed - Result from parseWeb3Uri
- * @returns {Object} Validation result with error messages
- */
-export const validateWeb3Uri = (parsed) => {
-  if (!parsed) {
-    return {
-      valid: false,
-      error: 'Invalid URI object',
-    };
-  }
-
-  const errors = [];
-
-  if (!parsed.method) {
-    errors.push('Missing method in web3 URI');
-  }
-
-  if (!parsed.contract) {
-    errors.push('Missing contract address');
-  }
-
-  if (parsed.args.some(arg => arg.required && !arg.placeholder)) {
-    const invalidArgs = parsed.args.filter(arg => arg.required && arg.placeholder === '0x');
-    const invalidSpecs = invalidArgs.map(arg => `${arg.type}!`).join(', ');
-    errors.push(`Invalid type specification: ${invalidSpecs}. According to ERC-6860, use format "type!value" with a value, or "type!0x" for no default input.`);
-  }
-
-  if (!getNetworkName(parsed.chainId || 1)) {
-    errors.push(`Network not supported: Chain ID ${parsed.chainId || 1}`);
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-};
+import { getNetworkName } from './networks';
 
 /**
  * Validates if a string is a valid Solidity type
  * @param {string} type - Type to validate
  * @returns {boolean} True if valid Solidity type
  */
-export const isValidSolidityType = (type) => {
+const isValidSolidityType = (type) => {
   if (!type || typeof type !== 'string') return false;
 
   const lowerType = type.toLowerCase();
@@ -250,48 +38,268 @@ export const isValidSolidityType = (type) => {
 };
 
 /**
- * Parses markdown metadata for form title and parameter names
- * @param {string} metadata - Raw metadata string from markdown
- * @returns {Object} Parsed metadata with formTitle and params
+ * Convert value string to wei as a number
+ * @param {string} valueStr - Value string like "1.5eth", "1000000000000000000", etc.
+ * @returns {number|null} Value in wei as a number, or null if invalid
  */
-export const parseWeb3Metadata = (metadata) => {
-  if (!metadata || typeof metadata !== 'string') {
-    return { formTitle: '', params: null };
-  }
+const parseValueToWei = (valueStr) => {
+  if (!valueStr) return null;
 
-  // Match pattern: "Form Title params=(name1,name2,name3)"
-  const paramsMatch = metadata.match(/^(.+?)\s+params=\(([^)]+)\)$/);
-  if (paramsMatch) {
-    const [, formTitle, paramsStr] = paramsMatch;
-    return {
-      formTitle: formTitle.trim(),
-      params: paramsStr.split(',').map(p => p.trim()).filter(Boolean)
-    };
-  }
+  try {
+    // Handle eth units
+    const ethMatch = valueStr.match(/^(\d+(?:\.\d+)?)eth$/i);
+    if (ethMatch) {
+      const ethValue = parseFloat(ethMatch[1]);
+      return Math.floor(ethValue * 1e18); // Convert to wei
+    }
 
-  // Fallback: treat entire string as form title
-  return { formTitle: metadata.trim(), params: null };
+    // Handle direct wei values (numeric strings)
+    if (/^\d+$/.test(valueStr)) {
+      return parseInt(valueStr, 10);
+    }
+
+    // Invalid format
+    return null;
+  } catch (_error) {
+    return null;
+  }
 };
 
 /**
- * Validates that metadata params match URI arguments
+ * Parses a web3 URI according to ERC-6860 spec
+ * @param {string} uri - The URI to parse
+ * @returns {Object|null} Parsed URI object with error property if invalid, or null for empty input
+ */
+export const parseWeb3Uri = (uri) => {
+  // Return null for empty input
+  if (!uri || uri.trim() === '') {
+    return null;
+  }
+
+  // Basic validation - must start with web3://
+  if (!uri.toLowerCase().startsWith('web3://')) {
+    return null;
+  }
+
+  const rest = uri.slice(uri.indexOf('://') + 3);
+  const [authorityAndPath, fragment] = rest.split('#');
+  const [pathPart, queryString] = authorityAndPath.split('?');
+  const [authority, ...pathSegmentsRaw] = pathPart.split('/');
+
+  if (!authority) {
+    return {
+      uri,
+      error: 'Missing contract authority in web3 URI',
+    };
+  }
+
+  // Parse authority: contract[:chainId]
+  let [contract, chainId] = authority.split(':');
+  if (chainId) {
+    chainId = Number.parseInt(chainId, 10) || undefined;
+  }
+
+  // Validate contract name format (ERC-6860: address or domainName)
+  const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(contract);
+  const isValidDomainName = /^[a-zA-Z0-9.-]+$/.test(contract) && contract.includes('.');
+  if (!isValidAddress && !isValidDomainName) {
+    return {
+      uri,
+      error: 'Invalid contract name format. Must be a valid Ethereum address (0x + 40 hex digits) or domain name.',
+    };
+  }
+
+  // Parse path segments
+  const pathSegments = pathSegmentsRaw.map(decodeURIComponent).filter(Boolean);
+  const method = pathSegments[0] || 'call';
+
+  // Parse arguments from path segments (everything after method)
+  const args = [];
+  for (let i = 1; i < pathSegments.length; i++) {
+    const segment = pathSegments[i];
+
+    if (!segment.includes('!')) {
+      return {
+        uri,
+        error: 'All arguments must use explicit type notation: "type!value". Auto-detection is not supported.',
+      };
+    }
+
+    // Explicit type with value: "type!value" format
+    const [type, ...valueParts] = segment.split('!');
+    const value = valueParts.join('!'); // Rejoin in case value contains !
+
+    // Validate that the type is a valid Solidity type
+    if (!isValidSolidityType(type)) {
+      return {
+        uri,
+        error: `Invalid Solidity type "${type}" in web3 URI. Only valid Solidity types are supported.`,
+      };
+    }
+
+    if (!value) {
+      return {
+        uri,
+        error: 'All arguments must have values. Use "type!0x" for null values.',
+      };
+    }
+
+    // Valid format with value
+    args.push({
+      label: value, // Use value as label
+      type: type.toLowerCase(), // Convert to lowercase
+      placeholder: value // Use value as placeholder
+    });
+  }
+
+  // Parse query parameters
+  let value = null;
+  let payable = false;
+  let mode = 'auto';
+  let returns = null;
+
+  if (queryString) {
+    try {
+      const params = new URLSearchParams(queryString);
+      const valueStr = params.get('value');
+      value = valueStr ? parseValueToWei(valueStr) : null;
+      payable = params.get('payable') === 'true' || params.get('stateMutability') === 'payable';
+
+      // If payable=true, set value to 0 if not specified
+      if (payable && value === null) {
+        value = 0;
+      }
+
+      const returnsStr = params.get('returns');
+      if (returnsStr) {
+        // Parse returns format like "(uint256)" or "()" for void - must be wrapped in parentheses
+        const returnsMatch = returnsStr.match(/^\(([^)]*)\)$/);
+        if (!returnsMatch) {
+          return {
+            uri,
+            error: 'Invalid returns format. Expected format: "(type)" or "()" for void',
+          };
+        }
+        const returnType = returnsMatch[1];
+        // Empty string means void/no return value
+        if (returnType === '') {
+          returns = null;
+        } else if (!isValidSolidityType(returnType)) {
+          return {
+            uri,
+            error: `Invalid Solidity return type "${returnType}". Only valid Solidity types are supported.`,
+          };
+        } else {
+          returns = returnType;
+        }
+      }
+      mode = params.get('mode') || 'auto';
+    } catch (_error) {
+      return {
+        uri,
+        error: 'Invalid query parameter format.',
+      };
+    }
+  }
+
+  return {
+    uri,
+    contract,
+    chainId: chainId || 1, // Default to mainnet (chain ID 1) when undefined
+    method,
+    args,
+    value,
+    payable,
+    returns,
+    mode,
+    fragment,
+  };
+};
+
+
+
+/**
+ * Parses flag string into object with typed values
+ * @param {string} flagsStr - Space-separated key=value pairs
+ * @returns {Object} Parsed flags object
+ */
+const parseFlags = (flagsStr) => {
+  const flags = {};
+  const flagPairs = flagsStr.trim().split(/\s+/);
+  
+  for (const pair of flagPairs) {
+    const [key, value] = pair.split('=');
+    if (key && value !== undefined) {
+      // Convert string values to appropriate types
+      if (value === 'true') flags[key] = true;
+      else if (value === 'false') flags[key] = false;
+      else if (!isNaN(value)) flags[key] = Number(value);
+      else flags[key] = value;
+    }
+  }
+  
+  return flags;
+};
+
+/**
+ * Parses markdown metadata for form title, parameter names, and flags
+ * Format: "Title params=(param1,param2) flag1=value1 flag2=value2"
+ * @param {string} metadata - Raw metadata string from markdown
+ * @returns {Object} Parsed metadata with formTitle, params, and flags
+ */
+export const parseWeb3Metadata = (metadata) => {
+  if (!metadata || typeof metadata !== 'string') {
+    return { formTitle: '', params: null, flags: {} };
+  }
+
+  const trimmed = metadata.trim();
+
+  // Check if the string contains params: "Title params=(p1,p2) flags..."
+  const paramsMatch = trimmed.match(/^(.+?)\s+params=\(([^)]+)\)(?:\s+(.+))?$/);
+  if (paramsMatch) {
+    const [, title, paramsStr, flagsStr] = paramsMatch;
+    const params = paramsStr.split(',').map(p => p.trim()).filter(Boolean);
+    const flags = flagsStr ? parseFlags(flagsStr) : {};
+
+    return {
+      formTitle: title.trim(),
+      params,
+      flags
+    };
+  }
+
+  // No params, but might have flags: "Title flag1=value1 flag2=value2"
+  const parts = trimmed.split(/\s+/);
+  const titleParts = [];
+  const flagParts = [];
+
+  for (const part of parts) {
+    if (part.includes('=')) {
+      flagParts.push(part);
+    } else {
+      titleParts.push(part);
+    }
+  }
+
+  return {
+    formTitle: titleParts.join(' '),
+    params: null,
+    flags: flagParts.length > 0 ? parseFlags(flagParts.join(' ')) : {}
+  };
+};
+
+/**
+ * Validates metadata against parsed URI
  * @param {Object} parsedUri - Result from parseWeb3Uri
  * @param {Array} params - Parameter names from metadata
- * @returns {Object} Validation result with user-friendly error message
+ * @param {Object} flags - Flags from metadata
+ * @returns {Array} Array of error messages (empty if valid)
  */
-export const validateMetadataMatch = (parsedUri, params) => {
+const validateMetadata = (parsedUri, params, flags) => {
   const errors = [];
 
-  if (!parsedUri) {
-    errors.push('Unable to parse the web3 link. Please check the URL format.');
-    return { valid: false, errors };
-  }
-
-  if (!parsedUri.args || parsedUri.args.length === 0) {
-    return { valid: true, errors: [] }; // No args to validate
-  }
-
-  if (params && params.length > 0) {
+  // Validate params count matches args count
+  if (params && params.length > 0 && parsedUri.args) {
     if (params.length !== parsedUri.args.length) {
       const paramWord = params.length === 1 ? 'parameter' : 'parameters';
       const argWord = parsedUri.args.length === 1 ? 'argument' : 'arguments';
@@ -299,8 +307,98 @@ export const validateMetadataMatch = (parsedUri, params) => {
     }
   }
 
-  return {
-    valid: errors.length === 0,
-    errors
+  // Validate call flag conflicts
+  if (flags.call === true) {
+    const hasExplicitValue = parsedUri.uri.includes('value=') && parsedUri.value !== null && parsedUri.value !== undefined;
+    if (hasExplicitValue) {
+      errors.push('Conflict: Metadata specifies call=true (state-modifying operation) but URI contains a value parameter. State-modifying operations should not include value transfers.');
+    }
+    if (parsedUri.payable === true) {
+      errors.push('Conflict: Metadata specifies call=true (state-modifying operation) but URI has payable=true. State-modifying operations should not be payable.');
+    }
+  }
+
+  return errors;
+};
+
+/**
+ * Consolidated function to parse URI and metadata into complete form data structure
+ * @param {string} uri - The web3 URI to parse
+ * @param {string} metadata - The metadata string for form title and parameter names
+ * @returns {Object} Result object with contract, method, formTitle, args, and errors
+ */
+export const parseFormData = (uri, metadata) => {
+  const emptyResult = {
+    contract: null,
+    method: null,
+    formTitle: '',
+    value: null,
+    chainId: null,
+    returns: null,
+    args: [],
+    call: false,
+    flags: {},
+    errors: []
   };
+
+  // Handle empty URI
+  if (!uri) {
+    return {
+      ...emptyResult,
+      errors: ['No web3 link found. Please check the markdown syntax.']
+    };
+  }
+
+  try {
+    // Parse the web3 URI
+    const parsed = parseWeb3Uri(decodeURIComponent(uri));
+    
+    if (!parsed) {
+      return {
+        ...emptyResult,
+        errors: ['Unable to understand the web3 link format. Please check the URL.']
+      };
+    }
+
+    // Check for parsing errors in the URI itself
+    if (parsed.error) {
+      return {
+        ...emptyResult,
+        errors: [parsed.error]
+      };
+    }
+
+    // Parse the metadata (form title, parameter names, and flags)
+    const parsedMeta = parseWeb3Metadata(metadata);
+
+    // Validate metadata against parsed URI
+    const validationErrors = validateMetadata(parsed, parsedMeta.params, parsedMeta.flags);
+
+    // Build consolidated args with parameter names
+    const consolidatedArgs = parsed.args.map((arg, index) => ({
+      label: parsedMeta.params?.[index] || arg.type,
+      type: arg.type,
+      placeholder: arg.placeholder
+    }));
+
+    return {
+      contract: parsed.contract,
+      method: parsed.method,
+      formTitle: parsedMeta.formTitle,
+      value: parsed.value,
+      chainId: parsed.chainId,
+      returns: parsed.returns,
+      args: consolidatedArgs,
+      call: parsedMeta.flags.call === true,
+      flags: parsedMeta.flags,
+      errors: validationErrors
+    };
+
+  } catch (err) {
+    console.error('Error parsing URI or metadata:', err);
+    return {
+      ...emptyResult,
+      errors: ['Something went wrong while processing the web3 link. Please check the format.']
+    };
+  }
 };

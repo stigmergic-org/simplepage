@@ -96,6 +96,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)
+      babel-jest:
+        specifier: ^30.0.1
+        version: 30.0.4(@babel/core@7.28.4)
       babel-loader:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.4)(webpack@5.100.2(webpack-cli@6.0.1))
@@ -120,6 +123,12 @@ importers:
       html-webpack-plugin:
         specifier: ^5.6.3
         version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
+      jest:
+        specifier: ^30.0.3
+        version: 30.0.4(@types/node@24.0.14)
+      jest-environment-jsdom:
+        specifier: ^30.0.5
+        version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       mini-css-extract-plugin:
         specifier: ^2.9.4
         version: 2.9.4(webpack@5.100.2(webpack-cli@6.0.1))
@@ -177,7 +186,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
 
   packages/common:
     dependencies:

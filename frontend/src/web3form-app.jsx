@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { parseWeb3Uri, parseWeb3Metadata, validateMetadataMatch } from './utils/web3UriParser';
+import { parseFormData } from './utils/web3UriParser';
 import { getBlockExplorerAddressUrl } from './utils/networks';
 import Icon from './components/Icon';
 import WalletInfo from './components/WalletInfo';
@@ -50,68 +50,33 @@ const normalizeMethodName = (method) => {
 // Web3FormApp component
 const Web3FormApp = () => {
 
-  const [parsedUri, setParsedUri] = useState(null);
-  const [metadata, setMetadata] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [parsedData, setParsedData] = useState(null);
+  const [formInputs, setFormInputs] = useState({});
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [iframeKey, setIframeKey] = useState('');
   const [iframeRef, setIframeRef] = useState(null);
   const containerRef = useRef(null);
 
-  // Helper: Parse URI and set form state
+  // Helper: Parse URI and set form state using consolidated parser
   const parseAndSetFormData = (uriParam, metaParam) => {
-    if (!uriParam) {
-      setError('No web3 link found. Please check the markdown syntax.');
-      setParsedUri(null);
-      setMetadata(null);
-      setIsLoading(false);
-      return;
-    }
+    const result = parseFormData(uriParam, metaParam);
 
-    setError(null);
-
-    try {
-      // Parse the web3 URI
-      const parsed = parseWeb3Uri(decodeURIComponent(uriParam));
-      if (!parsed) {
-        setError('Unable to understand the web3 link format. Please check the URL.');
-        setIsLoading(false);
-        return;
+    if (result.errors.length > 0) {
+      setError(result.errors);
+      setParsedData(null);
+    } else {
+      setError(null);
+      setParsedData(result);
+      
+      // Initialize form inputs with placeholders from args
+      const initialInputs = {};
+      result.args.forEach((arg) => {
+        initialInputs[arg.label] = arg.placeholder === '0x' ? '' : (arg.placeholder || '');
+      });
+      if (result.value !== null && result.value !== undefined) {
+        initialInputs.value = result.value;
       }
-
-      // Parse the metadata (form title and parameter names)
-      const parsedMeta = parseWeb3Metadata(metaParam);
-
-      // Validate that metadata matches URI arguments
-      const validation = validateMetadataMatch(parsed, parsedMeta.params);
-      if (!validation.valid) {
-        setError(validation.errors.join(' '));
-        setIsLoading(false);
-        return;
-      }
-
-      // Set parsed data
-      setParsedUri(parsed);
-      setMetadata(parsedMeta);
-
-      // Initialize form data with placeholders
-      const initialData = {};
-      if (parsed.args && parsed.args.length > 0) {
-        parsed.args.forEach((arg, index) => {
-          const paramName = parsedMeta.params?.[index] || arg.type;
-          initialData[paramName] = arg.placeholder === '0x' ? '' : (arg.placeholder || '');
-        });
-      }
-      // Add value parameter if present
-      if (parsed.value) {
-        initialData.value = parsed.value;
-      }
-      setFormData(initialData);
-
-    } catch (err) {
-      console.error('Error parsing URI or metadata:', err);
-      setError('Something went wrong while processing the web3 link. Please check the format.');
+      setFormInputs(initialInputs);
     }
 
     setIsLoading(false);
@@ -146,8 +111,6 @@ const Web3FormApp = () => {
       // Extract key
       const key = ourIframe.dataset.key || ourIframe.getAttribute('data-key');
       if (key) {
-        setIframeKey(key);
-
         const storageKey = `web3form_${key}`;
 
         // Try to load from storage first (handles corruptions)
@@ -177,14 +140,14 @@ const Web3FormApp = () => {
 
   // Effect: Height management (waits for data and iframe)
   useEffect(() => {
-    if (parsedUri && !isLoading && iframeRef) {
+    if (parsedData && !isLoading && iframeRef) {
       const height = containerRef.current.scrollHeight;
       iframeRef.style.height = `${height + 20}px`;
     }
-  }, [parsedUri, isLoading, iframeRef]);
+  }, [parsedData, isLoading, iframeRef]);
 
   const handleInputChange = (e) => {
-    setFormData(prev => ({
+    setFormInputs(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
@@ -194,20 +157,17 @@ const Web3FormApp = () => {
     const fields = [];
 
     // Add method argument fields first
-    if (parsedUri?.args && parsedUri.args.length > 0) {
-      parsedUri.args.forEach((arg, index) => {
-        const paramName = metadata?.params?.[index] || arg.type;
-        const fieldName = paramName;
-
+    if (parsedData?.args && parsedData.args.length > 0) {
+      parsedData.args.forEach((arg, index) => {
         fields.push(
           <div key={index} className="form-control">
             <label className="label">
-              <span className="label-text font-medium">{paramName}</span>
+              <span className="label-text font-medium">{arg.label}</span>
             </label>
             <input
               type="text"
-              name={fieldName}
-              value={formData[fieldName] || ''}
+              name={arg.label}
+              value={formInputs[arg.label] || ''}
               onChange={handleInputChange}
               placeholder={arg.type}
               className="input input-bordered w-full"
@@ -225,7 +185,7 @@ const Web3FormApp = () => {
     }
 
     // Add value field if present (after method arguments)
-    if (parsedUri?.value) {
+    if (parsedData?.value !== null && parsedData?.value !== undefined) {
       fields.push(
         <div key="value" className="form-control">
           <label className="label">
@@ -234,14 +194,14 @@ const Web3FormApp = () => {
           <input
             type="text"
             name="value"
-            value={formData.value || ''}
+            value={formInputs.value || ''}
             onChange={handleInputChange}
             placeholder="Amount in ETH"
             className="input input-bordered w-full"
           />
           <label className="label">
             <span className="label-text-alt text-xs text-gray-400">
-              Default: {parsedUri.value}
+              Default: {parsedData.value}
             </span>
           </label>
         </div>
@@ -267,7 +227,15 @@ const Web3FormApp = () => {
           <Icon name="error" size={8} className="shrink-0" />
           <div>
             <h3 className="font-bold">Unable to Load Form</h3>
-            <div className="text-sm">{error}</div>
+            {Array.isArray(error) ? (
+              <ul className="text-sm list-disc list-inside">
+                {error.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm">{error}</div>
+            )}
             <div className="mt-2 text-xs font-mono">
               <p><strong>URI:</strong> {new URLSearchParams(window.location.search).get('uri')}</p>
               <p><strong>Meta:</strong> {new URLSearchParams(window.location.search).get('meta')}</p>
@@ -279,11 +247,11 @@ const Web3FormApp = () => {
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2">
               <h2 className="text-2xl font-bold text-base-content">
-                {metadata?.formTitle || 'Contract Interaction'}
+                {parsedData?.formTitle || 'Contract Interaction'}
               </h2>
-              {parsedUri?.contract && (
+              {parsedData?.contract && (
                 <a
-                  href={getBlockExplorerAddressUrl(parsedUri.chainId || 1, parsedUri.contract)}
+                  href={getBlockExplorerAddressUrl(parsedData.chainId || 1, parsedData.contract)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-ghost btn-sm p-1 tooltip tooltip-bottom"
@@ -299,15 +267,20 @@ const Web3FormApp = () => {
             {generateFormFields()}
 
             <div className="divider"></div>
-            <WalletInfo expectedChainId={parsedUri?.chainId} noBottomMargin={true} />
+            <WalletInfo expectedChainId={parsedData?.chainId} noBottomMargin={true} />
 
-            <button
-              type="submit"
-              className="btn btn-primary w-full"
-              disabled={true}
-            >
-              {parsedUri ? normalizeMethodName(parsedUri.method) : 'Loading...'}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="submit"
+                className="btn btn-primary w-full"
+                disabled={true}
+              >
+                {parsedData ? normalizeMethodName(parsedData.method) : 'Loading...'}
+              </button>
+              {parsedData && parsedData.call && (
+                <div className="badge badge-info badge-sm mx-auto">Read Only</div>
+              )}
+            </div>
           </form>
         </>
       )}
