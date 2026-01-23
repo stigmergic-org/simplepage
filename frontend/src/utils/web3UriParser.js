@@ -172,7 +172,7 @@ export const parseWeb3Uri = (uri) => {
     uri,
     userinfo,
     contract,
-    chainId,
+    chainId: chainId || 1, // Default to mainnet (chain ID 1) when undefined
     method,
     args,
     value,

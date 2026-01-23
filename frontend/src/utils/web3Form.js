@@ -8,6 +8,7 @@ export const web3FormIframe = ({ uri, metadata }) => {
   return `
     <iframe
       key="${randomKey}"
+      data-key="${randomKey}"
       src="/_assets/web3form.html?uri=${encodedUri}&meta=${metadata}"
       class="web3-form-iframe"
       style="width: 100%;"
