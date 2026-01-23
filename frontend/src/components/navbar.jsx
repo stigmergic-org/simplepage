@@ -51,7 +51,7 @@ const Navbar = ({
     const handleKeyDown = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
         event.preventDefault();
-        if (searchEnabled) {
+        if (searchEnabled && !editMode) {
           setSearchModalOpen(true);
         }
       }
@@ -61,7 +61,7 @@ const Navbar = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [searchEnabled]);
+  }, [searchEnabled, editMode]);
 
   // Handle quit button click - clear scroll position and navigate to view
   const handleQuitClick = () => {
