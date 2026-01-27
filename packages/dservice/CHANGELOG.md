@@ -1,5 +1,14 @@
 # @simplepg/dservice
 
+## 1.3.4
+
+### Patch Changes
+
+- 8136c8d: chore(frontend): add loading indicator to publish button
+- b0ceb28: fix(dservice): don't stall on invalid onchain CIDs
+- Updated dependencies [852303b]
+  - @simplepg/common@1.2.3
+
 ## 1.3.3
 
 ### Patch Changes

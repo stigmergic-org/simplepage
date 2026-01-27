@@ -1,5 +1,18 @@
 # @simplepg/repo
 
+## 1.4.0
+
+### Minor Changes
+
+- 059adcb: feat(repo): support RSS feed generation
+
+### Patch Changes
+
+- 852303b: fix(repo): use avatar as webapp manifest icon
+- be30eb1: fix(repo): disallow page named /rss
+- Updated dependencies [852303b]
+  - @simplepg/common@1.2.3
+
 ## 1.3.1
 
 ### Patch Changes

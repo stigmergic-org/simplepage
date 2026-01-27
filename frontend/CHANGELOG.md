@@ -1,5 +1,25 @@
 # @simplepg/frontend
 
+## 1.6.0
+
+### Minor Changes
+
+- f35de74: feat(frontend): support testnet urls
+- 2629e61: feat(frontend): Interact with Ethereum contracts using Web3 Forms
+
+### Patch Changes
+
+- fa58ede: fix(frontend): disable search in edit mode
+- 8136c8d: chore(frontend): add loading indicator to publish button
+- 02e230f: chore(frontend): add created date on page creation
+- 852303b: fix(repo): use avatar as webapp manifest icon
+- 8fd91aa: fix(frontend): sidebar top now accounts for banners
+- Updated dependencies [852303b]
+- Updated dependencies [be30eb1]
+- Updated dependencies [059adcb]
+  - @simplepg/common@1.2.3
+  - @simplepg/repo@1.4.0
+
 ## 1.5.1
 
 ### Patch Changes

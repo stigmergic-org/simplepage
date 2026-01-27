@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/common",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Common utilities for SimplePage packages",
   "main": "src/index.js",
   "type": "module",

@@ -1,5 +1,11 @@
 # @simplepg/common
 
+## 1.2.3
+
+### Patch Changes
+
+- 852303b: fix(repo): use avatar as webapp manifest icon
+
 ## 1.2.2
 
 ### Patch Changes

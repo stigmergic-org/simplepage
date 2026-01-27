@@ -1,5 +1,12 @@
 # @simplepg/cli
 
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [852303b]
+  - @simplepg/common@1.2.3
+
 ## 1.0.6
 
 ### Patch Changes
