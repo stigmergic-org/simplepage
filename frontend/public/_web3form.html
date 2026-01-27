@@ -33,7 +33,14 @@
   </noscript>
 
   <!-- React app root -->
-  <div id="root"></div>
+  <div id="root">
+    <div class="card border border-base-300 rounded-lg p-4 w-full bg-base-200">
+      <div class="flex flex-col justify-center items-center gap-2">
+        <span class="loading loading-infinity loading-md"></span>
+        <h3 class="text-base-content/70">Loading contract interaction...</h3>
+      </div>
+    </div>
+  </div>
 
   <!-- JavaScript bundles will be injected here by webpack -->
 </body>

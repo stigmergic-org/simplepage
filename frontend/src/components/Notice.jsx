@@ -1,19 +1,17 @@
 import React from 'react';
 import { ICONS } from '../config/icons';
+import Icon from './Icon';
 
 const VALID_TYPES = ['alert-error', 'alert-warning', 'alert-success', 'alert-info']
 
 const Notice = ({ type = 'info', message, className = '', onClose, children, buttonText }) => {
   const validType = VALID_TYPES.find(t => t.includes(type)) || 'alert-info'
-  const icon = ICONS[type === 'success' ? 'check' : type] || ICONS.info
+  const iconExists = Boolean(ICONS[type === 'success' ? 'check' : type])
+  const iconName = iconExists ? type : 'info'
 
   return (
     <div className={`alert mb-6 ${validType} alert-outline ${className}`}>
-      <img 
-        src={icon.src} 
-        alt={icon.alt} 
-        className="stroke-current shrink-0 h-6 w-6 dark:invert"
-      />
+      <Icon name={type === 'success' ? 'check' : type} size={6} className="shrink-0" />
       <div>{message || children}</div>
       {onClose && (
         <button 
