@@ -6,12 +6,12 @@ const VALID_TYPES = ['alert-error', 'alert-warning', 'alert-success', 'alert-inf
 
 const Notice = ({ type = 'info', message, className = '', onClose, children, buttonText }) => {
   const validType = VALID_TYPES.find(t => t.includes(type)) || 'alert-info'
-  const iconExists = Boolean(ICONS[type === 'success' ? 'check' : type])
-  const iconName = iconExists ? type : 'info'
+  const baseIconName = type === 'success' ? 'check' : type
+  const iconName = ICONS[baseIconName] ? baseIconName : 'info'
 
   return (
     <div className={`alert mb-6 ${validType} alert-outline ${className}`}>
-      <Icon name={type === 'success' ? 'check' : type} size={6} className="shrink-0" />
+      <Icon name={iconName} size={6} className="shrink-0" />
       <div>{message || children}</div>
       {onClose && (
         <button 

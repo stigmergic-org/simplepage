@@ -58,7 +58,6 @@ export const getBlockExplorerDomain = (chainId) => {
     84532: 'sepolia.basescan.org',               // Base Sepolia
     421614: 'sepolia.arbiscan.io',               // Arbitrum Sepolia
     59141: 'sepolia.lineascan.build',            // Linea Sepolia
-    57073: 'explorer-sepolia.inkonchain.com',   // Ink Sepolia (same chain ID as mainnet?)
     1302: 'unichain-sepolia.blockscout.com',     // Unichain Sepolia
     534351: 'sepolia.scrollscan.com',            // Scroll Sepolia
   };

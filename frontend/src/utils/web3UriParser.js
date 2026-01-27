@@ -7,8 +7,6 @@
  * - Query parameters: value, payable, returns, mode
  */
 
-import { getNetworkName } from './networks';
-
 /**
  * Validates if a string is a valid Solidity type
  * @param {string} type - Type to validate
@@ -94,7 +92,8 @@ export const parseWeb3Uri = (uri) => {
   }
 
   // Parse authority: contract[:chainId]
-  let [contract, chainId] = authority.split(':');
+  const [contract, chainIdRaw] = authority.split(':');
+  let chainId = chainIdRaw;
   if (chainId) {
     chainId = Number.parseInt(chainId, 10) || undefined;
   }
