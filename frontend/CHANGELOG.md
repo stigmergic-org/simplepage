@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.6.1
+
+### Patch Changes
+
+- 713e858: fix(frontend): properly find sepolia domain suffix
+
 ## 1.6.0
 
 ### Minor Changes

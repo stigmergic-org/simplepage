@@ -1,5 +1,11 @@
 # @simplepg/dservice
 
+## 1.3.5
+
+### Patch Changes
+
+- b5733ca: fix(dservice): output network on startup
+
 ## 1.3.4
 
 ### Patch Changes

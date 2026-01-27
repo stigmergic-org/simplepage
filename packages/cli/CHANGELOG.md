@@ -1,5 +1,11 @@
 # @simplepg/cli
 
+## 1.0.8
+
+### Patch Changes
+
+- b5733ca: fix(cli): output proper domain for sepolia publish
+
 ## 1.0.7
 
 ### Patch Changes
