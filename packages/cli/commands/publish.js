@@ -46,7 +46,7 @@ async function checkSubscription(domain, rpcUrl, simplepage) {
 }
 
 export async function publish(domain, path, options) {
-  const chainId = options.chainId || CHAIN_ID
+  const chainId = Number(options.chainId ?? CHAIN_ID)
   const rpcUrl = options.rpc || DEFAULT_RPC
   const dserviceUrl = options.dservice
   const simplepage = options.simplepage || contracts.deployments[chainId].SimplePage
@@ -137,6 +137,7 @@ export async function publish(domain, path, options) {
   console.log(`ipfs://${cid}`)
   console.log(`\n`)
   console.log(`You can update your ENS name here:`)
-  console.log(`https://app.ens.domains/${domain}?tab=records`)
+  const ensAppHost = chainId === 11155111 ? 'sepolia.app.ens.domains' : 'app.ens.domains'
+  console.log(`https://${ensAppHost}/${domain}?tab=records`)
   console.log(`\n`)
 }
