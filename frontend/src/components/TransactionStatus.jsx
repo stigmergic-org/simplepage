@@ -3,14 +3,8 @@ import { useNavigate } from 'react-router';
 import { ROUTES } from '../config/routes';
 import { useChainId } from '../hooks/useChainId';
 import { DOMAIN_SUFFIX } from '../config/domain';
+import { getBlockExplorerTxUrl } from '../utils/networks';
 import Notice from './Notice';
-
-function getExplorerUrl(hash, chainId) {
-  if (chainId === 11155111) {
-    return `https://sepolia.etherscan.io/tx/${hash}`;
-  }
-  return `https://etherscan.io/tx/${hash}`;
-}
 
 const TransactionStatus = ({ 
   status, 
@@ -73,7 +67,7 @@ const TransactionStatus = ({
               <p className="text-lg font-semibold mb-4 text-base-content">Transaction {isConfirmed ? 'confirmed' : 'pending'}</p>
               <progress className="progress progress-info w-56" value={progress} max="100"></progress>
               <a 
-                href={getExplorerUrl(hash, chainId)} 
+                href={getBlockExplorerTxUrl(chainId, hash)} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="mt-4 text-primary hover:text-primary-focus"

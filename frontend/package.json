@@ -8,6 +8,7 @@
     "build:ipfs": "webpack --mode=production; ipfs add -r --cid-version=1 -Q dist",
     "build:analyze": "webpack --mode=production --env analyze=true",
     "stage": "simplepage publish new.simplepage.eth dist",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "validate-html": "node validate-html.js",
     "lint": "eslint ."
   },
@@ -39,6 +40,9 @@
     "@babel/preset-react": "^7.27.1",
     "@simplepg/cli": "workspace:*",
     "@svgr/webpack": "^8.1.0",
+    "babel-jest": "^30.0.1",
+    "jest": "^30.0.3",
+    "jest-environment-jsdom": "^30.0.5",
     "@tailwindcss/postcss": "^4.1.12",
     "autoprefixer": "^10.4.21",
     "babel-loader": "^10.0.0",

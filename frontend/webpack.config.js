@@ -27,7 +27,10 @@ module.exports = (env, argv) => {
   const version = packageJson.version;
 
   return {
-    entry: './src/index.js',
+    entry: {
+      main: './src/index.js',
+      web3form: './src/web3form-app.jsx',
+    },
     resolve: {
       extensions: ['.js', '.jsx'],
       fallback: {
@@ -198,7 +201,15 @@ module.exports = (env, argv) => {
         templateParameters: {
           version: version
         },
-        inject: false // Disable automatic injection since we're handling it manually
+        inject: false, // Disable automatic injection since we're handling it manually
+        chunks: ['main'] // Only include main bundle, exclude web3form
+      }),
+      // Generate web3form.html for iframe
+      new HtmlWebpackPlugin({
+        template: 'public/_web3form.html',
+        filename: '_assets/web3form.html',
+        chunks: ['web3form'], // Only include web3form bundle
+        inject: 'body' // Inject scripts at end of body
       }),
       new CopyWebpackPlugin({
         patterns: [

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web3 Form</title>
+
+  <!-- Static CSS files -->
+  <link rel="stylesheet" href="/theme.css">
+
+  <!-- Content CSS files -->
+  <% for (const cssFile of htmlWebpackPlugin.files.css || []) { %>
+    <% if (cssFile.includes('content')) { %>
+  <link rel="stylesheet" href="<%= cssFile %>">
+    <% } %>
+  <% } %>
+
+</head>
+<body>
+  <noscript>
+    <div class="noscript-message">
+      <h2>Web3 Form</h2>
+      <p>This interactive form requires JavaScript to function properly.</p>
+      <p>Please enable JavaScript in your browser to use this Web3 form.</p>
+
+      <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; text-align: left;">
+        <strong>Web3 URI:</strong>
+        <div id="uri-display" style="font-family: monospace; font-size: 12px; color: #666; margin-top: 5px; word-break: break-all;">
+          Loading...
+        </div>
+      </div>
+    </div>
+  </noscript>
+
+  <!-- React app root -->
+  <div id="root">
+    <div class="card border border-base-300 rounded-lg p-4 w-full bg-base-200">
+      <div class="flex flex-col justify-center items-center gap-2">
+        <span class="loading loading-infinity loading-md"></span>
+        <h3 class="text-base-content/70">Loading contract interaction...</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript bundles will be injected here by webpack -->
+</body>
+</html>

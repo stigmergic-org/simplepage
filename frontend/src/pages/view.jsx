@@ -10,6 +10,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
+import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
 
@@ -49,6 +50,7 @@ const View = ({ existingContent }) => {
         updateVirtualLinks(parsedContent, basename);
         await updateVirtualMedia(parsedContent, repo);
       }
+
       highlightElement(parsedContent.body);
       setContent(parsedContent.body.innerHTML);
       
@@ -67,7 +69,9 @@ const View = ({ existingContent }) => {
     if (repo) {
       loadContent();
     }
-  }, [repo, basename, isVirtual, path]);
+  }, [repo, basename, isVirtual, path, goToNotFound]);
+
+
 
   // Load navigation items
   useEffect(() => {
@@ -102,6 +106,8 @@ const View = ({ existingContent }) => {
       window.removeEventListener('resize', updateContentWidth);
     };
   }, [content]); // Re-measure when content changes
+
+
 
   return (
     <>
@@ -140,7 +146,7 @@ const View = ({ existingContent }) => {
 
       <div id="content" className="min-h-70 flex items-center justify-center pt-8">
         <div id="content-container" className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <ContentArea content={content} />
         </div>
       </div>
     </>
@@ -197,6 +203,8 @@ const updateVirtualLinks = (parsedContent, basename) => {
     }
   });
 };
+
+
 
 // Function to add heading links to parsed content
 const addHeadingLinks = (parsedContent) => {
