@@ -8,6 +8,7 @@
     "dev": "pnpm -r dev",
     "test": "pnpm -r test",
     "stage": "cd frontend; pnpm run stage",
+    "stage-sepolia": "cd frontend; pnpm run stage-sepolia",
     "lint": "pnpm -r lint"
   },
   "workspaces": [

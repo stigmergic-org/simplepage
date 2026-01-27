@@ -28,6 +28,14 @@ const startServer = () => {
       cert: opts.tlsCert
     }
   }
+  const chainNames = {
+    1: 'mainnet',
+    11155111: 'sepolia',
+    1337: 'local'
+  }
+  const chainId = parseInt(opts.chainId)
+  const chainName = chainNames[chainId] || 'unknown'
+
   const config = {
     version: packageJson.version,
     ipfs: {
@@ -41,7 +49,7 @@ const startServer = () => {
     blockchain: {
       rpcUrl: opts.rpc,
       startBlock: parseInt(opts.startBlock),
-      chainId: parseInt(opts.chainId),
+      chainId: chainId,
       disableIndexing: opts.disableIndexing,
       universalResolver: opts.universalResolver,
       simplePageAddress: opts.simplepage
@@ -52,6 +60,7 @@ const startServer = () => {
   }
   
   console.log('Starting SimplePage DService...')
+  console.log(`Network: ${chainName} (${chainId})`)
   console.log('Configuration:', {
     ipfsApi: config.ipfs.api,
     apiPort: config.api.port,
