@@ -1,4 +1,4 @@
-import { parseFormData, parseWeb3Uri, parseWeb3Metadata } from '../../src/utils/web3UriParser.js';
+import { parseFormData, parseWeb3Metadata } from '../../src/utils/web3UriParser.js';
 
 // Test vectors for valid parsing scenarios
 const validTestVectors = [

@@ -67,6 +67,8 @@ const Web3FormApp = () => {
   const [valueUnit, setValueUnit] = useState('ETH');
   const containerRef = useRef(null);
 
+  const getHashParams = () => new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
   // Wagmi hooks
   const { address, chainId: accountChainId } = useAccount();
   const publicClient = usePublicClient();
@@ -122,44 +124,49 @@ const Web3FormApp = () => {
 
   // Single effect: Complete setup, storage, and parsing
   useEffect(() => {
-    // Find our iframe
-    const iframes = window.parent.document.querySelectorAll('iframe');
-    const ourIframe = Array.from(iframes).find(iframe =>
-      iframe.contentWindow === window
-    );
+    let ourIframe = null;
+    try {
+      const iframes = window.parent.document.querySelectorAll('iframe');
+      ourIframe = Array.from(iframes).find(iframe =>
+        iframe.contentWindow === window
+      );
+    } catch (_error) {
+      ourIframe = null;
+    }
 
     if (ourIframe) {
       setIframeRef(ourIframe);
-
-      // Extract key
-      const key = ourIframe.dataset.key || ourIframe.getAttribute('data-key');
-      if (key) {
-        const storageKey = `web3form_${key}`;
-
-        // Try to load from storage first
-        const storedData = loadFromStorage(storageKey);
-        if (storedData) {
-          parseAndSetFormData(storedData.uri, storedData.text);
-          return;
-        }
-
-        // No storage data, parse from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const uriParam = urlParams.get('w3uri');
-        const textParam = urlParams.get('text');
-
-        parseAndSetFormData(uriParam, textParam);
-
-        // Save to storage for future recovery
-        if (uriParam) {
-          sessionStorage.setItem(storageKey, JSON.stringify({
-            uri: uriParam,
-            text: textParam || '',
-            timestamp: Date.now()
-          }));
-        }
-      }
     }
+
+    const hashParams = getHashParams();
+    const uriParam = hashParams.get('w3uri');
+    const textParam = hashParams.get('text');
+    const keyParam = hashParams.get('key');
+
+    if (keyParam) {
+      const storageKey = `web3form_${keyParam}`;
+
+      // Try to load from storage first
+      const storedData = loadFromStorage(storageKey);
+      if (storedData) {
+        parseAndSetFormData(storedData.uri, storedData.text);
+        return;
+      }
+
+      parseAndSetFormData(uriParam, textParam);
+
+      // Save to storage for future recovery
+      if (uriParam) {
+        sessionStorage.setItem(storageKey, JSON.stringify({
+          uri: uriParam,
+          text: textParam || '',
+          timestamp: Date.now()
+        }));
+      }
+      return;
+    }
+
+    parseAndSetFormData(uriParam, textParam);
   }, []); // One-time setup
 
   // Effect: Height management (triggers on any render change)
@@ -361,8 +368,8 @@ const Web3FormApp = () => {
               <div className="text-sm">{error}</div>
             )}
             <div className="mt-2 text-xs font-mono">
-              <p><strong>URI:</strong> {new URLSearchParams(window.location.search).get('w3uri')}</p>
-              <p><strong>Text:</strong> {new URLSearchParams(window.location.search).get('text')}</p>
+              <p><strong>URI:</strong> {getHashParams().get('w3uri')}</p>
+              <p><strong>Text:</strong> {getHashParams().get('text')}</p>
             </div>
           </div>
         </div>
