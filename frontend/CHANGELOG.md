@@ -1,5 +1,12 @@
 # @simplepg/frontend
 
+## 1.6.3
+
+### Patch Changes
+
+- ca57380: fix(frontend): clean up web3 parsing and error handling
+- 1244b76: fix(frontend): better ETH handling in web3forms
+
 ## 1.6.2
 
 ### Patch Changes
