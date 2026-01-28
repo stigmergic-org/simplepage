@@ -1,5 +1,13 @@
 # @simplepg/frontend
 
+## 1.6.2
+
+### Patch Changes
+
+- 68898eb: fix(frontend): use # instead of ? in web3forms to mitigate eth.limo restriction
+- 6adb9c4: fix(frontend): clean up web3form uri format
+- 8368e84: fix(frontend): rename url param to not conflict with ipfs gateway
+
 ## 1.6.1
 
 ### Patch Changes
