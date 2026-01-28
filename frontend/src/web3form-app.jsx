@@ -439,15 +439,29 @@ const Web3FormApp = () => {
             {parsedData?.formTitle || 'Contract Interaction'}
           </h2>
           {parsedData?.contract && (
-            <a
-              href={getBlockExplorerAddressUrl(parsedData.chainId || 1, parsedData.contract)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-ghost btn-sm p-1 tooltip tooltip-bottom"
-              data-tip="View Contract"
-            >
-              <Icon name="external-link" size={4} />
-            </a>
+            <div className="flex items-center gap-1">
+              <a
+                href={getBlockExplorerAddressUrl(parsedData.chainId || 1, parsedData.contract)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm p-1 tooltip tooltip-bottom"
+                data-tip="View Contract"
+              >
+                <Icon name="external-link" size={4} />
+              </a>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip="Provided on an 'as is' basis. No warranties are provided, and SimplePage.eth is not liable for any loss, direct or indirect, arising from use of this feature."
+              >
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm p-1"
+                  aria-label="Web3 forms notice"
+                >
+                  <Icon name="info" size={4} />
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
