@@ -145,7 +145,7 @@ const Web3FormApp = () => {
 
         // No storage data, parse from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const uriParam = urlParams.get('uri');
+        const uriParam = urlParams.get('w3uri');
         const metaParam = urlParams.get('meta');
 
         parseAndSetFormData(uriParam, metaParam);
@@ -361,7 +361,7 @@ const Web3FormApp = () => {
               <div className="text-sm">{error}</div>
             )}
             <div className="mt-2 text-xs font-mono">
-              <p><strong>URI:</strong> {new URLSearchParams(window.location.search).get('uri')}</p>
+              <p><strong>URI:</strong> {new URLSearchParams(window.location.search).get('w3uri')}</p>
               <p><strong>Meta:</strong> {new URLSearchParams(window.location.search).get('meta')}</p>
             </div>
           </div>
