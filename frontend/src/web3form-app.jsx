@@ -267,14 +267,32 @@ const Web3FormApp = () => {
         const abi = buildMinimalAbi(parsedData);
         
         const valueInput = formInputs.value?.toString().trim();
+        const txValue = valueInput
+          ? (valueUnit === 'ETH' ? parseEther(valueInput) : BigInt(valueInput))
+          : 0n;
+        let gasEstimate;
+
+        try {
+          gasEstimate = await publicClient.estimateContractGas({
+            address: parsedData.contract,
+            abi,
+            functionName: parsedData.method,
+            args,
+            value: txValue,
+            account: address,
+            chainId: parsedData.chainId
+          });
+        } catch (gasError) {
+          console.warn('Gas estimation failed, sending without override:', gasError);
+        }
+
         const txHash = await writeContractAsync({
           address: parsedData.contract,
           abi,
           functionName: parsedData.method,
           args,
-          value: valueInput
-            ? (valueUnit === 'ETH' ? parseEther(valueInput) : BigInt(valueInput))
-            : 0n,
+          value: txValue,
+          ...(gasEstimate ? { gas: gasEstimate } : {}),
           chainId: parsedData.chainId
         });
         setTxHash(txHash);
