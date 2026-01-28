@@ -12,7 +12,7 @@ import Icon from './components/Icon';
 import WalletInfo from './components/WalletInfo';
 import Notice from './components/Notice';
 import { createConfig, WagmiProvider, unstable_connector, useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia } from 'wagmi/chains';
 import { injected, safe } from 'wagmi/connectors';
@@ -102,7 +102,10 @@ const Web3FormApp = () => {
         initialInputs[arg.label] = arg.placeholder === '0x' ? '' : (arg.placeholder || '');
       });
       if (result.value !== null && result.value !== undefined) {
-        initialInputs.value = result.value;
+        const valueString = valueUnit === 'ETH'
+          ? formatEther(BigInt(result.value))
+          : String(result.value);
+        initialInputs.value = valueString;
       }
       setFormInputs(initialInputs);
     }
@@ -184,6 +187,33 @@ const Web3FormApp = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  const handleValueUnitChange = (nextUnit) => {
+    setValueUnit((currentUnit) => {
+      if (currentUnit === nextUnit) {
+        return currentUnit;
+      }
+
+      const currentValue = formInputs.value?.toString().trim();
+      if (!currentValue) {
+        return nextUnit;
+      }
+
+      try {
+        const converted = currentUnit === 'ETH'
+          ? parseEther(currentValue).toString()
+          : formatEther(BigInt(currentValue));
+        setFormInputs((prev) => ({
+          ...prev,
+          value: converted
+        }));
+      } catch (_error) {
+        // Keep existing value if conversion fails.
+      }
+
+      return nextUnit;
+    });
   };
 
   const handleCopyReturnValue = async () => {
@@ -303,14 +333,14 @@ const Web3FormApp = () => {
                 <button
                   type="button"
                   className={`btn btn-xs join-item ${valueUnit === 'ETH' ? 'btn-primary btn-soft' : 'btn-ghost'}`}
-                  onClick={() => setValueUnit('ETH')}
+                  onClick={() => handleValueUnitChange('ETH')}
                 >
                   ETH
                 </button>
                 <button
                   type="button"
                   className={`btn btn-xs join-item ${valueUnit === 'WEI' ? 'btn-primary btn-soft' : 'btn-ghost'}`}
-                  onClick={() => setValueUnit('WEI')}
+                  onClick={() => handleValueUnitChange('WEI')}
                 >
                   WEI
                 </button>
@@ -327,7 +357,11 @@ const Web3FormApp = () => {
           />
           <label className="label">
             <span className="label-text-alt text-xs text-gray-400">
-              Default: {parsedData.value}
+              Default: {parsedData.value !== null && parsedData.value !== undefined
+                ? (valueUnit === 'ETH'
+                  ? `${formatEther(BigInt(parsedData.value))} ETH`
+                  : `${parsedData.value} WEI`)
+                : ''}
             </span>
           </label>
         </div>
