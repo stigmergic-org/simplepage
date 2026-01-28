@@ -161,6 +161,16 @@ export const parseWeb3Uri = (uri) => {
   if (queryString) {
     try {
       const searchParams = new URLSearchParams(queryString);
+      const supportedParams = new Set(['value', 'payable', 'stateMutability', 'returns', 'mode', 'labels']);
+
+      for (const key of searchParams.keys()) {
+        if (!supportedParams.has(key)) {
+          return {
+            uri,
+            error: `Unsupported query parameter "${key}". Supported parameters: value, payable, stateMutability, returns, mode, labels.`,
+          };
+        }
+      }
       const valueStr = searchParams.get('value');
       value = valueStr ? parseValueToWei(valueStr) : null;
       payable = searchParams.get('payable') === 'true' || searchParams.get('stateMutability') === 'payable';

@@ -56,7 +56,8 @@ const normalizeMethodName = (method) => {
 const Web3FormApp = () => {
   const [parsedData, setParsedData] = useState(null);
   const [formInputs, setFormInputs] = useState({});
-  const [error, setError] = useState(null);
+  const [parseError, setParseError] = useState(null);
+  const [formError, setFormError] = useState(null);
   const [txHash, setTxHash] = useState(null);
   const [returnValue, setReturnValue] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,11 +89,12 @@ const Web3FormApp = () => {
     const result = parseFormData(uriParam, textParam);
 
     if (result.errors.length > 0) {
-      setError(result.errors);
+      setParseError(result.errors);
       setParsedData(null);
     } else {
-      setError(null);
+      setParseError(null);
       setParsedData(result);
+      setFormError(null);
       
       // Initialize form inputs with placeholders from args
       const initialInputs = {};
@@ -175,7 +177,7 @@ const Web3FormApp = () => {
       const height = containerRef.current.scrollHeight;
       iframeRef.style.height = `${height + 20}px`;
     }
-  }, [parsedData, isLoading, error, iframeRef, returnValue, txHash, txFailure, showTxFailureDetails]);
+  }, [parsedData, isLoading, parseError, formError, iframeRef, returnValue, txHash, txFailure, showTxFailureDetails]);
 
   const handleInputChange = (e) => {
     setFormInputs(prev => ({
@@ -200,15 +202,14 @@ const Web3FormApp = () => {
     e.preventDefault();
     setReturnValue(null);
     setTxHash(null);
-    setError(null);
+    setFormError(null);
     setTxFailure(null);
     setShowTxFailureDetails(false);
     
     // Validate inputs
     const { args, errors } = encodeArguments(parsedData, formInputs);
     if (errors.length > 0) {
-      console.log('handleSubmit', errors, args)
-      setError(errors);
+      setFormError(errors);
       return;
     }
     
@@ -222,7 +223,8 @@ const Web3FormApp = () => {
           abi: buildMinimalAbi(parsedData),
           functionName: parsedData.method,
           args,
-          account: address
+          account: address,
+          chainId: parsedData.chainId
         });
         if (result !== undefined && result !== null) {
           const formatted = formatReturnValue(result, parsedData.returns);
@@ -250,7 +252,7 @@ const Web3FormApp = () => {
     } catch (err) {
       console.error('Submission error:', err);
       if (parsedData?.call) {
-        setError([err.message || 'Transaction failed']);
+        setFormError([err.message || 'Transaction failed']);
       } else {
         setTxFailure(err.message || 'Transaction failed');
       }
@@ -351,21 +353,21 @@ const Web3FormApp = () => {
     );
   }
 
-  if (error) {
+  if (parseError) {
     return (
       <div ref={containerRef} className={cardClassName}>
         <div className="alert alert-error mb-4">
           <Icon name="error" size={8} className="shrink-0" />
           <div>
             <h3 className="font-bold">Unable to Load Form</h3>
-            {Array.isArray(error) ? (
+            {Array.isArray(parseError) ? (
               <ul className="text-sm list-disc list-inside">
-                {error.map((err, idx) => (
+                {parseError.map((err, idx) => (
                   <li key={idx}>{err}</li>
                 ))}
               </ul>
             ) : (
-              <div className="text-sm">{error}</div>
+              <div className="text-sm">{parseError}</div>
             )}
             <div className="mt-2 text-xs font-mono">
               <p><strong>URI:</strong> {getHashParams().get('w3uri')}</p>
@@ -420,6 +422,27 @@ const Web3FormApp = () => {
                 <span className="loading loading-infinity loading-xs"></span>
                 <span>Waiting for confirmation...</span>
               </div>
+            )}
+          </div>
+        </Notice>
+      )}
+
+      {formError && (
+        <Notice
+          type="error"
+          onClose={() => setFormError(null)}
+          className="mt-4"
+        >
+          <div>
+            <strong>Fix the highlighted fields</strong>
+            {Array.isArray(formError) ? (
+              <ul className="text-sm list-disc list-inside">
+                {formError.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm">{formError}</p>
             )}
           </div>
         </Notice>
