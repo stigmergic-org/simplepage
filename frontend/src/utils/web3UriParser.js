@@ -4,7 +4,7 @@
  * Parses web3:// URIs according to ERC-6860 specification:
  * - web3://contract[:chainId]/method[/type!value...]?[query]
  * - Type specifications: type!value (explicit type with value)
- * - Query parameters: value, payable, returns, mode
+ * - Query parameters: value, payable, returns, mode, labels
  */
 
 /**
@@ -154,22 +154,23 @@ export const parseWeb3Uri = (uri) => {
   // Parse query parameters
   let value = null;
   let payable = false;
-  let mode = 'auto';
+  let mode = 'call';
   let returns = null;
+  let labels = null;
 
   if (queryString) {
     try {
-      const params = new URLSearchParams(queryString);
-      const valueStr = params.get('value');
+      const searchParams = new URLSearchParams(queryString);
+      const valueStr = searchParams.get('value');
       value = valueStr ? parseValueToWei(valueStr) : null;
-      payable = params.get('payable') === 'true' || params.get('stateMutability') === 'payable';
+      payable = searchParams.get('payable') === 'true' || searchParams.get('stateMutability') === 'payable';
 
       // If payable=true, set value to 0 if not specified
       if (payable && value === null) {
         value = 0;
       }
 
-      const returnsStr = params.get('returns');
+      const returnsStr = searchParams.get('returns');
       if (returnsStr) {
         // Parse returns format like "(uint256)" or "()" for void - must be wrapped in parentheses
         const returnsMatch = returnsStr.match(/^\(([^)]*)\)$/);
@@ -192,7 +193,29 @@ export const parseWeb3Uri = (uri) => {
           returns = returnType;
         }
       }
-      mode = params.get('mode') || 'auto';
+      const modeParam = searchParams.get('mode');
+      if (modeParam) {
+        if (modeParam === 'tx' || modeParam === 'call') {
+          mode = modeParam;
+        } else {
+          return {
+            uri,
+            error: 'Invalid mode parameter. Use "mode=call" or "mode=tx".',
+          };
+        }
+      }
+
+      const labelsStr = searchParams.get('labels');
+      if (labelsStr !== null) {
+        const trimmed = labelsStr.trim();
+        const normalized = trimmed.startsWith('(') && trimmed.endsWith(')')
+          ? trimmed.slice(1, -1)
+          : trimmed;
+        labels = normalized
+          .split(',')
+          .map((param) => param.trim())
+          .filter(Boolean);
+      }
     } catch (_error) {
       return {
         uri,
@@ -211,6 +234,7 @@ export const parseWeb3Uri = (uri) => {
     payable,
     returns,
     mode,
+    labels,
     fragment,
   };
 };
@@ -218,102 +242,32 @@ export const parseWeb3Uri = (uri) => {
 
 
 /**
- * Parses flag string into object with typed values
- * @param {string} flagsStr - Space-separated key=value pairs
- * @returns {Object} Parsed flags object
- */
-const parseFlags = (flagsStr) => {
-  const flags = {};
-  const flagPairs = flagsStr.trim().split(/\s+/);
-  
-  for (const pair of flagPairs) {
-    const [key, value] = pair.split('=');
-    if (key && value !== undefined) {
-      // Convert string values to appropriate types
-      if (value === 'true') flags[key] = true;
-      else if (value === 'false') flags[key] = false;
-      else if (!isNaN(value)) flags[key] = Number(value);
-      else flags[key] = value;
-    }
-  }
-  
-  return flags;
-};
-
-/**
- * Parses markdown metadata for form title, parameter names, and flags
- * Format: "Title params=(param1,param2) flag1=value1 flag2=value2"
+ * Parses markdown metadata for a form title
  * @param {string} metadata - Raw metadata string from markdown
- * @returns {Object} Parsed metadata with formTitle, params, and flags
+ * @returns {Object} Parsed metadata with formTitle
  */
 export const parseWeb3Metadata = (metadata) => {
   if (!metadata || typeof metadata !== 'string') {
-    return { formTitle: '', params: null, flags: {} };
+    return { formTitle: '' };
   }
 
-  const trimmed = metadata.trim();
-
-  // Check if the string contains params: "Title params=(p1,p2) flags..."
-  const paramsMatch = trimmed.match(/^(.+?)\s+params=\(([^)]+)\)(?:\s+(.+))?$/);
-  if (paramsMatch) {
-    const [, title, paramsStr, flagsStr] = paramsMatch;
-    const params = paramsStr.split(',').map(p => p.trim()).filter(Boolean);
-    const flags = flagsStr ? parseFlags(flagsStr) : {};
-
-    return {
-      formTitle: title.trim(),
-      params,
-      flags
-    };
-  }
-
-  // No params, but might have flags: "Title flag1=value1 flag2=value2"
-  const parts = trimmed.split(/\s+/);
-  const titleParts = [];
-  const flagParts = [];
-
-  for (const part of parts) {
-    if (part.includes('=')) {
-      flagParts.push(part);
-    } else {
-      titleParts.push(part);
-    }
-  }
-
-  return {
-    formTitle: titleParts.join(' '),
-    params: null,
-    flags: flagParts.length > 0 ? parseFlags(flagParts.join(' ')) : {}
-  };
+  return { formTitle: metadata.trim() };
 };
 
 /**
- * Validates metadata against parsed URI
+ * Validates labels against parsed URI
  * @param {Object} parsedUri - Result from parseWeb3Uri
- * @param {Array} params - Parameter names from metadata
- * @param {Object} flags - Flags from metadata
  * @returns {Array} Array of error messages (empty if valid)
  */
-const validateMetadata = (parsedUri, params, flags) => {
+const validateLabels = (parsedUri) => {
   const errors = [];
 
-  // Validate params count matches args count
-  if (params && params.length > 0 && parsedUri.args) {
-    if (params.length !== parsedUri.args.length) {
-      const paramWord = params.length === 1 ? 'parameter' : 'parameters';
+  // Validate labels count matches args count
+  if (parsedUri.labels && parsedUri.args) {
+    if (parsedUri.labels.length !== parsedUri.args.length) {
+      const paramWord = parsedUri.labels.length === 1 ? 'parameter' : 'parameters';
       const argWord = parsedUri.args.length === 1 ? 'argument' : 'arguments';
-      errors.push(`Parameter mismatch: The form description specifies ${params.length} ${paramWord}, but the web3 link expects ${parsedUri.args.length} ${argWord}.`);
-    }
-  }
-
-  // Validate call flag conflicts
-  if (flags.call === true) {
-    const hasExplicitValue = parsedUri.uri.includes('value=') && parsedUri.value !== null && parsedUri.value !== undefined;
-    if (hasExplicitValue) {
-      errors.push('Conflict: Metadata specifies call=true (state-modifying operation) but URI contains a value parameter. State-modifying operations should not include value transfers.');
-    }
-    if (parsedUri.payable === true) {
-      errors.push('Conflict: Metadata specifies call=true (state-modifying operation) but URI has payable=true. State-modifying operations should not be payable.');
+      errors.push(`Label mismatch: The web3 URI provides ${parsedUri.labels.length} label ${paramWord}, but the web3 link has ${parsedUri.args.length} ${argWord}. Add or remove labels so the counts match.`);
     }
   }
 
@@ -323,7 +277,7 @@ const validateMetadata = (parsedUri, params, flags) => {
 /**
  * Consolidated function to parse URI and metadata into complete form data structure
  * @param {string} uri - The web3 URI to parse
- * @param {string} metadata - The metadata string for form title and parameter names
+ * @param {string} metadata - The metadata string for form title
  * @returns {Object} Result object with contract, method, formTitle, args, and errors
  */
 export const parseFormData = (uri, metadata) => {
@@ -367,15 +321,15 @@ export const parseFormData = (uri, metadata) => {
       };
     }
 
-    // Parse the metadata (form title, parameter names, and flags)
+    // Parse the metadata (form title)
     const parsedMeta = parseWeb3Metadata(metadata);
 
-    // Validate metadata against parsed URI
-    const validationErrors = validateMetadata(parsed, parsedMeta.params, parsedMeta.flags);
+    // Validate labels against parsed URI
+    const validationErrors = validateLabels(parsed);
 
     // Build consolidated args with parameter names
     const consolidatedArgs = parsed.args.map((arg, index) => ({
-      label: parsedMeta.params?.[index] || arg.type,
+      label: parsed.labels?.[index] || arg.type,
       type: arg.type,
       placeholder: arg.placeholder
     }));
@@ -388,8 +342,8 @@ export const parseFormData = (uri, metadata) => {
       chainId: parsed.chainId,
       returns: parsed.returns,
       args: consolidatedArgs,
-      call: parsedMeta.flags.call === true,
-      flags: parsedMeta.flags,
+      call: parsed.mode !== 'tx',
+      flags: {},
       errors: validationErrors
     };
 

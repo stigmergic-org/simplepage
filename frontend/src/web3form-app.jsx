@@ -82,8 +82,8 @@ const Web3FormApp = () => {
   });
 
   // Helper: Parse URI and set form state using consolidated parser
-  const parseAndSetFormData = (uriParam, metaParam) => {
-    const result = parseFormData(uriParam, metaParam);
+  const parseAndSetFormData = (uriParam, textParam) => {
+    const result = parseFormData(uriParam, textParam);
 
     if (result.errors.length > 0) {
       setError(result.errors);
@@ -139,22 +139,22 @@ const Web3FormApp = () => {
         // Try to load from storage first
         const storedData = loadFromStorage(storageKey);
         if (storedData) {
-          parseAndSetFormData(storedData.uri, storedData.meta);
+          parseAndSetFormData(storedData.uri, storedData.text);
           return;
         }
 
         // No storage data, parse from URL
         const urlParams = new URLSearchParams(window.location.search);
         const uriParam = urlParams.get('w3uri');
-        const metaParam = urlParams.get('meta');
+        const textParam = urlParams.get('text');
 
-        parseAndSetFormData(uriParam, metaParam);
+        parseAndSetFormData(uriParam, textParam);
 
         // Save to storage for future recovery
         if (uriParam) {
           sessionStorage.setItem(storageKey, JSON.stringify({
             uri: uriParam,
-            meta: metaParam || '',
+            text: textParam || '',
             timestamp: Date.now()
           }));
         }
@@ -362,7 +362,7 @@ const Web3FormApp = () => {
             )}
             <div className="mt-2 text-xs font-mono">
               <p><strong>URI:</strong> {new URLSearchParams(window.location.search).get('w3uri')}</p>
-              <p><strong>Meta:</strong> {new URLSearchParams(window.location.search).get('meta')}</p>
+              <p><strong>Text:</strong> {new URLSearchParams(window.location.search).get('text')}</p>
             </div>
           </div>
         </div>

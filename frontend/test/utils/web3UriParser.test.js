@@ -4,8 +4,8 @@ import { parseFormData, parseWeb3Uri, parseWeb3Metadata } from '../../src/utils/
 const validTestVectors = [
   {
     name: 'basic transfer URI with metadata',
-    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!1000',
-    metadata: 'Transfer Tokens params=(to,amount)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!1000?labels=(to,amount)&mode=tx',
+    metadata: 'Transfer Tokens',
      expected: {
        contract: '0x1234567890123456789012345678901234567890',
        method: 'transfer',
@@ -32,8 +32,8 @@ const validTestVectors = [
   },
   {
     name: 'URI with explicit type specifications',
-    uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!1000/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    metadata: 'Mint Tokens params=(amount,to)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!1000/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd?labels=(amount,to)&mode=tx',
+    metadata: 'Mint Tokens',
      expected: {
        contract: '0x1234567890123456789012345678901234567890',
        method: 'mint',
@@ -60,7 +60,7 @@ const validTestVectors = [
   },
   {
     name: 'URI with value parameter',
-    uri: 'web3://0x1234567890123456789012345678901234567890/donate?value=1.5eth',
+    uri: 'web3://0x1234567890123456789012345678901234567890/donate?value=1.5eth&mode=tx',
     metadata: 'Make Donation',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -77,7 +77,7 @@ const validTestVectors = [
   },
   {
     name: 'URI with payable flag',
-    uri: 'web3://0x1234567890123456789012345678901234567890/donate?payable=true&value=0.1eth',
+    uri: 'web3://0x1234567890123456789012345678901234567890/donate?payable=true&value=0.1eth&mode=tx',
     metadata: 'Make Donation',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -92,7 +92,7 @@ const validTestVectors = [
   },
   {
     name: 'URI with payable flag but no value',
-    uri: 'web3://0x1234567890123456789012345678901234567890/donate?payable=true',
+    uri: 'web3://0x1234567890123456789012345678901234567890/donate?payable=true&mode=tx',
     metadata: 'Make Donation',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -107,8 +107,8 @@ const validTestVectors = [
   },
   {
     name: 'explicit address type',
-    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    metadata: 'Transfer params=(to)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd?labels=(to)&mode=tx',
+    metadata: 'Transfer',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'transfer',
@@ -128,8 +128,8 @@ const validTestVectors = [
   },
   {
     name: 'explicit bool type',
-    uri: 'web3://0x1234567890123456789012345678901234567890/setFlag/bool!true',
-    metadata: 'Set Flag params=(enabled)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/setFlag/bool!true?labels=(enabled)&mode=tx',
+    metadata: 'Set Flag',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'setFlag',
@@ -151,8 +151,8 @@ const validTestVectors = [
 
    {
      name: 'metadata with extra whitespace',
-     uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000',
-     metadata: '  Transfer Tokens   params=(  amount  )  ',
+     uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?labels=(amount)&mode=tx',
+     metadata: '  Transfer Tokens  ',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'transfer',
@@ -172,8 +172,8 @@ const validTestVectors = [
   },
    {
      name: 'explicit type specs with and without values',
-     uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!0x/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-     metadata: 'Mint Tokens params=(amount,to)',
+     uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!0x/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd?labels=(amount,to)&mode=tx',
+     metadata: 'Mint Tokens',
       expected: {
        contract: '0x1234567890123456789012345678901234567890',
        method: 'mint',
@@ -198,8 +198,8 @@ const validTestVectors = [
    },
   {
     name: 'URI with chain ID',
-    uri: 'web3://0x1234567890123456789012345678901234567890:42161/bridge/uint256!1000',
-    metadata: 'Bridge Tokens params=(amount)',
+    uri: 'web3://0x1234567890123456789012345678901234567890:42161/bridge/uint256!1000?labels=(amount)&mode=tx',
+    metadata: 'Bridge Tokens',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'bridge',
@@ -219,8 +219,8 @@ const validTestVectors = [
   },
   {
     name: 'default to chain ID 1 when not specified',
-    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000',
-    metadata: 'Transfer params=(amount)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?labels=(amount)&mode=tx',
+    metadata: 'Transfer',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'transfer',
@@ -323,8 +323,8 @@ const validTestVectors = [
   },
   {
     name: 'URI with multiple arguments of different types',
-    uri: 'web3://0x1234567890123456789012345678901234567890/complexFunction/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!12345/bool!true/bytes!0x1234567890abcdef/address!mystring.eth',
-    metadata: 'Complex Function params=(recipient,amount,enabled,data,name)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/complexFunction/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!12345/bool!true/bytes!0x1234567890abcdef/address!mystring.eth?labels=(recipient,amount,enabled,data,name)&mode=tx',
+    metadata: 'Complex Function',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'complexFunction',
@@ -380,7 +380,7 @@ const validTestVectors = [
   },
   {
     name: 'URI with complex query parameters',
-    uri: 'web3://0x1234567890123456789012345678901234567890/call?value=0.5eth&payable=true&mode=auto',
+    uri: 'web3://0x1234567890123456789012345678901234567890/call?value=0.5eth&payable=true&mode=tx',
     metadata: 'Call Function',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -395,7 +395,7 @@ const validTestVectors = [
   },
   {
     name: 'URI with wei value',
-    uri: 'web3://0x1234567890123456789012345678901234567890/donate?value=1000000000000000000',
+    uri: 'web3://0x1234567890123456789012345678901234567890/donate?value=1000000000000000000&mode=tx',
     metadata: 'Make Donation',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -425,8 +425,8 @@ const validTestVectors = [
   },
   {
     name: 'URI with encoded characters',
-    uri: encodeURIComponent('web3://0x1234567890123456789012345678901234567890/setName/address!Hello%20World'),
-    metadata: 'Set Name params=(name)',
+    uri: encodeURIComponent('web3://0x1234567890123456789012345678901234567890/setName/address!Hello%20World?labels=(name)&mode=tx'),
+    metadata: 'Set Name',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'setName',
@@ -446,8 +446,8 @@ const validTestVectors = [
   },
   {
     name: 'explicit type specs with null values',
-    uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!0x/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    metadata: 'Mint Tokens params=(amount,to)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!0x/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd?labels=(amount,to)&mode=tx',
+    metadata: 'Mint Tokens',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
         method: 'mint',
@@ -472,8 +472,8 @@ const validTestVectors = [
     },
    {
      name: 'explicit bytes type',
-    uri: 'web3://0x1234567890123456789012345678901234567890/setData/bytes!0x1234567890abcdef',
-    metadata: 'Set Data params=(data)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/setData/bytes!0x1234567890abcdef?labels=(data)&mode=tx',
+    metadata: 'Set Data',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'setData',
@@ -493,8 +493,8 @@ const validTestVectors = [
   },
   {
     name: 'explicit address type for domain',
-    uri: 'web3://0x1234567890123456789012345678901234567890/setName/address!vitalik.eth',
-    metadata: 'Set Name params=(name)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/setName/address!vitalik.eth?labels=(name)&mode=tx',
+    metadata: 'Set Name',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'setName',
@@ -544,8 +544,8 @@ const validTestVectors = [
   },
   {
     name: 'URI with returns parameter and arguments',
-    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?returns=(bool)',
-    metadata: 'Transfer params=(amount)',
+    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?returns=(bool)&labels=(amount)',
+    metadata: 'Transfer',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
       method: 'transfer',
@@ -560,14 +560,13 @@ const validTestVectors = [
           placeholder: '1000'
         }
       ],
-      call: false,
-      flags: {},
+      call: true,
       errors: []
     }
   },
   {
     name: 'URI with empty returns parameter (void function)',
-    uri: 'web3://0x1234567890123456789012345678901234567890/execute?returns=()',
+    uri: 'web3://0x1234567890123456789012345678901234567890/execute?returns=()&mode=tx',
     metadata: 'Execute Transaction',
     expected: {
       contract: '0x1234567890123456789012345678901234567890',
@@ -582,98 +581,6 @@ const validTestVectors = [
       errors: []
     }
   },
-  {
-    name: 'metadata with call=true flag',
-    uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!1000',
-    metadata: 'Transfer Tokens params=(to,amount) call=true',
-    expected: {
-      contract: '0x1234567890123456789012345678901234567890',
-      method: 'transfer',
-      formTitle: 'Transfer Tokens',
-      value: null,
-      chainId: 1,
-      returns: null,
-      args: [
-        {
-          label: 'to',
-          type: 'address',
-          placeholder: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
-        },
-        {
-          label: 'amount',
-          type: 'uint256',
-          placeholder: '1000'
-        }
-      ],
-      call: true,
-      flags: { call: true },
-      errors: []
-    }
-  },
-  {
-    name: 'metadata with multiple flags',
-    uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!1000',
-    metadata: 'Mint Tokens params=(amount) call=true payable=false',
-    expected: {
-      contract: '0x1234567890123456789012345678901234567890',
-      method: 'mint',
-      formTitle: 'Mint Tokens',
-      value: null,
-      chainId: 1,
-      returns: null,
-      args: [
-        {
-          label: 'amount',
-          type: 'uint256',
-          placeholder: '1000'
-        }
-      ],
-      call: true,
-      flags: { call: true, payable: false },
-      errors: []
-    }
-  },
-  {
-    name: 'metadata with numeric and string flags',
-    uri: 'web3://0x1234567890123456789012345678901234567890/setValue/uint256!42',
-    metadata: 'Set Value params=(value) version=1.0 gasLimit=21000',
-    expected: {
-      contract: '0x1234567890123456789012345678901234567890',
-      method: 'setValue',
-      formTitle: 'Set Value',
-      value: null,
-      chainId: 1,
-      returns: null,
-      args: [
-        {
-          label: 'value',
-          type: 'uint256',
-          placeholder: '42'
-        }
-      ],
-      call: false,
-      flags: { version: 1.0, gasLimit: 21000 },
-      errors: []
-    }
-  },
-  {
-    name: 'metadata with flags but no params',
-    uri: 'web3://0x1234567890123456789012345678901234567890/initialize',
-    metadata: 'Initialize Contract call=true',
-    expected: {
-      contract: '0x1234567890123456789012345678901234567890',
-      method: 'initialize',
-      formTitle: 'Initialize Contract',
-      value: null,
-      chainId: 1,
-      returns: null,
-      args: [],
-      call: true,
-      flags: { call: true },
-      errors: []
-    }
-  },
-
 ];
 
 // Test vectors for invalid parsing scenarios
@@ -705,19 +612,19 @@ const invalidTestVectors = [
    {
      name: 'URI with userinfo (not supported)',
      uri: 'web3://user@0x1234567890123456789012345678901234567890/transfer/uint256!1000',
-     metadata: 'Transfer params=(amount)',
+      metadata: 'Transfer',
      error: 'Invalid contract name format. Must be a valid Ethereum address (0x + 40 hex digits) or domain name.'
    },
    {
-     name: 'metadata parameter count mismatch',
-     uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!1000',
-     metadata: 'Transfer params=(to)',
-     error: 'Parameter mismatch: The form description specifies 1 parameter, but the web3 link expects 2 arguments'
+     name: 'labels count mismatch',
+     uri: 'web3://0x1234567890123456789012345678901234567890/transfer/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/uint256!1000?labels=(to)',
+      metadata: 'Transfer',
+      error: 'Label mismatch: The web3 URI provides 1 label parameter'
    },
   {
     name: 'invalid Solidity type in explicit specification',
     uri: 'web3://0x1234567890123456789012345678901234567890/set/invalidtype!value',
-    metadata: 'Set Value params=(value)',
+    metadata: 'Set Value',
     error: 'Invalid Solidity type "invalidtype" in web3 URI. Only valid Solidity types are supported.'
   },
    {
@@ -728,13 +635,13 @@ const invalidTestVectors = [
   {
     name: 'URI without explicit types',
     uri: 'web3://0x1234567890123456789012345678901234567890/transfer/0xabcdefabcdefabcdefabcdefabcdefabcdefabcd/1000',
-    metadata: 'Transfer params=(to,amount)',
+    metadata: 'Transfer',
     error: 'All arguments must use explicit type notation: "type!value". Auto-detection is not supported.'
   },
    {
      name: 'URI with empty argument value',
      uri: 'web3://0x1234567890123456789012345678901234567890/mint/uint256!',
-     metadata: 'Mint Tokens params=(amount)',
+      metadata: 'Mint Tokens',
      error: 'All arguments must have values. Use "type!0x" for null values.'
    },
    {
@@ -750,16 +657,10 @@ const invalidTestVectors = [
       error: 'Invalid Solidity return type "invalidtype". Only valid Solidity types are supported.'
     },
     {
-      name: 'call=true with value parameter conflict',
-      uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?value=0.1eth',
-      metadata: 'Transfer params=(amount) call=true',
-      error: 'Conflict: Metadata specifies call=true'
-    },
-    {
-      name: 'call=true with payable=true conflict',
-      uri: 'web3://0x1234567890123456789012345678901234567890/donate?payable=true',
-      metadata: 'Donate call=true',
-      error: 'Conflict: Metadata specifies call=true'
+      name: 'invalid mode parameter',
+      uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?mode=auto',
+      metadata: 'Transfer',
+      error: 'Invalid mode parameter'
     }
  ];
 
@@ -769,62 +670,22 @@ describe('parseWeb3Metadata', () => {
       {
         name: 'basic form title only',
         input: 'Transfer Tokens',
-        expected: { formTitle: 'Transfer Tokens', params: null, flags: {} }
+        expected: { formTitle: 'Transfer Tokens' }
       },
       {
-        name: 'form title with params',
-        input: 'Transfer Tokens params=(to,amount)',
-        expected: {
-          formTitle: 'Transfer Tokens',
-          params: ['to', 'amount'],
-          flags: {}
-        }
-      },
-      {
-        name: 'form title with params and single flag',
-        input: 'Transfer Tokens params=(to,amount) call=true',
-        expected: {
-          formTitle: 'Transfer Tokens',
-          params: ['to', 'amount'],
-          flags: { call: true }
-        }
-      },
-      {
-        name: 'form title with multiple flags',
-        input: 'Mint Tokens params=(amount) call=true payable=false version=2',
-        expected: {
-          formTitle: 'Mint Tokens',
-          params: ['amount'],
-          flags: { call: true, payable: false, version: 2 }
-        }
-      },
-      {
-        name: 'form title with flags but no params',
-        input: 'Initialize Contract call=true payable=false',
-        expected: {
-          formTitle: 'Initialize Contract',
-          params: null,
-          flags: { call: true, payable: false }
-        }
-      },
-      {
-        name: 'flags with different value types',
-        input: 'Set Value gasLimit=21000 version=1.5 enabled=true disabled=false',
-        expected: {
-          formTitle: 'Set Value',
-          params: null,
-          flags: { gasLimit: 21000, version: 1.5, enabled: true, disabled: false }
-        }
+        name: 'form title with extra whitespace',
+        input: '  Transfer Tokens  ',
+        expected: { formTitle: 'Transfer Tokens' }
       },
       {
         name: 'empty string',
         input: '',
-        expected: { formTitle: '', params: null, flags: {} }
+        expected: { formTitle: '' }
       },
       {
         name: 'null input',
         input: null,
-        expected: { formTitle: '', params: null, flags: {} }
+        expected: { formTitle: '' }
       }
     ];
 

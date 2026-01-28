@@ -1,16 +1,16 @@
 export const isWeb3Uri = (href = '') =>
   typeof href === 'string' && href.toLowerCase().startsWith('web3://');
 
-export const web3FormIframe = ({ uri, metadata }) => {
+export const web3FormIframe = ({ uri, text }) => {
   // Simple iframe with src for testing
   const encodedUri = encodeURIComponent(uri || '');
-  const encodedMeta = encodeURIComponent(metadata || '');
+  const encodedText = encodeURIComponent(text || '');
   const randomKey = Math.random().toString(36).substr(2, 9); // Random key for React stability
   return `
     <iframe
       key="${randomKey}"
       data-key="${randomKey}"
-      src="/_assets/web3form.html?w3uri=${encodedUri}&meta=${encodedMeta}"
+      src="/_assets/web3form.html?w3uri=${encodedUri}&text=${encodedText}"
       class="web3-form-iframe"
       style="width: 100%;"
       loading="lazy"
