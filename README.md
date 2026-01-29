@@ -127,7 +127,7 @@ We use [Changesets](https://github.com/changesets/changesets) for versioning and
    ```
 4. **Stage the frontend release:**
    ```bash
-   pnpm run stage
+   pnpm run stage # Make sure to update .env to correct chainid!
    ```
    _This step prepares the release for publishing and may generate a content hash._
 5. **Publish the resulting hash on ENS:**

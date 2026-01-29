@@ -282,7 +282,9 @@ describe('Repo Integration Tests', () => {
       // Should work for valid paths
       await expect(repo.setPageEdit('/', testMarkdown, testBody)).resolves.not.toThrow();
       await expect(repo.setPageEdit('/about/', testMarkdown, testBody)).resolves.not.toThrow();
-      await expect(repo.setPageEdit('/rss/', testMarkdown, testBody)).rejects.toThrow('Cannot create page at reserved path /rss');
+      await expect(repo.setPageEdit('/rss/', testMarkdown, testBody)).resolves.not.toThrow();
+      await expect(repo.setPageEdit('/rss.xml/', testMarkdown, testBody)).rejects.toThrow('Cannot create page at reserved path /rss.xml or /feed');
+      await expect(repo.setPageEdit('/feed/', testMarkdown, testBody)).rejects.toThrow('Cannot create page at reserved path /rss.xml or /feed');
     });
 
     it('should handle restorePage functionality', async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '../hooks/useNavigation';
-import { CHANGE_TYPE } from '@simplepg/repo';
+import { CHANGE_TYPE, RESERVED_PATH_PREFIXES, isReservedPath } from '@simplepg/repo';
 import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
@@ -74,6 +74,8 @@ const Pages = () => {
     setNewFileName(value);
   };
 
+  const reservedPathsLabel = RESERVED_PATH_PREFIXES.join(', ');
+
   // Check if the filename is valid according to the pattern
   const isFileNameValid = () => {
     if (!newFileName || newFileName === '/') {
@@ -81,6 +83,10 @@ const Pages = () => {
     }
     const pattern = /^\/[a-z0-9\-/]+$/;
     if (!pattern.test(newFileName)) {
+      return false;
+    }
+
+    if (isReservedPath(newFileName)) {
       return false;
     }
     
@@ -102,6 +108,11 @@ const Pages = () => {
   const handleCreateFile = async () => {
     if (!newFileName || newFileName === '/') {
       setError('Please enter a valid file path');
+      return;
+    }
+
+    if (isReservedPath(newFileName)) {
+      setError(`Reserved paths ${reservedPathsLabel} cannot be used`);
       return;
     }
 
@@ -336,14 +347,14 @@ const Pages = () => {
               <div className="form-control">
                 <label className="input validator">
                   <Icon name="document" className='h-[1em] opacity-50' />
-                  <input
-                    type="text"
-                    required
-                    placeholder="/blog/post/"
-                    pattern="^\/[a-z0-9\-\/]+$"
-                    title="Must contain only lowercase letters, numbers, hyphens, and slashes"
-                    value={newFileName}
-                    onChange={handleNewFileNameChange}
+                    <input
+                      type="text"
+                      required
+                      placeholder="/blog/post/"
+                      pattern="^\/[a-z0-9\-\/]+$"
+                      title={`Must contain only lowercase letters, numbers, hyphens, and slashes. Reserved: ${reservedPathsLabel}`}
+                      value={newFileName}
+                      onChange={handleNewFileNameChange}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         handleCreateFile();
@@ -352,7 +363,7 @@ const Pages = () => {
                   />
                 </label>
                 <p className="validator-hint">
-                  Must contain only lowercase letters [a-z], numbers [0-9], hyphens -, and slashes /
+                  Must contain only lowercase letters [a-z], numbers [0-9], hyphens -, and slashes /. Reserved: {reservedPathsLabel}
                 </p>
                 <div className="mt-4">
                   <button

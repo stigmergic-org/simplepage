@@ -26,7 +26,7 @@ import { generateRssItem, generateRssFeed } from './utils/rss.js'
 import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
-import { CHANGE_TYPE } from './constants.js'
+import { CHANGE_TYPE, isReservedPath } from './constants.js'
 
 
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
@@ -161,7 +161,7 @@ export class Repo {
   async setPageEdit(path, markdown, body, type) {
     assert(path.startsWith('/'), 'Path must start with /')
     assert(path.endsWith('/'), 'Path must end with /')
-    assert(!path.startsWith('/rss'), 'Cannot create page at reserved path /rss')
+    assert(!isReservedPath(path), 'Cannot create page at reserved path /rss.xml or /feed')
     await this.#initPromise;
     if (!type) {
       type = await this.#pageExists(path) ? CHANGE_TYPE.EDIT : CHANGE_TYPE.NEW
