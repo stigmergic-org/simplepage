@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.6.5
+
+### Patch Changes
+
+- 41879e4: chore(frontend): add decimal scaling to web3 forms"
+
 ## 1.6.4
 
 ### Patch Changes
