@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.6.6
+
+### Patch Changes
+
+- b163da4: fix(frontend): support ENS resolution in web3 forms
+
 ## 1.6.5
 
 ### Patch Changes
