@@ -1,5 +1,12 @@
 # @simplepg/frontend
 
+## 1.6.4
+
+### Patch Changes
+
+- 0aa8de3: chore(frontend): add liability disclaimer to web3form
+- 169690f: fix(frontend): add gas estimation to web3form
+
 ## 1.6.3
 
 ### Patch Changes
