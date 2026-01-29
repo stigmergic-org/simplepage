@@ -565,6 +565,35 @@ const validTestVectors = [
     }
   },
   {
+    name: 'URI with decimals list',
+    uri: 'web3://0x1234567890123456789012345678901234567890/convert/uint256!1000/uint256!2500?labels=(amount,fee)&returns=(uint256)&decimals=(6,18,6)',
+    metadata: 'Convert Values',
+    expected: {
+      contract: '0x1234567890123456789012345678901234567890',
+      method: 'convert',
+      formTitle: 'Convert Values',
+      value: null,
+      chainId: 1,
+      returns: 'uint256',
+      args: [
+        {
+          label: 'amount',
+          type: 'uint256',
+          placeholder: '1000'
+        },
+        {
+          label: 'fee',
+          type: 'uint256',
+          placeholder: '2500'
+        }
+      ],
+      call: true,
+      decimals: [6, 18],
+      returnDecimals: 6,
+      errors: []
+    }
+  },
+  {
     name: 'URI with empty returns parameter (void function)',
     uri: 'web3://0x1234567890123456789012345678901234567890/execute?returns=()&mode=tx',
     metadata: 'Execute Transaction',
@@ -661,6 +690,24 @@ const invalidTestVectors = [
       uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?mode=auto',
       metadata: 'Transfer',
       error: 'Invalid mode parameter'
+    },
+    {
+      name: 'decimals count mismatch',
+      uri: 'web3://0x1234567890123456789012345678901234567890/transfer/uint256!1000?returns=(uint256)&decimals=(6)',
+      metadata: 'Transfer',
+      error: 'Decimals count mismatch'
+    },
+    {
+      name: 'invalid decimals value',
+      uri: 'web3://0x1234567890123456789012345678901234567890/convert/uint256!1000/uint256!2500?decimals=(6,abc)',
+      metadata: 'Convert',
+      error: 'Invalid decimals value'
+    },
+    {
+      name: 'decimals with non-numeric argument',
+      uri: 'web3://0x1234567890123456789012345678901234567890/setOwner/address!0xabcdefabcdefabcdefabcdefabcdefabcdefabcd?decimals=(6)',
+      metadata: 'Set Owner',
+      error: 'Decimals can only be used with int or uint arguments.'
     }
  ];
 

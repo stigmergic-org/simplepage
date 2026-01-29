@@ -7,12 +7,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { parseFormData } from './utils/web3UriParser';
 import { getBlockExplorerAddressUrl, getBlockExplorerTxUrl } from './utils/networks';
-import { buildMinimalAbi, encodeArguments, formatReturnValue, validateChainMatch } from './utils/web3FormUtils';
+import { buildMinimalAbi, encodeArguments, formatReturnValue, formatScaledValue, parseScaledInput, validateChainMatch } from './utils/web3FormUtils';
 import Icon from './components/Icon';
 import WalletInfo from './components/WalletInfo';
 import Notice from './components/Notice';
+import UnitToggle from './components/UnitToggle';
 import { createConfig, WagmiProvider, unstable_connector, useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
-import { formatEther, parseEther } from 'viem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia } from 'wagmi/chains';
 import { injected, safe } from 'wagmi/connectors';
@@ -60,12 +60,15 @@ const Web3FormApp = () => {
   const [formError, setFormError] = useState(null);
   const [txHash, setTxHash] = useState(null);
   const [returnValue, setReturnValue] = useState(null);
+  const [returnRawValue, setReturnRawValue] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [iframeRef, setIframeRef] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txFailure, setTxFailure] = useState(null);
   const [showTxFailureDetails, setShowTxFailureDetails] = useState(false);
   const [valueUnit, setValueUnit] = useState('ETH');
+  const [argUnits, setArgUnits] = useState([]);
+  const [returnUnit, setReturnUnit] = useState('scaled');
   const containerRef = useRef(null);
 
   const getHashParams = () => new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -91,6 +94,7 @@ const Web3FormApp = () => {
     if (result.errors.length > 0) {
       setParseError(result.errors);
       setParsedData(null);
+      setReturnRawValue(null);
     } else {
       setParseError(null);
       setParsedData(result);
@@ -98,12 +102,22 @@ const Web3FormApp = () => {
       
       // Initialize form inputs with placeholders from args
       const initialInputs = {};
-      result.args.forEach((arg) => {
-        initialInputs[arg.label] = arg.placeholder === '0x' ? '' : (arg.placeholder || '');
+      result.args.forEach((arg, index) => {
+        const placeholder = arg.placeholder === '0x' ? '' : (arg.placeholder || '');
+        const decimals = result.decimals?.[index];
+        if (placeholder && decimals !== null && decimals !== undefined) {
+          try {
+            initialInputs[arg.label] = formatScaledValue(BigInt(placeholder), decimals);
+          } catch (_error) {
+            initialInputs[arg.label] = placeholder;
+          }
+        } else {
+          initialInputs[arg.label] = placeholder;
+        }
       });
       if (result.value !== null && result.value !== undefined) {
         const valueString = valueUnit === 'ETH'
-          ? formatEther(BigInt(result.value))
+          ? formatScaledValue(BigInt(result.value), 18)
           : String(result.value);
         initialInputs.value = valueString;
       }
@@ -127,7 +141,7 @@ const Web3FormApp = () => {
     return null;
   };
 
-  // Single effect: Complete setup, storage, and parsing
+  // Initialize iframe context, hash params, and session storage
   useEffect(() => {
     let ourIframe = null;
     try {
@@ -174,7 +188,39 @@ const Web3FormApp = () => {
     parseAndSetFormData(uriParam, textParam);
   }, []); // One-time setup
 
-  // Effect: Height management (triggers on any render change)
+  // Sync default units when parsed data changes
+  useEffect(() => {
+    if (!parsedData?.args) {
+      return;
+    }
+
+    const units = parsedData.args.map((_arg, index) =>
+      parsedData.decimals?.[index] !== null && parsedData.decimals?.[index] !== undefined
+        ? 'scaled'
+        : 'raw'
+    );
+    setArgUnits(units);
+
+    if (parsedData.returnDecimals !== null && parsedData.returnDecimals !== undefined) {
+      setReturnUnit('scaled');
+    } else {
+      setReturnUnit('raw');
+    }
+  }, [parsedData]);
+
+  // Reformat return value when unit or data changes
+  useEffect(() => {
+    if (returnRawValue === null || returnRawValue === undefined) {
+      return;
+    }
+
+    setReturnValue(formatReturnValue(returnRawValue, parsedData?.returns, {
+      decimals: parsedData?.returnDecimals,
+      unit: returnUnit,
+    }));
+  }, [returnRawValue, parsedData, returnUnit]);
+
+  // Adjust iframe height after render changes
   useEffect(() => {
     if (iframeRef && containerRef.current) {
       const height = containerRef.current.scrollHeight;
@@ -189,31 +235,16 @@ const Web3FormApp = () => {
     }));
   };
 
-  const handleValueUnitChange = (nextUnit) => {
-    setValueUnit((currentUnit) => {
-      if (currentUnit === nextUnit) {
-        return currentUnit;
-      }
-
-      const currentValue = formInputs.value?.toString().trim();
-      if (!currentValue) {
-        return nextUnit;
-      }
-
-      try {
-        const converted = currentUnit === 'ETH'
-          ? parseEther(currentValue).toString()
-          : formatEther(BigInt(currentValue));
-        setFormInputs((prev) => ({
-          ...prev,
-          value: converted
-        }));
-      } catch (_error) {
-        // Keep existing value if conversion fails.
-      }
-
-      return nextUnit;
+  const handleArgUnitChange = (index, unit) => {
+    setArgUnits((prev) => {
+      const next = [...prev];
+      next[index] = unit;
+      return next;
     });
+  };
+
+  const handleValueUnitChange = (nextUnit) => {
+    setValueUnit(nextUnit);
   };
 
   const handleCopyReturnValue = async () => {
@@ -231,13 +262,14 @@ const Web3FormApp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setReturnValue(null);
+    setReturnRawValue(null);
     setTxHash(null);
     setFormError(null);
     setTxFailure(null);
     setShowTxFailureDetails(false);
     
     // Validate inputs
-    const { args, errors } = encodeArguments(parsedData, formInputs);
+    const { args, errors } = encodeArguments(parsedData, formInputs, { argUnits });
     if (errors.length > 0) {
       setFormError(errors);
       return;
@@ -257,8 +289,7 @@ const Web3FormApp = () => {
           chainId: parsedData.chainId
         });
         if (result !== undefined && result !== null) {
-          const formatted = formatReturnValue(result, parsedData.returns);
-          setReturnValue(formatted);
+          setReturnRawValue(result);
         } else if (parsedData.returns) {
           setReturnValue('No data returned');
         }
@@ -268,7 +299,7 @@ const Web3FormApp = () => {
         
         const valueInput = formInputs.value?.toString().trim();
         const txValue = valueInput
-          ? (valueUnit === 'ETH' ? parseEther(valueInput) : BigInt(valueInput))
+          ? (valueUnit === 'ETH' ? BigInt(parseScaledInput(valueInput, 18)) : BigInt(valueInput))
           : 0n;
         let gasEstimate;
 
@@ -317,8 +348,24 @@ const Web3FormApp = () => {
       parsedData.args.forEach((arg, index) => {
         fields.push(
           <div key={index} className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">{arg.label}</span>
+            <label className="label mb-1">
+              <div className="flex items-center justify-between w-full gap-3">
+                <span className="label-text font-medium">{arg.label}</span>
+                {parsedData?.decimals?.[index] !== null && parsedData?.decimals?.[index] !== undefined ? (
+                  <UnitToggle
+                    leftLabel={`Scaled (1e${parsedData.decimals[index]})`}
+                    rightLabel="Raw"
+                    value={argUnits[index] || 'scaled'}
+                    inputValue={formInputs[arg.label] || ''}
+                    onValueChange={(nextValue) => setFormInputs((prev) => ({
+                      ...prev,
+                      [arg.label]: nextValue
+                    }))}
+                    decimals={parsedData.decimals[index]}
+                    onChange={(unit) => handleArgUnitChange(index, unit)}
+                  />
+                ) : null}
+              </div>
             </label>
             <input
               type="text"
@@ -331,7 +378,18 @@ const Web3FormApp = () => {
             {arg.placeholder && arg.placeholder !== '0x' && (
               <label className="label">
                 <span className="label-text-alt text-xs text-gray-400">
-                  Default: {arg.placeholder}
+                  Default: {(() => {
+                    const decimals = parsedData?.decimals?.[index];
+                    const unit = argUnits[index] || 'scaled';
+                    if (decimals !== null && decimals !== undefined && unit === 'scaled') {
+                      try {
+                        return formatScaledValue(BigInt(arg.placeholder), decimals);
+                      } catch (_error) {
+                        return arg.placeholder;
+                      }
+                    }
+                    return arg.placeholder;
+                  })()}
                 </span>
               </label>
             )}
@@ -347,22 +405,20 @@ const Web3FormApp = () => {
           <label className="label mb-1">
             <div className="flex items-center justify-between w-full gap-3">
               <span className="label-text font-medium">Value ({valueUnit})</span>
-              <div className="join">
-                <button
-                  type="button"
-                  className={`btn btn-xs join-item ${valueUnit === 'ETH' ? 'btn-primary btn-soft' : 'btn-ghost'}`}
-                  onClick={() => handleValueUnitChange('ETH')}
-                >
-                  ETH
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-xs join-item ${valueUnit === 'WEI' ? 'btn-primary btn-soft' : 'btn-ghost'}`}
-                  onClick={() => handleValueUnitChange('WEI')}
-                >
-                  WEI
-                </button>
-              </div>
+              <UnitToggle
+                leftLabel="ETH"
+                rightLabel="WEI"
+                value={valueUnit}
+                inputValue={formInputs.value || ''}
+                onValueChange={(nextValue) => setFormInputs((prev) => ({
+                  ...prev,
+                  value: nextValue
+                }))}
+                decimals={18}
+                onChange={handleValueUnitChange}
+                leftValue="ETH"
+                rightValue="WEI"
+              />
             </div>
           </label>
           <input
@@ -377,7 +433,7 @@ const Web3FormApp = () => {
             <span className="label-text-alt text-xs text-gray-400">
               Default: {parsedData.value !== null && parsedData.value !== undefined
                 ? (valueUnit === 'ETH'
-                  ? `${formatEther(BigInt(parsedData.value))} ETH`
+                  ? `${formatScaledValue(BigInt(parsedData.value), 18)} ETH`
                   : `${parsedData.value} WEI`)
                 : ''}
             </span>
@@ -552,22 +608,37 @@ const Web3FormApp = () => {
           onClose={() => setReturnValue(null)}
           className="mt-4"
         >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <strong className="whitespace-nowrap">Result:</strong>
-            <div className="flex items-start gap-2 min-w-0 flex-wrap">
-              <code className="bg-base-300 px-2 py-1 rounded text-xs break-all max-w-full inline-block flex-1">
-                {returnValue}
-              </code>
-              <div className="tooltip" data-tip="Copy">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={handleCopyReturnValue}
-                  aria-label="Copy return value"
-                >
-                  <Icon name="copy" size={4} />
-                </button>
+            <div className="flex flex-col gap-0 flex-1 min-w-0">
+              <div className="flex items-start gap-2 min-w-0 flex-wrap">
+                <code className="bg-base-300 px-2 py-1 rounded text-xs break-all max-w-full inline-block flex-1">
+                  {returnValue}
+                </code>
               </div>
+              {parsedData?.returnDecimals !== null && parsedData?.returnDecimals !== undefined ? (
+                <div className="flex">
+                  <UnitToggle
+                    leftLabel={`Scaled (1e${parsedData.returnDecimals})`}
+                    rightLabel="Raw"
+                    value={returnUnit}
+                    inputValue={returnValue}
+                    onValueChange={setReturnValue}
+                    decimals={parsedData.returnDecimals}
+                    onChange={setReturnUnit}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <div className="tooltip" data-tip="Copy">
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={handleCopyReturnValue}
+                aria-label="Copy return value"
+              >
+                <Icon name="copy" size={4} />
+              </button>
             </div>
           </div>
         </Notice>

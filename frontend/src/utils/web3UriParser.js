@@ -4,7 +4,7 @@
  * Parses web3:// URIs according to ERC-6860 specification:
  * - web3://contract[:chainId]/method[/type!value...]?[query]
  * - Type specifications: type!value (explicit type with value)
- * - Query parameters: value, payable, returns, mode, labels
+ * - Query parameters: value, payable, returns, mode, labels, decimals
  */
 
 /**
@@ -35,6 +35,12 @@ const isValidSolidityType = (type) => {
   return false;
 };
 
+const isNumericSolidityType = (type) => {
+  if (!type || typeof type !== 'string') return false;
+  const lowerType = type.toLowerCase();
+  return lowerType.startsWith('uint') || lowerType.startsWith('int');
+};
+
 /**
  * Convert value string to wei as a number
  * @param {string} valueStr - Value string like "1.5eth", "1000000000000000000", etc.
@@ -61,6 +67,28 @@ const parseValueToWei = (valueStr) => {
   } catch (_error) {
     return null;
   }
+};
+
+const parseDecimalsList = (value) => {
+  const trimmed = value.trim();
+  const normalized = trimmed.startsWith('(') && trimmed.endsWith(')')
+    ? trimmed.slice(1, -1)
+    : trimmed;
+
+  if (normalized === '') {
+    return [];
+  }
+
+  return normalized.split(',').map((entry) => {
+    const entryValue = entry.trim();
+    if (entryValue === '') {
+      return null;
+    }
+    if (!/^\d+$/.test(entryValue)) {
+      throw new Error(`Invalid decimals value "${entryValue}". Expected an integer.`);
+    }
+    return Number(entryValue);
+  });
 };
 
 /**
@@ -157,17 +185,18 @@ export const parseWeb3Uri = (uri) => {
   let mode = 'call';
   let returns = null;
   let labels = null;
+  let decimals = null;
 
   if (queryString) {
     try {
       const searchParams = new URLSearchParams(queryString);
-      const supportedParams = new Set(['value', 'payable', 'stateMutability', 'returns', 'mode', 'labels']);
+      const supportedParams = new Set(['value', 'payable', 'stateMutability', 'returns', 'mode', 'labels', 'decimals']);
 
       for (const key of searchParams.keys()) {
         if (!supportedParams.has(key)) {
           return {
             uri,
-            error: `Unsupported query parameter "${key}". Supported parameters: value, payable, stateMutability, returns, mode, labels.`,
+            error: `Unsupported query parameter "${key}". Supported parameters: value, payable, stateMutability, returns, mode, labels, decimals.`,
           };
         }
       }
@@ -226,10 +255,54 @@ export const parseWeb3Uri = (uri) => {
           .map((param) => param.trim())
           .filter(Boolean);
       }
+
+      const decimalsStr = searchParams.get('decimals');
+      if (decimalsStr !== null) {
+        try {
+          decimals = parseDecimalsList(decimalsStr);
+        } catch (error) {
+          return {
+            uri,
+            error: error.message,
+          };
+        }
+      }
     } catch (_error) {
       return {
         uri,
         error: 'Invalid query parameter format.',
+      };
+    }
+  }
+
+  let returnDecimals = null;
+  if (decimals) {
+    const expectedSlots = returns ? args.length + 1 : args.length;
+    if (decimals.length !== expectedSlots) {
+      return {
+        uri,
+        error: `Decimals count mismatch: expected ${expectedSlots} slot${expectedSlots === 1 ? '' : 's'} for ${args.length} argument${args.length === 1 ? '' : 's'}.`,
+      };
+    }
+
+    if (returns) {
+      returnDecimals = decimals[decimals.length - 1];
+      decimals = decimals.slice(0, -1);
+    }
+
+    for (let i = 0; i < decimals.length; i++) {
+      if (decimals[i] !== null && !isNumericSolidityType(args[i].type)) {
+        return {
+          uri,
+          error: 'Decimals can only be used with int or uint arguments.',
+        };
+      }
+    }
+
+    if (returnDecimals !== null && returns && !isNumericSolidityType(returns)) {
+      return {
+        uri,
+        error: 'Decimals can only be used with int or uint return values.',
       };
     }
   }
@@ -245,6 +318,8 @@ export const parseWeb3Uri = (uri) => {
     returns,
     mode,
     labels,
+    decimals,
+    returnDecimals,
     fragment,
   };
 };
@@ -301,6 +376,8 @@ export const parseFormData = (uri, metadata) => {
     args: [],
     call: false,
     flags: {},
+    decimals: [],
+    returnDecimals: null,
     errors: []
   };
 
@@ -354,6 +431,8 @@ export const parseFormData = (uri, metadata) => {
       args: consolidatedArgs,
       call: parsed.mode !== 'tx',
       flags: {},
+      decimals: parsed.decimals || [],
+      returnDecimals: parsed.returnDecimals ?? null,
       errors: validationErrors
     };
 
