@@ -16,6 +16,8 @@ import { createConfig, WagmiProvider, unstable_connector, useAccount, useWriteCo
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia } from 'wagmi/chains';
 import { injected, safe } from 'wagmi/connectors';
+import { normalize } from 'viem/ens';
+import { useChainId } from './hooks/useChainId';
 import './app.css';
 
 // Create wagmi config for iframe
@@ -76,6 +78,8 @@ const Web3FormApp = () => {
   // Wagmi hooks
   const { address, chainId: accountChainId } = useAccount();
   const publicClient = usePublicClient();
+  const globalChainId = useChainId();
+  const ensClient = usePublicClient({ chainId: globalChainId });
 
   // For write operations
   const { writeContractAsync } = useWriteContract();
@@ -259,6 +263,51 @@ const Web3FormApp = () => {
     }
   };
 
+  const resolveEnsNames = async () => {
+    if (!parsedData?.args?.length) {
+      return { resolvedInputs: formInputs, errors: [] };
+    }
+
+    const resolvedInputs = { ...formInputs };
+    const errors = [];
+
+    for (const arg of parsedData.args) {
+      if (arg.type?.toLowerCase() !== 'address') {
+        continue;
+      }
+
+      const rawValue = formInputs[arg.label];
+      if (!rawValue || typeof rawValue !== 'string') {
+        continue;
+      }
+
+      const trimmed = rawValue.trim();
+      if (trimmed === '' || trimmed.startsWith('0x') || !trimmed.includes('.')) {
+        continue;
+      }
+
+      try {
+        const normalized = normalize(trimmed);
+        const resolved = await ensClient.getEnsAddress({
+          name: normalized,
+          chainId: globalChainId
+        });
+
+        if (!resolved) {
+          errors.push(`${arg.label}: ENS name not found`);
+          continue;
+        }
+
+        resolvedInputs[arg.label] = resolved;
+      } catch (error) {
+        console.error('ENS resolution failed:', error);
+        errors.push(`${arg.label}: Failed to resolve ENS name`);
+      }
+    }
+
+    return { resolvedInputs, errors };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setReturnValue(null);
@@ -269,7 +318,13 @@ const Web3FormApp = () => {
     setShowTxFailureDetails(false);
     
     // Validate inputs
-    const { args, errors } = encodeArguments(parsedData, formInputs, { argUnits });
+    const { resolvedInputs, errors: ensErrors } = await resolveEnsNames();
+    if (ensErrors.length > 0) {
+      setFormError(ensErrors);
+      return;
+    }
+
+    const { args, errors } = encodeArguments(parsedData, resolvedInputs, { argUnits });
     if (errors.length > 0) {
       setFormError(errors);
       return;
@@ -372,7 +427,7 @@ const Web3FormApp = () => {
               name={arg.label}
               value={formInputs[arg.label] || ''}
               onChange={handleInputChange}
-              placeholder={arg.type}
+              placeholder={arg.type?.toLowerCase() === 'address' ? 'address (or ENS)' : arg.type}
               className="input input-bordered w-full"
             />
             {arg.placeholder && arg.placeholder !== '0x' && (
