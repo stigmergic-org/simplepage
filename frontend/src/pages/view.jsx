@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import Sidebar from '../components/Sidebar';
@@ -21,6 +21,7 @@ const View = ({ existingContent }) => {
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
   const [navItems, setNavItems] = useState([]);
+  const hasScrolledToHash = useRef(false);
   const rootNavItem = navItems.find(item => item.path === '/');
   const sidebarSemaphoreState = useState(null);
   const { path, isVirtual } = usePagePath();
@@ -56,7 +57,8 @@ const View = ({ existingContent }) => {
       
       // Scroll to anchor if there's a hash in the URL
       const hash = window.location.hash;
-      if (hash) {
+      if (hash && !hasScrolledToHash.current) {
+        hasScrolledToHash.current = true;
         // Use setTimeout to ensure DOM is fully rendered
         setTimeout(() => {
           const element = document.getElementById(hash.substring(1));
@@ -106,8 +108,6 @@ const View = ({ existingContent }) => {
       window.removeEventListener('resize', updateContentWidth);
     };
   }, [content]); // Re-measure when content changes
-
-
 
   return (
     <>
