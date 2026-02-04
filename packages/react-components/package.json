@@ -1,0 +1,16 @@
+{
+  "name": "@simplepg/react-components",
+  "version": "0.1.0",
+  "description": "Shared React UI components for SimplePage",
+  "main": "src/index.js",
+  "type": "module",
+  "files": [
+    "src",
+    "assets"
+  ],
+  "license": "GPL-3.0-only",
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Notice from './Notice';
+import Notice from './Notice.jsx';
 
 export default function OverridesBanner({ dserviceUrl, rpcOverrides }) {
   const [visible, setVisible] = useState(true);
@@ -36,4 +36,4 @@ export default function OverridesBanner({ dserviceUrl, rpcOverrides }) {
       )}
     </Notice>
   );
-} 
+}

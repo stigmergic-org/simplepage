@@ -37,6 +37,7 @@
 /* Source files for Tailwind to scan for class names */
 @source "../public/index.html";
 @source "../src/**/*.{js,jsx,ts,tsx}";
+@source "../../packages/react-components/src/**/*.{js,jsx,ts,tsx}";
 
 /* Style for frontmatter in CodeMirror/EasyMDE */
 .cm-frontmatter {

@@ -1,8 +1,6 @@
-// src/components/Icon.jsx
 import React, { useEffect, useState } from 'react';
-import { ICONS } from '../config/icons';
+import { ICONS } from './icons.js';
 
-// Predefined size classes map for Tailwind CSS
 const SIZE_CLASSES = {
   3: 'w-3 h-3',
   4: 'w-4 h-4',
@@ -18,10 +16,9 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
   const icon = ICONS[name];
   const sizeClass = SIZE_CLASSES[size];
 
-  // Check SVG availability since CSS mask doesn't trigger onLoad/onError
   useEffect(() => {
     if (!icon) return;
-    
+
     const checkSvgAvailability = async () => {
       try {
         const response = await fetch(icon.src, { method: 'HEAD' });
@@ -37,7 +34,6 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     checkSvgAvailability();
   }, [icon?.src]);
 
-  // Validate icon and size after hooks
   if (!icon) {
     console.warn(`Icon "${name}" not found in ICONS configuration`);
     return null;
@@ -47,7 +43,6 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     throw new Error(`Invalid icon size: ${size}. Valid sizes are: ${Object.keys(SIZE_CLASSES).join(', ')}`);
   }
 
-  // Common props for both fallback and main element
   const commonProps = {
     role: 'img',
     'aria-label': icon.alt,
@@ -55,14 +50,14 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     ...props,
   };
 
-  // If SVG is not available, fall back to displaying the alt text (emoji)
   if (!svgAvailable) {
     return (
-      <span 
+      <span
         {...commonProps}
-        style={{ display: 'flex',
+        style={{
+          display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
         }}
       >
         {icon.alt}
@@ -70,7 +65,6 @@ const Icon = ({ name, size = 4, className = '', ...props }) => {
     );
   }
 
-  // Use a single img element with CSS mask for proper colorization
   return (
     <img
       {...commonProps}

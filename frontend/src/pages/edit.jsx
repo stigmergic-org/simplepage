@@ -5,7 +5,7 @@ import 'easymde/dist/easymde.min.css';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Notice from '../components/Notice';
+import { Notice } from '@simplepg/react-components';
 import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
 import { mediaType } from '../utils/file-tools';

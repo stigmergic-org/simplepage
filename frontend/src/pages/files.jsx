@@ -5,9 +5,9 @@ import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import MediaModal from '../components/MediaModal';
-import Notice from '../components/Notice';
+import { Notice } from '@simplepg/react-components';
 import { formatFileSize } from '../utils/file-tools';
-import Icon from '../components/Icon';
+import { Icon } from '@simplepg/react-components';
 
 const Files = () => {
   const domain = useDomain();

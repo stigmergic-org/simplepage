@@ -4,7 +4,7 @@ import { useRepo } from '../hooks/useRepo';
 import useDarkMode from '../hooks/useDarkMode';
 import { applyTheme } from '../hooks/useApplyTheme';
 import Navbar from '../components/navbar';
-import Icon from '../components/Icon';
+import { Icon } from '@simplepg/react-components';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const THEMES = [

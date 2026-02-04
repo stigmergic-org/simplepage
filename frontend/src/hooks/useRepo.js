@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePublicClient } from 'wagmi';
 import { Repo } from '@simplepg/repo';
 import { useDomain } from './useDomain';
-import { useDserviceParam } from './useDserviceParam';
+import { useDserviceParam } from '@simplepg/react-components';
 import { useChainId } from './useChainId';
 
 // Global singleton instance

@@ -4,7 +4,7 @@ import { ROUTES } from '../config/routes';
 import { useChainId } from '../hooks/useChainId';
 import { DOMAIN_SUFFIX } from '../config/domain';
 import { getBlockExplorerTxUrl } from '../utils/networks';
-import Notice from './Notice';
+import { Notice } from '@simplepg/react-components';
 
 const TransactionStatus = ({ 
   status, 

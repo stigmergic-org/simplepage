@@ -3,7 +3,7 @@ import { useDomain } from '../hooks/useDomain';
 import { useGetSubscription } from '../hooks/useGetSubscription';
 import { useNavigation } from '../hooks/useNavigation';
 import { useRepo } from '../hooks/useRepo';
-import Notice from './Notice';
+import { Notice } from '@simplepg/react-components';
 
 const SubscriptionNotice = ({ editMode = false }) => {
   const domain = useDomain();

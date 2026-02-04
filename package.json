@@ -13,7 +13,8 @@
   },
   "workspaces": [
     "packages/*",
-    "frontend"
+    "frontend",
+    "apps/*"
   ],
   "devDependencies": {
     "@changesets/cli": "^2.29.5",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateAnchorId } from '../utils/anchor-utils';
 import { useRepo } from '../hooks/useRepo';
-import Icon from './Icon';
+import { Icon } from '@simplepg/react-components';
 
 const SearchModal = ({ isOpen, onClose, initialQuery = '' }) => {
   const { repo } = useRepo();

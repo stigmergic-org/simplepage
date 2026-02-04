@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
 
-// Supported chain IDs
 const SUPPORTED_CHAIN_IDS = [1, 11155111, 1337];
 
-/**
- * useRpcOverride - React hook to get custom RPC URLs for supported chain IDs from query params
- * @returns {Object} - { [chainId: number]: string } mapping of chainId to custom RPC URL
- */
 export function useRpcOverride() {
   return useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,4 +20,4 @@ export function useRpcOverride() {
     }
     return overrides;
   }, [window.location.search]);
-} 
+}

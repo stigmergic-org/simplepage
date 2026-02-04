@@ -5,8 +5,7 @@ import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
 import { useRepo } from '../hooks/useRepo';
-import Icon from './Icon';
-import Notice from './Notice';
+import { Icon, Notice } from '@simplepg/react-components';
 import SubscriptionNotice from './SubscriptionNotice';
 import SearchModal from './SearchModal';
 

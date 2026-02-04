@@ -215,6 +215,7 @@ module.exports = (env, argv) => {
         patterns: [
           { from: 'public/index.md', to: 'index.md' },
           { from: 'public/_redirects', to: '.' },
+          { from: path.resolve(__dirname, '../packages/react-components/assets/icons'), to: '_assets/images/icons' },
           { from: 'public/images', to: '_assets/images' },
           // Copy manifest.json or manifest.webmanifest if present
           { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },

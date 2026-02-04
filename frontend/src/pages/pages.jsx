@@ -5,8 +5,7 @@ import { useRepo, ensurePageExists } from '../hooks/useRepo';
 import { useDomain } from '../hooks/useDomain';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Notice from '../components/Notice';
-import Icon from '../components/Icon';
+import { Icon, Notice } from '@simplepg/react-components';
 
 
 const Pages = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Icon from './Icon';
+import { Icon } from '@simplepg/react-components';
 import { assert } from '@simplepg/common';
 
 const Sidebar = ({ 

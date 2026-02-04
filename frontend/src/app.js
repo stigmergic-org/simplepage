@@ -3,10 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router';
 import './app.css';
 import 'font-awesome/css/font-awesome.min.css';
 import { WagmiConfigProvider } from './components/wagmi-provider';
-import OverridesBanner from './components/OverridesBanner';
 import { useBasename } from './hooks/useBasename';
-import { useDserviceParam } from './hooks/useDserviceParam';
-import { useRpcOverride } from './hooks/useRpcOverride';
+import { OverridesBanner, useDserviceParam, useRpcOverride } from '@simplepg/react-components';
 import { useApplyThemeFromSettings } from './hooks/useApplyTheme';
 import { ScrollProvider } from './contexts/ScrollContext';
 
