@@ -32,6 +32,12 @@ importers:
       '@simplepg/react-components':
         specifier: workspace:*
         version: link:../../packages/react-components
+      '@tanstack/react-query':
+        specifier: ^5.81.5
+        version: 5.83.0(react@19.1.1)
+      daisyui:
+        specifier: ^5.0.54
+        version: 5.0.54
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -41,9 +47,15 @@ importers:
       react-router:
         specifier: ^7.8.1
         version: 7.8.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      tailwindcss:
+        specifier: ^4.1.14
+        version: 4.1.14
       viem:
         specifier: ^2.31.7
         version: 2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4)
+      wagmi:
+        specifier: ^2.15.6
+        version: 2.15.6(@tanstack/query-core@5.83.0)(@tanstack/react-query@5.83.0(react@19.1.1))(bufferutil@4.0.9)(encoding@0.1.13)(react@19.1.1)(utf-8-validate@5.0.10)(viem@2.31.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
     devDependencies:
       '@babel/core':
         specifier: ^7.28.4
@@ -54,6 +66,9 @@ importers:
       '@babel/preset-react':
         specifier: ^7.27.1
         version: 7.27.1(@babel/core@7.28.4)
+      '@tailwindcss/postcss':
+        specifier: ^4.1.12
+        version: 4.1.12
       babel-loader:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.4)(webpack@5.100.2(webpack-cli@6.0.1))
@@ -66,6 +81,12 @@ importers:
       html-webpack-plugin:
         specifier: ^5.6.3
         version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
+      postcss-loader:
+        specifier: ^8.1.1
+        version: 8.1.1(postcss@8.5.6)(webpack@5.100.2(webpack-cli@6.0.1))
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.100.2(webpack-cli@6.0.1))
@@ -16326,7 +16347,7 @@ snapshots:
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
       webpack: 5.100.2(webpack-cli@6.0.1)
-      webpack-cli: 6.0.1(webpack-dev-server@5.2.2)(webpack@5.100.2)
+      webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -16369,7 +16390,7 @@ snapshots:
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     optionalDependencies:
-      webpack-cli: 6.0.1(webpack-dev-server@5.2.2)(webpack@5.100.2)
+      webpack-cli: 6.0.1(webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(webpack-dev-server@5.2.2)(webpack@5.100.2)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild

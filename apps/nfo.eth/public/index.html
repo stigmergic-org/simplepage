@@ -1,0 +1,28 @@
+<DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link id="favicon" rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      (() => {
+        const link = document.getElementById('favicon');
+        if (!link || !window.matchMedia) return;
+        const matcher = window.matchMedia('(prefers-color-scheme: dark)');
+        const updateFavicon = (event) => {
+          link.href = event.matches ? '/favicon-dark.svg' : '/favicon.svg';
+        };
+        updateFavicon(matcher);
+        if (matcher.addEventListener) {
+          matcher.addEventListener('change', updateFavicon);
+        } else if (matcher.addListener) {
+          matcher.addListener(updateFavicon);
+        }
+      })();
+    </script>
+    <title>nfo.eth</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

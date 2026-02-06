@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@source "./**/*.{js,jsx,ts,tsx}";
+@source "../../../packages/react-components/src/**/*.{js,jsx,ts,tsx}";
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

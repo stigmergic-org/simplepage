@@ -1,0 +1,38 @@
+{
+  "name": "@simplepg/nfo-eth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "webpack serve --config webpack.config.cjs --mode=development",
+    "build": "webpack --config webpack.config.cjs --mode=production",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@simplepg/react-components": "workspace:*",
+    "@tanstack/react-query": "^5.81.5",
+    "daisyui": "^5.0.54",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router": "^7.8.1",
+    "tailwindcss": "^4.1.14",
+    "wagmi": "^2.15.6",
+    "viem": "^2.31.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.3",
+    "postcss": "^8.5.6",
+    "postcss-loader": "^8.1.1",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}
