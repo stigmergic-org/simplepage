@@ -19,7 +19,7 @@ simplepage/
 └── packages/
     ├── cli/            # Command-line interface
     ├── common/         # Shared utilities
-    ├── dservice/       # Backend API services
+    ├── node/           # Backend API services
     ├── repo/           # Repository management
     └── test-utils/     # Testing utilities
 ```

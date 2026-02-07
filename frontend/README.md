@@ -20,8 +20,8 @@ First spin up a local development environment. This requires a few steps
 - `anvil --chain-id=1337` - start the local ethereum test environment
 - `cd ..` - move to root directory
 - `./setup-test-env.js` - start the test environment
-- `cd packages/dservice`
-- `./bin/simplepage-dservice.js -p 8001 -c 1337` - start the Simple Page DService
+- `cd packages/node`
+- `./bin/simplepage-node.js -p 8001 -c 1337` - start the Simple Page Node
 
 #### Now start the web development server 
 

@@ -59,7 +59,7 @@ const startServer = () => {
     logDir: opts.logDir
   }
   
-  console.log('Starting SimplePage DService...')
+  console.log('Starting SimplePage Node...')
   console.log(`Network: ${chainName} (${chainId})`)
   console.log('Configuration:', {
     ipfsApi: config.ipfs.api,
@@ -77,7 +77,7 @@ const startServer = () => {
     console.log('\nShutting down gracefully...')
     try {
       await dservice.stop()
-      console.log('DService stopped successfully')
+      console.log('Node stopped successfully')
       process.exit(0)
     } catch (error) {
       console.error('Error during shutdown:', error)
@@ -91,7 +91,7 @@ const startServer = () => {
 
   // Start the service
   dservice.start().catch((error) => {
-    console.error('Failed to start DService:', error.message)
+    console.error('Failed to start Node:', error.message)
     process.exit(1)
   })
 }

@@ -1,10 +1,10 @@
-# SimplePage DService
+# SimplePage Node
 
 A decentralized backend service for the SimplePage application that provides IPFS storage, blockchain indexing, and REST API endpoints for managing decentralized web pages.
 
 ## Overview
 
-SimplePage DService is a Node.js service that bridges the gap between the SimplePage smart contract and IPFS storage. It provides:
+SimplePage Node is a Node.js service that bridges the gap between the SimplePage smart contract and IPFS storage. It provides:
 
 - **IPFS Integration**: Upload, retrieve, and manage CAR (Content Addressable aRchive) files
 - **Blockchain Indexing**: Monitor SimplePage contract events and track ENS contenthash updates
@@ -49,21 +49,21 @@ SimplePage DService is a Node.js service that bridges the gap between the Simple
 ### Install
 
 ```bash
-npm install -g @simplepg/dservice
+pnpm add -g @simplepg/node
 ```
 
 ## Usage
 
 ### Command Line Interface
 
-The DService provides a CLI with various options and subcommands:
+The Node provides a CLI with various options and subcommands:
 
 ```bash
 # Start the service with default settings
-simplepage-dservice
+simplepage-node
 
 # Start with custom configuration
-simplepage-dservice \
+simplepage-node \
   --ipfs-api http://localhost:5001 \
   --api-port 3000 \
   --api-host localhost \
@@ -72,14 +72,14 @@ simplepage-dservice \
   --chain-id 1
 
 # Manage allow list
-simplepage-dservice allow-list show
-simplepage-dservice allow-list add example.eth
-simplepage-dservice allow-list rm example.eth
+simplepage-node allow-list show
+simplepage-node allow-list add example.eth
+simplepage-node allow-list rm example.eth
 
 # Manage block list
-simplepage-dservice block-list show
-simplepage-dservice block-list add spam.eth
-simplepage-dservice block-list rm spam.eth
+simplepage-node block-list show
+simplepage-node block-list add spam.eth
+simplepage-node block-list rm spam.eth
 ```
 
 ## Configuration
@@ -211,7 +211,7 @@ Provides HTTP endpoints:
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run specific test file
 npm test -- tests/services/ipfs.test.js
@@ -221,14 +221,14 @@ npm test -- tests/services/ipfs.test.js
 
 ```bash
 # Start with auto-restart on file changes
-npm run dev
+pnpm run dev
 ```
 
 ### Linting
 
 ```bash
 # Run ESLint
-npm run lint
+pnpm run lint
 ```
 
 ## Contributing

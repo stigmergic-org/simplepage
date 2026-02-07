@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { TestEnvironmentDservice } from '@simplepg/test-utils';
+import { TestEnvironmentNode } from '@simplepg/test-utils';
 import { runCliCommand } from './runCliCommand.js';
 import all from 'it-all'
 import fs from 'fs';
@@ -21,7 +21,7 @@ describe('simplepage publish CLI', () => {
   let tempDir;
 
   beforeAll(async () => {
-    testEnv = new TestEnvironmentDservice();
+    testEnv = new TestEnvironmentNode();
     await testEnv.start();
     addresses = testEnv.addresses
     

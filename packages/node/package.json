@@ -1,17 +1,17 @@
 {
-  "name": "@simplepg/dservice",
+  "name": "@simplepg/node",
   "version": "1.3.5",
   "description": "JavaScript implementation of the SimplePage backend service",
   "main": "src/index.js",
   "type": "module",
   "bin": {
-    "simplepage-dservice": "./bin/simplepage-dservice.js"
+    "simplepage-node": "./bin/simplepage-node.js"
   },
   "scripts": {
-    "start": "node bin/simplepage-dservice.js",
-    "dev": "./bin/simplepage-dservice.js --rpc https://sepolia.drpc.org -c 11155111 --disable-indexing --log-level info --api-port 8001",
-    "dev:index": "./bin/simplepage-dservice.js --rpc https://sepolia.drpc.org -c 11155111 --log-level info --api-port 8001",
-    "dev:mainnet": "./bin/simplepage-dservice.js --rpc https://eth.drpc.org -c 1 --disable-indexing --log-level info --api-port 8001",
+    "start": "node bin/simplepage-node.js",
+    "dev": "./bin/simplepage-node.js --rpc https://sepolia.drpc.org -c 11155111 --disable-indexing --log-level info --api-port 8001",
+    "dev:index": "./bin/simplepage-node.js --rpc https://sepolia.drpc.org -c 11155111 --log-level info --api-port 8001",
+    "dev:mainnet": "./bin/simplepage-node.js --rpc https://eth.drpc.org -c 1 --disable-indexing --log-level info --api-port 8001",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint ."
   },

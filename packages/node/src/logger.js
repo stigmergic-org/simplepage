@@ -67,7 +67,7 @@ const createLogger = async (options = {}) => {
   transports.push(
     // Combined log file
     new DailyRotateFile({
-      filename: path.join(logDir, 'dservice-%DATE%.log'),
+      filename: path.join(logDir, 'node-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d',
@@ -76,7 +76,7 @@ const createLogger = async (options = {}) => {
     }),
     // Error log file
     new DailyRotateFile({
-      filename: path.join(logDir, 'dservice-error-%DATE%.log'),
+      filename: path.join(logDir, 'node-error-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '30d',
@@ -92,7 +92,7 @@ const createLogger = async (options = {}) => {
     // Handle uncaught exceptions
     exceptionHandlers: [
       new DailyRotateFile({
-        filename: path.join(logDir, 'dservice-exception-%DATE%.log'),
+        filename: path.join(logDir, 'node-exception-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
         maxSize: '20m',
         maxFiles: '30d',
@@ -102,7 +102,7 @@ const createLogger = async (options = {}) => {
     // Handle unhandled rejections
     rejectionHandlers: [
       new DailyRotateFile({
-        filename: path.join(logDir, 'dservice-rejection-%DATE%.log'),
+        filename: path.join(logDir, 'node-rejection-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
         maxSize: '20m',
         maxFiles: '30d',

@@ -9,7 +9,7 @@ import { join } from 'path';
 import { CID } from 'multiformats/cid'
 import { JSDOM } from 'jsdom'
 import { resolveEnsDomain } from '@simplepg/common'
-import { TestEnvironmentDservice } from '@simplepg/test-utils';
+import { TestEnvironmentNode } from '@simplepg/test-utils';
 
 import { Repo } from '../src/repo.js';
 
@@ -92,7 +92,7 @@ describe('Repo Integration Tests', () => {
   let parser;
 
   beforeAll(async () => {
-    testEnv = new TestEnvironmentDservice();
+    testEnv = new TestEnvironmentNode();
     await testEnv.start();
     addresses = testEnv.addresses;
     parser = new DOMParser()

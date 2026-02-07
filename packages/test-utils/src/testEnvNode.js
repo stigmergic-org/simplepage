@@ -1,9 +1,9 @@
 import { TestEnvironmentKubo } from "./testEnvKubo";
 import { TestEnvironmentEvm } from "./testEnvEvm";
-import { DService } from '@simplepg/dservice';
+import { DService } from '@simplepg/node';
 import net from 'net';
 
-export class TestEnvironmentDservice {
+export class TestEnvironmentNode {
   constructor() {
     this.dservice = null;
     this.kubo = new TestEnvironmentKubo();

@@ -1,4 +1,4 @@
-# @simplepg/dservice
+# @simplepg/node
 
 ## 1.3.5
 
