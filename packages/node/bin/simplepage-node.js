@@ -120,7 +120,7 @@ program
   .description('Manage allow list')
   .argument('<action>', 'Action to perform (show|add|rm)')
   .argument('[name]', 'ENS domain to add or remove (e.g., example.eth)')
-  .action((action, name) => handleListCommand('allow', action, name, program.opts().ipfsApi))
+  .action((action, name) => handleListCommand('allow-list', action, name, program.opts().ipfsApi))
 
 // Add block-list command
 program
@@ -128,12 +128,12 @@ program
   .description('Manage block list')
   .argument('<action>', 'Action to perform (show|add|rm)')
   .argument('[name]', 'ENS domain to add or remove (e.g., example.eth)')
-  .action((action, name) => handleListCommand('block', action, name, program.opts().ipfsApi))
+  .action((action, name) => handleListCommand('block-list', action, name, program.opts().ipfsApi))
 
 // Add indexer-data command
 program
   .command('indexer-data')
-  .description('Show or reset indexing-related data (domains, resolvers, contenthash_{domain} lists)')
+  .description('Show or reset indexing-related data (domains, resolvers, finalized entries)')
   .argument('<action>', 'Action to perform (show|reset)')
   .action((action) => {
     const opts = program.opts();

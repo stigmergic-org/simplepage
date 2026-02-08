@@ -231,9 +231,12 @@ export function createApi({ ipfs, _indexer, version, logger }) {
   app.post('/page', upload.single('file'), async (req, res, _next) => {
     try {
       const { domain } = req.query
-
-      const domainsWithSubscription = await ipfs.getList('domains', 'string')
-      if (!domainsWithSubscription.includes(domain)) {
+      if (!domain) {
+        logger.warn('Missing domain parameter in POST /page request')
+        return res.status(400).json({ detail: 'Missing domain parameter' })
+      }
+      const hasSubscription = await ipfs.domainExists(domain)
+      if (!hasSubscription) {
         logger.warn('Domain does not have a subscription', { domain })
         res.status(401).json({ detail: `Domain ${domain} does not have a subscription` })
         return
@@ -241,17 +244,13 @@ export function createApi({ ipfs, _indexer, version, logger }) {
 
       const file = req.file
 
-      if (!domain) {
-        logger.warn('Missing domain parameter in POST /page request')
-        return res.status(400).json({ detail: 'Missing domain parameter' })
-      }
       if (!file) {
         logger.warn('Missing file upload in POST /page request')
         return res.status(400).json({ detail: 'Missing file upload' }) 
       }
 
       logger.info('Uploading CAR file', { domain, fileSize: file.buffer.length })
-      const cid = await ipfs.writeCar(file.buffer, domain)
+      const cid = await ipfs.stageCar(file.buffer, domain)
       logger.info('CAR file uploaded successfully', { domain, cid: cid.toString() })
       res.json({ cid: cid.toString() })
     } catch (err) {
@@ -265,6 +264,8 @@ export function createApi({ ipfs, _indexer, version, logger }) {
         // Handle multer file size limit error
         if (err.code === 'LIMIT_FILE_SIZE') {
           res.status(413).json({ detail: 'File too large. Maximum size is 500MB.' })
+        } else if (err.message?.includes('CAR root must be UnixFS')) {
+          res.status(400).json({ detail: err.message })
         } else {
           res.status(500).json({ detail: err.message })
         }

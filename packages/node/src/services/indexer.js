@@ -2,7 +2,6 @@ import { createPublicClient, http } from 'viem'
 import { ensContentHashToCID, contracts } from '@simplepg/common'
 import { getBlockNumber } from 'viem/actions'
 import { namehash } from 'viem/ens'
-import { CID } from 'multiformats/cid'
 
 const START_BLOCKS = {
   1: 22939230,
@@ -105,12 +104,12 @@ export class IndexerService {
 
     // Persist pages and resolvers to IPFS
     for (const page of pagesData) {
-      await this.ipfsService.addToList('domains', 'string', page.pageData.domain)
-      await this.ipfsService.addToList('resolvers', 'address', page.resolver)
+      await this.ipfsService.ensureDomain(page.pageData.domain)
+      await this.ipfsService.addToList('resolvers', page.resolver)
     }
 
     // Track contenthash updates
-    const resolvers = await this.ipfsService.getList('resolvers', 'address')
+    const resolvers = await this.ipfsService.getList('resolvers')
     if (resolvers.length > 0) {
       this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolvers.length })
     }
@@ -125,7 +124,7 @@ export class IndexerService {
       chLogs.push(...logs)
     }
     // persist contenthash updates for names we care about
-    const domains = await this.ipfsService.getList('domains', 'string')
+    const domains = await this.ipfsService.listDomains()
     // create a map from node to domain
     const domainFromNode = domains.reduce((acc, domain) => {
       acc[namehash(domain)] = domain
@@ -134,15 +133,14 @@ export class IndexerService {
     // filter logs for domains we care about
     const chLogsForDomains = chLogs.filter(log => domainFromNode[log.args.node])
     for (const log of chLogsForDomains) {
+      const domain = domainFromNode[log.args.node]
       try {
+        if (!await this.ipfsService.isDomainFinalizable(domain)) {
+          continue
+        }
         // Convert contenthash to CID before storing
         const cid = ensContentHashToCID(log.args.hash)
-        // persist both the contenthash and the blocknumber for the domain
-        await this.ipfsService.addToList(
-          `contenthash_${domainFromNode[log.args.node]}`,
-          'string',
-          `${log.blockNumber}-${cid}`
-        )
+        await this.ipfsService.finalizePage(cid, domain, Number(log.blockNumber), log.transactionHash)
       } catch (err) {
         this.logger.warn('Error persisting contenthash', { hash: log.args.hash, blockNumber: log.blockNumber, error: err.message })
       }
@@ -178,50 +176,26 @@ export class IndexerService {
   async syncPages() {
     this.logger.debug('Starting page synchronization')
     
-    const domains = await this.ipfsService.getList('domains', 'string')
-    // filter out blocked domains
-    const blockedDomains = await this.ipfsService.getList('block', 'string')
-    let domainsToSync = domains.filter(domain => !blockedDomains.includes(domain))
-
-    // if there is an allow list, only sync the domains in the allow list
-    const allowOnlyDomains = await this.ipfsService.getList('allow', 'string')
-    if (allowOnlyDomains.length > 0) {
-      domainsToSync = allowOnlyDomains
-    }
+    const domains = await this.ipfsService.listDomains()
+    const domainsToSync = await this.ipfsService.listFinalizableDomains()
 
     this.logger.debug('Page sync configuration', {
       totalDomains: domains.length,
-      blockedDomains: blockedDomains.length,
-      allowOnlyDomains: allowOnlyDomains.length,
       domainsToSync: domainsToSync.length
     })
 
     for (const domain of domainsToSync) {
-      const hashUpdates = await this.ipfsService.getList(`contenthash_${domain}`, 'string')
-
-      const sanitizedHashUpdates = hashUpdates.map(data => {
-        const [blockNumberStr, cid] = data.split('-')
-        const blockNumber = parseInt(blockNumberStr)
-        return { blockNumber, cid: CID.parse(cid) }
-      })
-
-      const latestCid = sanitizedHashUpdates.reduce((max, update) => {
-        return update.blockNumber > max.blockNumber ? update : max
-      }, { blockNumber: 0, cid: null })
-
-      if (latestCid.cid && !await this.ipfsService.isPageFinalized(latestCid.cid, domain, latestCid.blockNumber)) {
+      const latest = await this.ipfsService.getLatestFinalization(domain)
+      if (!latest) {
+        continue
+      }
+      if (!await this.ipfsService.isPageFinalized(latest.cid, domain, latest.txHash)) {
         this.logger.info('Finalizing page', {
           domain,
-          blockNumber: latestCid.blockNumber.toString(),
-          cid: latestCid.cid
+          blockNumber: latest.blockNumber.toString(),
+          cid: latest.cid
         })
-        this.ipfsService.finalizePage(latestCid.cid, domain, latestCid.blockNumber)
-      } else if (latestCid.cid) {
-        this.logger.debug('Page already finalized', {
-          domain,
-          blockNumber: latestCid.blockNumber.toString(),
-          cid: latestCid.cid
-        })
+        await this.ipfsService.finalizePage(latest.cid, domain, latest.blockNumber, latest.txHash)
       }
     }
     
@@ -230,7 +204,7 @@ export class IndexerService {
 
   async checkAndNukePages() {
     const domains = await this.ipfsService.listFinalizedPages()
-    const blockedDomains = await this.ipfsService.getList('block', 'string')
+    const blockedDomains = await this.ipfsService.getList('block-list')
     const domainsToNuke = domains.filter(domain => blockedDomains.includes(domain))
     if (domainsToNuke.length > 0) {
       this.logger.info('Nuking blocked domains', { count: domainsToNuke.length, domains: domainsToNuke })

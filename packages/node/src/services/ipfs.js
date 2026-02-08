@@ -1,46 +1,14 @@
 import { create } from 'kubo-rpc-client'
 import { CarBlock } from 'cartonne'
 import { CID } from 'multiformats/cid'
-import { identity } from 'multiformats/hashes/identity'
-import varint from 'varint'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
 import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
-import { FinalizationMap } from './finalization-map.js'
 import { LRUCache } from 'lru-cache'
 
-const BLOCK_NUMBER_LABEL = 'spg_latest_block_number'
-
-
-const dataTypeToCidEncodeFn = dataType => {
-  if (dataType === 'string') {
-    return s => CID.create(1, 0x55, identity.digest(u8a.fromString(s, 'utf8')))
-  } else if (dataType === 'address') {
-    return a => {
-      const hexAddr = a.slice(2).toLowerCase()
-      return CID.create(1, 0x55, identity.digest(u8a.fromString(hexAddr, 'hex')))
-    }
-  } else if (dataType === 'number') {
-    return n => {
-      const encoded = new Uint8Array(varint.encode(n))
-      return CID.create(1, 0x55, identity.digest(encoded))
-    }
-  } else {
-    throw new Error(`Unsupported data type: ${dataType}`)
-  }
-}
-
-const dataTypeToCidDecodeFn = dataType => {
-  if (dataType === 'string') {
-    return cid => u8a.toString(cid.multihash.digest, 'utf8')
-  } else if (dataType === 'address') {
-    return cid => '0x' + u8a.toString(cid.multihash.digest, 'hex')
-  } else if (dataType === 'number') {
-    return cid => varint.decode(cid.multihash.digest)
-  } else {
-    throw new Error(`Unsupported data type: ${dataType}`)
-  }
-}
+const SPG_DATA_ROOT = '/spg-data'
+const SPG_DOMAINS_DIR = `${SPG_DATA_ROOT}/domains`
+const SPG_ROOT_PIN = 'spg_data_root'
 
 export class IpfsService {
   constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
@@ -48,12 +16,113 @@ export class IpfsService {
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
     this.logger = logger || { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} }
-    this.finalizations = new FinalizationMap(this.client, this.logger)
     this._listCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 5 }) // 5 min TTL
     this._lastPruneStaged = 0
+    this._rootPinCid = null
   }
 
-  async writeCar(fileBuffer, stageDomain) {
+  async #ensureDir(path) {
+    try {
+      await this.client.files.stat(path)
+    } catch (error) {
+      await this.client.files.mkdir(path, { parents: true })
+    }
+  }
+
+  async #ensureRootDir() {
+    await this.#ensureDir(SPG_DATA_ROOT)
+    await this.#ensureDir(SPG_DOMAINS_DIR)
+  }
+
+  async #pathExists(path) {
+    try {
+      await this.client.files.stat(path)
+      return true
+    } catch (_error) {
+      return false
+    }
+  }
+
+  async #listDir(path) {
+    try {
+      return await all(await this.client.files.ls(path))
+    } catch (_error) {
+      return []
+    }
+  }
+
+  async #readFile(path) {
+    try {
+      const chunks = await all(await this.client.files.read(path))
+      return u8a.toString(Buffer.concat(chunks), 'utf8')
+    } catch (_error) {
+      return null
+    }
+  }
+
+  async #copyCidToMfs(cid, path) {
+    await this.#removePath(path, { recursive: true })
+    await this.client.files.cp(`/ipfs/${cid.toString()}`, path, { parents: true })
+  }
+
+  async #readCidFromMfs(path) {
+    try {
+      const stat = await this.client.files.stat(path)
+      return stat?.cid || null
+    } catch (_error) {
+      return null
+    }
+  }
+
+  async #writeFile(path, content, { updateRootPin = true } = {}) {
+    await this.client.files.write(path, new TextEncoder().encode(content), {
+      create: true,
+      truncate: true,
+      parents: true
+    })
+    if (updateRootPin) {
+      await this.#updateRootPin()
+    }
+  }
+
+  async #removePath(path, { recursive = false } = {}) {
+    try {
+      await this.client.files.rm(path, { recursive })
+      await this.#updateRootPin()
+    } catch (_error) {
+      return
+    }
+  }
+
+  async #getRootPinCid() {
+    const pins = await all(await this.client.pin.ls({ name: SPG_ROOT_PIN }))
+    assert(pins.length <= 1, `Expected max one ${SPG_ROOT_PIN} pin, got ${pins.length}`)
+    return pins[0]?.cid || null
+  }
+
+  async #updateRootPin() {
+    await this.#ensureRootDir()
+    const stat = await this.client.files.stat(SPG_DATA_ROOT)
+    const newCid = stat.cid
+    if (!this._rootPinCid) {
+      this._rootPinCid = await this.#getRootPinCid()
+    }
+    if (!this._rootPinCid) {
+      await this.client.pin.add(newCid, { recursive: true, name: SPG_ROOT_PIN })
+      this._rootPinCid = newCid
+      return
+    }
+    if (!this._rootPinCid.equals(newCid)) {
+      try {
+        await this.client.pin.update(this._rootPinCid, newCid, { recursive: true })
+      } catch (_error) {
+        await this.client.pin.add(newCid, { recursive: true, name: SPG_ROOT_PIN })
+      }
+      this._rootPinCid = newCid
+    }
+  }
+
+  async stageCar(fileBuffer, stageDomain) {
     // Create abort controller with 3-minute timeout
     const abortController = new AbortController()
     const timeoutId = setTimeout(() => {
@@ -75,18 +144,25 @@ export class IpfsService {
         rootCid = result.root.cid
       }
 
-      // Create pin label with timestamp
-      const label = `spg_staged_${stageDomain}_${Math.floor(Date.now() / 1000)}`
+      if (rootCid.code !== 0x70 && rootCid.code !== 0x55) {
+        throw new Error('CAR root must be UnixFS (dag-pb or raw)')
+      }
 
-      // Pin the content recursively with the label and abort signal
-      await this.client.pin.add(rootCid, { recursive: true, name: label, signal: abortController.signal })
+      const timestamp = Math.floor(Date.now() / 1000)
+
+      // Pin briefly to ensure the car file is complete before adding to mfs.
+      // This ensures we don't get locking while pinning the mfs root if blocks
+      // are missing from the car file.
+      await this.client.pin.add(rootCid, { recursive: true, signal: abortController.signal })
+      await this.recordStaged({ domain: stageDomain, timestamp, cid: rootCid })
+      await this.client.pin.rm(rootCid, { recursive: true })
 
       // Clear timeout since operation completed successfully
       clearTimeout(timeoutId)
-      this.logger.info('Staged CAR file successfully', { 
-        rootCid: rootCid.toString(), 
-        label, 
-        stageDomain 
+      this.logger.info('Staged CAR file successfully', {
+        rootCid: rootCid.toString(),
+        stageDomain,
+        timestamp
       })
 
       return rootCid
@@ -121,10 +197,6 @@ export class IpfsService {
       })
       return false
     }
-  }
-
-  async #readCar(cid) {
-    return carFromBytes(Buffer.concat(await all(this.client.dag.export(cid))), { verify: false })
   }
 
   async readCarLite(cid) {
@@ -174,11 +246,27 @@ export class IpfsService {
     }
   }
 
+  async #readCar(cid) {
+    return carFromBytes(Buffer.concat(await all(this.client.dag.export(cid))), { verify: false })
+  }
 
+  async #collectChildCids(rootCid) {
+    try {
+      const car = await this.#readCar(rootCid)
+      const cids = await all(car.blocks.cids())
+      return cids
+    } catch (error) {
+      this.logger.warn('Could not collect children for CID', {
+        rootCid: rootCid.toString(),
+        error: error.message
+      })
+    }
+  }
 
-  async isPageFinalized(cid, domain, blockNumber) {
+  async isPageFinalized(cid, domain, txHash) {
     assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
-    return this.finalizations.isFinalized(domain, blockNumber, cid)
+    const finalizations = await this.getFinalizations(domain)
+    return finalizations.some(entry => entry.txHash === txHash && entry.cid.equals(cid))
   }
 
   async providePage(cid) {
@@ -211,133 +299,126 @@ export class IpfsService {
     }
   }
 
-  async finalizePage(cid, domain, blockNumber) {
-    assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
-    try {
-      this.logger.info('Finalizing page', { 
-        cid: cid.toString(), 
-        domain, 
-        blockNumber 
-      })
-      
-      // Add finalization using the FinalizationMap
-      await this.finalizations.push(domain, blockNumber, cid)
-      
-      this.logger.info('Page finalized successfully', { 
-        cid: cid.toString(), 
-        domain,
-        blockNumber 
-      })
-      
-      // Reprovide all new CIDs of the published page
-      await this.providePage(cid)
+  async #getDomainDir(domain) {
+    return `${SPG_DOMAINS_DIR}/${domain}`
+  }
 
-      // Remove all staged pins
-      const stagedPins = await this.client.pin.ls({
-        name: `spg_staged_${domain}`
-      })
-      for await (const pin of stagedPins) {
-        await this.client.pin.rm(pin.cid, { recursive: true })
-        this.logger.debug('Removed staged pin', { 
-          pinName: pin.name, 
-          pinCid: pin.cid.toString() 
-        })
-      }
-    } catch (error) {
-      this.logger.error('Error finalizing page', { 
-        error: error.message, 
-        cid: cid.toString(),
-        domain,
-        blockNumber,
-        stack: error.stack 
-      })
-      // throw error
+  async #getStagedDir(domain) {
+    return `${SPG_DOMAINS_DIR}/${domain}/staged`
+  }
+
+  async #getFinalizedDir(domain) {
+    return `${SPG_DOMAINS_DIR}/${domain}/finalized`
+  }
+
+  async getList(name) {
+    await this.#ensureRootDir()
+    if (this._listCache.has(name)) {
+      return this._listCache.get(name)
+    }
+    const path = `${SPG_DATA_ROOT}/${name}`
+    const content = await this.#readFile(path)
+    if (!content) {
+      this._listCache.set(name, [])
+      return []
+    }
+    const list = content
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean)
+    this._listCache.set(name, list)
+    return list
+  }
+
+  async addToList(name, value) {
+    const list = await this.getList(name)
+    if (!list.includes(value)) {
+      list.push(value)
+      await this.#writeFile(`${SPG_DATA_ROOT}/${name}`, list.join('\n'), { updateRootPin: true })
+      this._listCache.delete(name)
+      this.logger.info('Added item to list', { name, value })
+    } else {
+      this.logger.debug('Item already in list', { name, value })
     }
   }
 
-  async listFinalizedPages() {
-    return this.finalizations.list()
+  async removeFromList(name, value) {
+    const list = await this.getList(name)
+    const nextList = list.filter(item => item !== value)
+    if (nextList.length === list.length) {
+      this.logger.debug('Item not in list', { name, value })
+      return
+    }
+    const path = `${SPG_DATA_ROOT}/${name}`
+    if (nextList.length === 0) {
+      await this.#removePath(path, { recursive: false })
+    } else {
+      await this.#writeFile(path, nextList.join('\n'), { updateRootPin: true })
+    }
+    this._listCache.delete(name)
+    this.logger.info('Removed item from list', { name, value })
   }
 
-  async nukePage(domain) {
-    try {
-      this.logger.info('Nuking page', { domain })
-      
-      // Get current finalizations for the domain
-      const domainFinalizations = await this.finalizations.getAll(domain)
-      
-      if (domainFinalizations.length === 0) {
-        this.logger.debug('No finalizations found for domain', { domain })
-        return
-      }
-      
-      // Collect all CIDs that need to be checked for removal
-      const cidsToCheck = []
-      for (const { cid } of domainFinalizations) {
-        const recursiveCids = await this.#collectChildCids(cid)
-        cidsToCheck.push(...recursiveCids)
-      }
-      
-      // Remove domain from finalizations
-      await this.finalizations.remove(domain)
-      
-      this.logger.info('Removed domain from finalizations', { 
-        domain,
-        finalizationsRemoved: domainFinalizations.length 
-      })
-
-      const cidsWithOtherDomainPins = []
-      for (const cid of cidsToCheck) {
-        try {
-          const pins = await all(this.client.pin.ls({ paths: [cid] }))
-          if (pins.length > 0) {
-            cidsWithOtherDomainPins.push(pins[0].cid)
-          }
-        } catch (_error) {
-          continue // Ignore errors from ls when CID is not pinned
-        }
-      }
-
-      const cidsToNuke = cidsToCheck.filter(checkCid => !cidsWithOtherDomainPins.find(keepCid => keepCid.equals(checkCid)))
-
-      for (const cid of cidsToNuke) {
-        try {
-          await all(await this.client.block.rm(cid))
-          this.logger.debug('Removed block', { cid: cid.toString() })
-        } catch (_error) {
-          // Block might already be removed or not exist
-          this.logger.debug('Block already removed or doesn\'t exist', { 
-            cid: cid.toString() 
-          })
-        }
-      }
-      
-      this.logger.info('Page nuked successfully', { 
-        domain, 
-        finalizationsRemoved: domainFinalizations.length,
-        blocksRemoved: cidsToNuke.length 
-      })
-    } catch (error) {
-      this.logger.error('Error nuking page', { 
-        error: error.message, 
-        domain,
-        stack: error.stack 
-      })
-      throw error
-    }
+  async ensureDomain(domain) {
+    await this.#ensureRootDir()
+    await this.#ensureDir(await this.#getDomainDir(domain))
+    await this.#updateRootPin()
   }
 
-  async #collectChildCids(rootCid) {
-    try {
-      const car = await this.#readCar(rootCid)
-      const cids = await all(car.blocks.cids())
-      return cids
-    } catch (error) {
-      this.logger.warn('Could not collect children for CID', { 
-        rootCid: rootCid.toString(), 
-        error: error.message 
-      })
+  async domainExists(domain) {
+    return this.#pathExists(await this.#getDomainDir(domain))
+  }
+
+  async listDomains() {
+    await this.#ensureRootDir()
+    const entries = await this.#listDir(SPG_DOMAINS_DIR)
+    return entries.map(entry => entry.name)
+  }
+
+  async listFinalizableDomains() {
+    const domains = await this.listDomains()
+    const blocked = await this.getList('block-list')
+    const allowList = await this.getList('allow-list')
+    let domainsToSync = domains.filter(domain => !blocked.includes(domain))
+    if (allowList.length > 0) {
+      domainsToSync = domainsToSync.filter(domain => allowList.includes(domain))
     }
+    return domainsToSync
+  }
+
+  async isDomainFinalizable(domain) {
+    const blocked = await this.getList('block-list')
+    if (blocked.includes(domain)) {
+      return false
+    }
+    const allowList = await this.getList('allow-list')
+    if (allowList.length === 0) {
+      return true
+    }
+    return allowList.includes(domain)
+  }
+
+  async recordStaged({ domain, timestamp, cid }) {
+    await this.ensureDomain(domain)
+    const stagedDir = await this.#getStagedDir(domain)
+    await this.#ensureDir(stagedDir)
+    const stagedPath = `${stagedDir}/${timestamp}`
+    await this.#copyCidToMfs(cid, stagedPath)
+    await this.#updateRootPin()
+  }
+
+  async listStaged(domain) {
+    const stagedDir = await this.#getStagedDir(domain)
+    const entries = await this.#listDir(stagedDir)
+    const staged = []
+    for (const entry of entries) {
+      const timestamp = parseInt(entry.name, 10)
+      if (Number.isNaN(timestamp)) continue
+      const cid = await this.#readCidFromMfs(`${stagedDir}/${entry.name}`)
+      if (!cid) continue
+      staged.push({ timestamp, cid: cid.toString() })
+    }
+    return staged
   }
 
   async pruneStaged() {
@@ -349,28 +430,20 @@ export class IpfsService {
     this._lastPruneStaged = now
     try {
       this.logger.debug('Starting staged pin pruning')
-      // Get all pins with spg_staged_ prefix
-      const stagedPins = await this.client.pin.ls({
-        name: 'spg_staged_'
-      })
+      const domains = await this.listDomains()
       let prunedCount = 0
-      for await (const pin of stagedPins) {
-        // Extract timestamp from pin name
-        // Format is spg_staged_domain_timestamp
-        const parts = pin.name.split('_')
-        if (parts.length >= 4) {
-          const timestamp = parseInt(parts[parts.length - 1], 10)
-          if (!isNaN(timestamp)) {
-            const age = now - timestamp
-            if (age > this.maxStagedAge) {
-              await this.client.pin.rm(pin.cid, { recursive: true })
-              this.logger.info('Pruned old staged pin', { 
-                pinName: pin.name, 
-                pinCid: pin.cid.toString(),
-                age: age 
-              })
-              prunedCount++
-            }
+      for (const domain of domains) {
+        const stagedEntries = await this.listStaged(domain)
+        for (const entry of stagedEntries) {
+          const age = now - entry.timestamp
+          if (age > this.maxStagedAge) {
+            await this.#removePath(`${await this.#getStagedDir(domain)}/${entry.timestamp}`, { recursive: true })
+            this.logger.info('Pruned old staged entry', {
+              domain,
+              cid: entry.cid,
+              age
+            })
+            prunedCount++
           }
         }
       }
@@ -378,97 +451,191 @@ export class IpfsService {
         this.logger.info('Staged pin pruning completed', { prunedCount })
       }
     } catch (error) {
-      this.logger.error('Error pruning staged pins', { 
-        error: error.message, 
-        stack: error.stack 
+      this.logger.error('Error pruning staged entries', {
+        error: error.message,
+        stack: error.stack
       })
       throw error
     }
   }
 
-  async _getList(name, dataType) {
-    if (this._listCache.has(name)) {
-      return this._listCache.get(name)
+  async recordFinalization({ domain, txHash, blockNumber, cid }) {
+    await this.ensureDomain(domain)
+    const finalizedDir = await this.#getFinalizedDir(domain)
+    const entryDir = `${finalizedDir}/${txHash}`
+    await this.#ensureDir(entryDir)
+    const contentPath = `${entryDir}/content`
+    await this.#copyCidToMfs(cid, contentPath)
+    await this.#writeFile(`${entryDir}/blockNumber`, String(blockNumber), { updateRootPin: false })
+    await this.#updateRootPin()
+  }
+
+  async getFinalizations(domain) {
+    const finalizedDir = await this.#getFinalizedDir(domain)
+    const entries = await this.#listDir(finalizedDir)
+    const results = []
+    for (const entry of entries) {
+      const entryDir = `${finalizedDir}/${entry.name}`
+      const contentCid = await this.#readCidFromMfs(`${entryDir}/content`)
+      const blockNumberRaw = await this.#readFile(`${entryDir}/blockNumber`)
+      if (!contentCid || !blockNumberRaw) continue
+      const blockNumber = parseInt(blockNumberRaw, 10)
+      if (Number.isNaN(blockNumber)) continue
+      results.push({
+        txHash: entry.name,
+        blockNumber,
+        cid: contentCid
+      })
     }
-    const pins = await all(await this.client.pin.ls({ name: `spg_list_${name}` }))
-    const decodeFn = dataTypeToCidDecodeFn(dataType)
-    const result = pins.map(pin => decodeFn(pin.cid))
-    this._listCache.set(name, result)
-    return result
+    return results
   }
 
-  async getList(name, dataType) {
-    return this._getList(name, dataType)
+  async getLatestFinalization(domain) {
+    const finalizations = await this.getFinalizations(domain)
+    if (finalizations.length === 0) return null
+    return finalizations.reduce((max, entry) => entry.blockNumber > max.blockNumber ? entry : max)
   }
 
-  async addToList(name, dataType, value) {
-    const list = await this._getList(name, dataType)
-    const encodeFn = dataTypeToCidEncodeFn(dataType)
-    const itemCid = encodeFn(value)
-    if (!list.includes(value)) {
-      await this.client.pin.add(itemCid, { name: `spg_list_${name}`, recursive: false })
-      this.logger.info('Added item to list', { name, dataType, value })
-      this._listCache.delete(name)
-    } else {
-      this.logger.debug('Item already in list', { name, dataType, value })
+  async finalizePage(cid, domain, blockNumber, txHash) {
+    assert(cid instanceof CID, `cid must be an instance of CID, got ${typeof cid}`)
+    try {
+      this.logger.info('Finalizing page', {
+        cid: cid.toString(),
+        domain,
+        blockNumber,
+        txHash
+      })
+
+      await this.recordFinalization({ domain, txHash, blockNumber, cid })
+
+      this.logger.info('Page finalized successfully', {
+        cid: cid.toString(),
+        domain,
+        blockNumber,
+        txHash
+      })
+
+      await this.providePage(cid)
+    } catch (error) {
+      this.logger.error('Error finalizing page', {
+        error: error.message,
+        cid: cid.toString(),
+        domain,
+        blockNumber,
+        txHash,
+        stack: error.stack
+      })
     }
   }
 
-  async removeFromList(name, dataType, value) {
-    this.logger.debug('Removing from list', { name, dataType, value })
-    const list = await this._getList(name, dataType)
-    if (list.includes(value)) {
-      const itemCid = dataTypeToCidEncodeFn(dataType)(value)
-      await this.client.pin.rm(itemCid, { name: `spg_list_${name}` })
-      this.logger.info('Removed item from list', { name, dataType, value })
-      this._listCache.delete(name)
-    } else {
-      this.logger.debug('Item not in list', { name, dataType, value })
+  async clearStaged(domain) {
+    const stagedDir = await this.#getStagedDir(domain)
+    const stagedEntries = await this.listStaged(domain)
+    for (const entry of stagedEntries) {
+      await this.#removePath(`${stagedDir}/${entry.timestamp}`, { recursive: false })
+      try {
+          } catch (_error) {
+            // ignore if missing
+          }
     }
   }
 
-  async _getLatestBlockNumberCid() {
-    const pins = await all(await this.client.pin.ls({ name: 'spg_latest_block_number' }))
-    assert(pins.length <= 1, 'Expected max one latest block number pin, got ' + pins.length)
-    return pins[0]?.cid
+  async listFinalizedPages() {
+    const domains = await this.listDomains()
+    const finalized = []
+    for (const domain of domains) {
+      const entries = await this.#listDir(await this.#getFinalizedDir(domain))
+      if (entries.length > 0) {
+        finalized.push(domain)
+      }
+    }
+    return finalized
+  }
+
+  async resetIndexerData() {
+    await this.#removePath(SPG_DOMAINS_DIR, { recursive: true })
+    await this.#ensureDir(SPG_DOMAINS_DIR)
+    await this.#removePath(`${SPG_DATA_ROOT}/resolvers`, { recursive: false })
+    this._listCache.clear()
+    await this.#updateRootPin()
+  }
+
+  async nukePage(domain) {
+    try {
+      this.logger.info('Nuking page', { domain })
+
+      const finalizations = await this.getFinalizations(domain)
+      const cidsToCheck = []
+      for (const entry of finalizations) {
+        const recursiveCids = await this.#collectChildCids(entry.cid)
+        if (recursiveCids?.length) {
+          cidsToCheck.push(...recursiveCids)
+        }
+      }
+
+      const finalizedDir = await this.#getFinalizedDir(domain)
+      await this.#removePath(finalizedDir, { recursive: true })
+
+      const stagedDir = await this.#getStagedDir(domain)
+      await this.#removePath(stagedDir, { recursive: true })
+
+      const cidsWithPins = []
+      for (const cid of cidsToCheck) {
+        try {
+          const pins = await all(this.client.pin.ls({ paths: [cid] }))
+          if (pins.length > 0) {
+            cidsWithPins.push(pins[0].cid)
+          }
+        } catch (_error) {
+          continue
+        }
+      }
+
+      const cidsToNuke = cidsToCheck.filter(checkCid => !cidsWithPins.find(keepCid => keepCid.equals(checkCid)))
+      for (const cid of cidsToNuke) {
+        try {
+          await all(await this.client.block.rm(cid))
+          this.logger.debug('Removed block', { cid: cid.toString() })
+        } catch (_error) {
+          this.logger.debug('Block already removed or doesn\'t exist', { cid: cid.toString() })
+        }
+      }
+
+      this.logger.info('Page nuked successfully', {
+        domain,
+        finalizationsRemoved: finalizations.length
+      })
+    } catch (error) {
+      this.logger.error('Error nuking page', {
+        error: error.message,
+        domain,
+        stack: error.stack
+      })
+      throw error
+    }
   }
 
   async getLatestBlockNumber() {
-    if (this._listCache.has(BLOCK_NUMBER_LABEL)) {
-      return this._listCache.get(BLOCK_NUMBER_LABEL);
+    await this.#ensureRootDir()
+    if (this._listCache.has('latestBlockNumber')) {
+      return this._listCache.get('latestBlockNumber')
     }
-    const cid = await this._getLatestBlockNumberCid()
-    if (!cid) {
-      this.logger.debug('No latest block number found, returning 0')
-      this._listCache.set(BLOCK_NUMBER_LABEL, 0);
+    const content = await this.#readFile(`${SPG_DATA_ROOT}/latestBlockNumber`)
+    if (!content) {
+      this._listCache.set('latestBlockNumber', 0)
       return 0
     }
-    // Decode the CID to get the block number
-    const blockNumber = dataTypeToCidDecodeFn('number')(cid)
-    this.logger.debug('Retrieved latest block number', { blockNumber })
-    this._listCache.set(BLOCK_NUMBER_LABEL, blockNumber);
+    const blockNumber = parseInt(content, 10)
+    if (Number.isNaN(blockNumber)) {
+      return 0
+    }
+    this._listCache.set('latestBlockNumber', blockNumber)
     return blockNumber
   }
 
   async setLatestBlockNumber(blockNumber) {
     this.logger.debug('Setting latest block number', { blockNumber })
-    // get current latest block number cid
-    const latestBlockNumberCid = await this._getLatestBlockNumberCid()
-    // generate given block number cid
-    const newBlockNumberCid = dataTypeToCidEncodeFn('number')(blockNumber)
-    if (!latestBlockNumberCid) {
-      await this.client.pin.add(newBlockNumberCid, { name: 'spg_latest_block_number' })
-      this.logger.info('Created new latest block number pin', { blockNumber })
-      this._listCache.delete(BLOCK_NUMBER_LABEL);
-    } else if (!latestBlockNumberCid.equals(newBlockNumberCid)) {
-      await this.client.pin.update(latestBlockNumberCid, newBlockNumberCid)
-      this.logger.info('Updated latest block number pin', { 
-        oldBlockNumber: dataTypeToCidDecodeFn('number')(latestBlockNumberCid),
-        newBlockNumber: blockNumber 
-      })
-      this._listCache.delete(BLOCK_NUMBER_LABEL);
-    } else {
-      this.logger.debug('Latest block number unchanged', { blockNumber })
-    }
+    await this.#writeFile(`${SPG_DATA_ROOT}/latestBlockNumber`, String(blockNumber), { updateRootPin: true })
+    this._listCache.set('latestBlockNumber', blockNumber)
   }
 }

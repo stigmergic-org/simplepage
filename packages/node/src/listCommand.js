@@ -15,7 +15,7 @@ export async function handleListCommand(type, action, name, ipfsApiUrl) {
   try {
     switch (action) {
       case 'show': {
-        const list = await ipfs.getList(type, 'string')
+        const list = await ipfs.getList(type)
         console.log(`${type} list:`, list || [])
         break
       }
@@ -28,7 +28,7 @@ export async function handleListCommand(type, action, name, ipfsApiUrl) {
           console.error('Name must be a valid ENS domain (e.g., example.eth)')
           process.exit(1)
         }
-        await ipfs.addToList(type, 'string', name)
+        await ipfs.addToList(type, name)
         console.log(`Added ${name} to ${type} list`)
         break
       case 'rm':
@@ -36,7 +36,7 @@ export async function handleListCommand(type, action, name, ipfsApiUrl) {
           console.error('Name is required for rm action')
           process.exit(1)
         }
-        await ipfs.removeFromList(type, 'string', name)
+        await ipfs.removeFromList(type, name)
         console.log(`Removed ${name} from ${type} list`)
         break
       default:

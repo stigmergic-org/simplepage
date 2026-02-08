@@ -10,32 +10,20 @@ export async function handleIndexerDataCommand(action, ipfsApiUrl) {
   }
   try {
     if (action === 'show') {
-      const domains = await ipfs.getList('domains', 'string');
-      const resolvers = await ipfs.getList('resolvers', 'address');
+      const domains = await ipfs.listDomains();
+      const resolvers = await ipfs.getList('resolvers');
       console.log('Domains:', domains);
       console.log('Resolvers:', resolvers);
       for (const domain of domains) {
-        const chList = await ipfs.getList(`contenthash_${domain}`, 'string');
-        console.log(`contenthash_${domain}:`, chList);
+        const finalizations = await ipfs.getFinalizations(domain);
+        console.log(`finalized_${domain}:`, finalizations.map(entry => ({
+          txHash: entry.txHash,
+          blockNumber: entry.blockNumber,
+          cid: entry.cid?.toString ? entry.cid.toString() : entry.cid
+        })));
       }
     } else if (action === 'reset') {
-      const domains = await ipfs.getList('domains', 'string');
-      const resolvers = await ipfs.getList('resolvers', 'address');
-      // Remove all contenthash_{domain} lists
-      for (const domain of domains) {
-        const chList = await ipfs.getList(`contenthash_${domain}`, 'string');
-        for (const entry of chList) {
-          await ipfs.removeFromList(`contenthash_${domain}`, 'string', entry);
-        }
-      }
-      // Remove all domains
-      for (const domain of domains) {
-        await ipfs.removeFromList('domains', 'string', domain);
-      }
-      // Remove all resolvers
-      for (const resolver of resolvers) {
-        await ipfs.removeFromList('resolvers', 'address', resolver);
-      }
+      await ipfs.resetIndexerData();
       console.log('Indexing-related data reset.');
     } else {
       console.error('Unknown action:', action);
