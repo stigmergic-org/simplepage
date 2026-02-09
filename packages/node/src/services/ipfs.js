@@ -8,7 +8,10 @@ import { LRUCache } from 'lru-cache'
 
 const SPG_DATA_ROOT = '/spg-data'
 const SPG_DOMAINS_DIR = `${SPG_DATA_ROOT}/domains`
+const SPG_PIN_FAILURES_DIR = `${SPG_DATA_ROOT}/pin-failures`
 const SPG_ROOT_PIN = 'spg_data_root'
+const FINALIZED_PIN_PREFIX = 'spg_finalized'
+const STAGED_PIN_PREFIX = 'spg_staged'
 
 export class IpfsService {
   constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
@@ -19,6 +22,7 @@ export class IpfsService {
     this._listCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 5 }) // 5 min TTL
     this._lastPruneStaged = 0
     this._rootPinCid = null
+    this._lastRetryFailedPins = 0
   }
 
   async #ensureDir(path) {
@@ -32,6 +36,7 @@ export class IpfsService {
   async #ensureRootDir() {
     await this.#ensureDir(SPG_DATA_ROOT)
     await this.#ensureDir(SPG_DOMAINS_DIR)
+    await this.#ensureDir(SPG_PIN_FAILURES_DIR)
   }
 
   async #pathExists(path) {
@@ -94,9 +99,23 @@ export class IpfsService {
     }
   }
 
+  #sanitizeKey(value) {
+    return String(value).replace(/[^a-zA-Z0-9.-]/g, '_')
+  }
+
   async #getRootPinCid() {
     const pins = await all(await this.client.pin.ls({ name: SPG_ROOT_PIN }))
-    assert(pins.length <= 1, `Expected max one ${SPG_ROOT_PIN} pin, got ${pins.length}`)
+    if (pins.length > 1) {
+      const [keep, ...rest] = pins
+      for (const pin of rest) {
+        try {
+          await this.client.pin.rm(pin.cid, { name: pin.name })
+        } catch (_error) {
+          // ignore
+        }
+      }
+      return keep?.cid || null
+    }
     return pins[0]?.cid || null
   }
 
@@ -108,15 +127,15 @@ export class IpfsService {
       this._rootPinCid = await this.#getRootPinCid()
     }
     if (!this._rootPinCid) {
-      await this.client.pin.add(newCid, { recursive: true, name: SPG_ROOT_PIN })
+      await this.client.pin.add(newCid, { recursive: false, name: SPG_ROOT_PIN })
       this._rootPinCid = newCid
       return
     }
     if (!this._rootPinCid.equals(newCid)) {
       try {
-        await this.client.pin.update(this._rootPinCid, newCid, { recursive: true })
+        await this.client.pin.update(this._rootPinCid, newCid, { recursive: false })
       } catch (_error) {
-        await this.client.pin.add(newCid, { recursive: true, name: SPG_ROOT_PIN })
+        await this.client.pin.add(newCid, { recursive: false, name: SPG_ROOT_PIN })
       }
       this._rootPinCid = newCid
     }
@@ -149,20 +168,21 @@ export class IpfsService {
       }
 
       const timestamp = Math.floor(Date.now() / 1000)
+      const pinName = `${STAGED_PIN_PREFIX}_${stageDomain}_${timestamp}`
 
-      // Pin briefly to ensure the car file is complete before adding to mfs.
+      // Pin to ensure the car file is complete before adding to mfs.
       // This ensures we don't get locking while pinning the mfs root if blocks
       // are missing from the car file.
-      await this.client.pin.add(rootCid, { recursive: true, signal: abortController.signal })
+      await this.client.pin.add(rootCid, { recursive: true, name: pinName, signal: abortController.signal })
       await this.recordStaged({ domain: stageDomain, timestamp, cid: rootCid })
-      await this.client.pin.rm(rootCid, { recursive: true })
 
       // Clear timeout since operation completed successfully
       clearTimeout(timeoutId)
       this.logger.info('Staged CAR file successfully', {
         rootCid: rootCid.toString(),
         stageDomain,
-        timestamp
+        timestamp,
+        pinName
       })
 
       return rootCid
@@ -311,6 +331,92 @@ export class IpfsService {
     return `${SPG_DOMAINS_DIR}/${domain}/finalized`
   }
 
+  #pinFailurePath(domain, txHash) {
+    const safeDomain = this.#sanitizeKey(domain)
+    return `${SPG_PIN_FAILURES_DIR}/${safeDomain}-${txHash}.json`
+  }
+
+  async #recordPinFailure({ domain, txHash, cid, error }) {
+    const path = this.#pinFailurePath(domain, txHash)
+    let attempts = 0
+    const existing = await this.#readFile(path)
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing)
+        attempts = parsed.attempts || 0
+      } catch (_error) {
+        attempts = 0
+      }
+    }
+    const payload = {
+      domain,
+      txHash,
+      cid: cid.toString(),
+      error: error?.message || String(error),
+      attempts: attempts + 1,
+      lastAttempt: new Date().toISOString()
+    }
+    await this.#writeFile(path, JSON.stringify(payload), { updateRootPin: true })
+  }
+
+  async #removePinFailure(domain, txHash) {
+    const path = this.#pinFailurePath(domain, txHash)
+    await this.#removePath(path, { recursive: false })
+  }
+
+  async listFailedPins() {
+    await this.#ensureRootDir()
+    const entries = await this.#listDir(SPG_PIN_FAILURES_DIR)
+    const results = []
+    for (const entry of entries) {
+      const content = await this.#readFile(`${SPG_PIN_FAILURES_DIR}/${entry.name}`)
+      if (!content) continue
+      try {
+        results.push(JSON.parse(content))
+      } catch (_error) {
+        continue
+      }
+    }
+    return results
+  }
+
+  async retryFailedPins({ concurrency = 4, timeoutMs = 10 * 60 * 1000 } = {}) {
+    const now = Math.floor(Date.now() / 1000)
+    if (this._lastRetryFailedPins && (now - this._lastRetryFailedPins < 60 * 60)) {
+      return
+    }
+    this._lastRetryFailedPins = now
+    const failures = await this.listFailedPins()
+    const workItems = failures.filter(failure => failure?.cid && failure?.domain && failure?.txHash)
+    const workerCount = Math.min(concurrency, workItems.length || 1)
+    let index = 0
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (index < workItems.length) {
+        const currentIndex = index
+        index += 1
+        const failure = workItems[currentIndex]
+        const cid = CID.parse(failure.cid)
+        const pinName = `${FINALIZED_PIN_PREFIX}_${failure.domain}_${failure.txHash}`
+        const abortController = new AbortController()
+        const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
+        try {
+          await this.client.pin.add(cid, { recursive: true, name: pinName, signal: abortController.signal })
+          await this.#removePinFailure(failure.domain, failure.txHash)
+        } catch (error) {
+          await this.#recordPinFailure({
+            domain: failure.domain,
+            txHash: failure.txHash,
+            cid,
+            error
+          })
+        } finally {
+          clearTimeout(timeoutId)
+        }
+      }
+    })
+    await Promise.all(workers)
+  }
+
   async getList(name) {
     await this.#ensureRootDir()
     if (this._listCache.has(name)) {
@@ -438,6 +544,12 @@ export class IpfsService {
           const age = now - entry.timestamp
           if (age > this.maxStagedAge) {
             await this.#removePath(`${await this.#getStagedDir(domain)}/${entry.timestamp}`, { recursive: true })
+            const pinName = `${STAGED_PIN_PREFIX}_${domain}_${entry.timestamp}`
+            try {
+              await this.client.pin.rm(entry.cid, { name: pinName })
+            } catch (_error) {
+              // ignore if not pinned
+            }
             this.logger.info('Pruned old staged entry', {
               domain,
               cid: entry.cid,
@@ -507,6 +619,14 @@ export class IpfsService {
       })
 
       await this.recordFinalization({ domain, txHash, blockNumber, cid })
+
+      const pinName = `${FINALIZED_PIN_PREFIX}_${domain}_${txHash}`
+      try {
+        await this.client.pin.add(cid, { recursive: true, name: pinName })
+        await this.#removePinFailure(domain, txHash)
+      } catch (error) {
+        await this.#recordPinFailure({ domain, txHash, cid, error })
+      }
 
       this.logger.info('Page finalized successfully', {
         cid: cid.toString(),
@@ -578,6 +698,26 @@ export class IpfsService {
 
       const stagedDir = await this.#getStagedDir(domain)
       await this.#removePath(stagedDir, { recursive: true })
+
+      const finalizedPinPrefix = `${FINALIZED_PIN_PREFIX}_${domain}_`
+      const finalizedPins = await all(await this.client.pin.ls({ name: finalizedPinPrefix }))
+      for (const pin of finalizedPins) {
+        try {
+          await this.client.pin.rm(pin.cid, { name: pin.name })
+        } catch (_error) {
+          // ignore
+        }
+      }
+
+      const stagedPinPrefix = `${STAGED_PIN_PREFIX}_${domain}_`
+      const stagedPins = await all(await this.client.pin.ls({ name: stagedPinPrefix }))
+      for (const pin of stagedPins) {
+        try {
+          await this.client.pin.rm(pin.cid, { name: pin.name })
+        } catch (_error) {
+          // ignore
+        }
+      }
 
       const cidsWithPins = []
       for (const cid of cidsToCheck) {

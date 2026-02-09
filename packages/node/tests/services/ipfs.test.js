@@ -133,6 +133,24 @@ describe('IpfsService', () => {
     expect(listedFiles.sort()).toEqual(Object.keys(files).sort())
   })
 
+  it('stageCar and finalizePage: should create named recursive pins', async () => {
+    const domain = 'pin-name-test.eth'
+    const txHash = txHashFor(4242)
+    const carData = await createUnixFsCar({ 'index.md': '# Pinned' })
+
+    const stagedCid = await ipfsService.stageCar(carData.carBuffer, domain)
+    const stagedPins = await all(await kuboApi.pin.ls({ name: `spg_staged_${domain}_` }))
+    const stagedPin = stagedPins.find(pin => pin.cid.toString() === stagedCid.toString())
+    expect(stagedPin).toBeTruthy()
+    expect(stagedPin.type).toBe('recursive')
+
+    await ipfsService.finalizePage(stagedCid, domain, 4242, txHash)
+    const finalizedPins = await all(await kuboApi.pin.ls({ name: `spg_finalized_${domain}_${txHash}` }))
+    expect(finalizedPins.length).toBe(1)
+    expect(finalizedPins[0].cid.toString()).toBe(stagedCid.toString())
+    expect(finalizedPins[0].type).toBe('recursive')
+  })
+
   it('readCarLite: should read only index files from a directory', async () => {
     // Create a test directory structure
     const files = {
@@ -652,6 +670,39 @@ describe('IpfsService', () => {
         const list = await ipfsService.getList(listName)
         expect(list).toEqual([])
       })
+    })
+  })
+
+  describe('Pin failures', () => {
+    it('should list and retry failed finalized pins', async () => {
+      const domain = 'pin-fail.eth'
+      const txHash = txHashFor(9999)
+      const carData = await createUnixFsCar({ 'index.md': '# Fail pin' })
+
+      await ipfsService.listFailedPins()
+
+      const failurePath = `/spg-data/pin-failures/${domain}-${txHash}.json`
+      const payload = {
+        domain,
+        txHash,
+        cid: carData.rootCid.toString(),
+        error: 'simulated failure',
+        attempts: 1,
+        lastAttempt: new Date().toISOString()
+      }
+      await kuboApi.files.write(failurePath, new TextEncoder().encode(JSON.stringify(payload)), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+
+      const failuresBefore = await ipfsService.listFailedPins()
+      expect(failuresBefore.length).toBe(1)
+
+      await ipfsService.retryFailedPins({ concurrency: 1, timeoutMs: 10000 })
+
+      const failuresAfter = await ipfsService.listFailedPins()
+      expect(failuresAfter.length).toBe(0)
     })
   })
 }) 

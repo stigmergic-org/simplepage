@@ -78,6 +78,7 @@ export class IndexerService {
       await this.checkAndNukePages()
       // Prune old staged pins
       await this.ipfsService.pruneStaged()
+      await this.ipfsService.retryFailedPins()
     } catch (error) {
       this.logger.error('Error in poll loop', {
         error: error.message,

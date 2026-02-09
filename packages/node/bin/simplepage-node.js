@@ -4,6 +4,7 @@ import { Command, Option } from 'commander'
 import { DService } from '../src/dservice.js'
 import { handleListCommand } from '../src/listCommand.js'
 import { handleIndexerDataCommand } from '../src/indexerDataCommand.js'
+import { handlePinCommand } from '../src/pinCommand.js'
 import packageJson from '../package.json' with { type: 'json' }
 
 
@@ -13,7 +14,7 @@ const startServer = () => {
   // Only start the server if no subcommands were used
   if (process.argv.length > 2) {
     // Check if the second argument is a subcommand
-    const subcommands = ['allow-list', 'block-list'];
+    const subcommands = ['allow-list', 'block-list', 'failed-pins'];
     if (subcommands.includes(process.argv[2])) {
       return; // Don't start server if a subcommand is being used
     }
@@ -138,6 +139,14 @@ program
   .action((action) => {
     const opts = program.opts();
     handleIndexerDataCommand(action, opts.ipfsApi);
+  });
+
+program
+  .command('failed-pins')
+  .description('List failed finalized pins')
+  .action(() => {
+    const opts = program.opts();
+    handlePinCommand(opts.ipfsApi);
   });
 
 program.parse()
