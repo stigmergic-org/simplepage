@@ -296,6 +296,7 @@ describe('Repo Integration Tests', () => {
       const firstResult = await repo.stage('test.eth', false);
       const hash1 = await walletClient.writeContract(firstResult.prepTx);
       await client.waitForTransactionReceipt({ hash: hash1 });
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await repo.finalizeCommit(firstResult.cid);
       
       // Delete a page

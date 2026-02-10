@@ -1,5 +1,6 @@
 import { spawn, execSync } from 'child_process';
 import { CID } from 'multiformats/cid'
+import { contracts } from '@simplepg/common/src/contracts.js'
 import { namehash } from 'viem/ens'
 import { toString } from 'uint8arrays/to-string'
 import net from 'net';
@@ -67,6 +68,27 @@ export class TestEnvironmentEvm {
         // Parse deployment addresses
         const jsonLine = output.split('\n').find(line => line.trim().startsWith('{'));
         this.addresses = JSON.parse(jsonLine);
+
+        const expectedSimplePage = contracts.deployments[this.chainId]?.SimplePage;
+        const expectedUniversalResolver = contracts.universalResolver[this.chainId];
+        const expectedEnsRegistry = contracts.ensRegistry[this.chainId];
+
+        const normalize = value => value?.toLowerCase();
+        const mismatches = [];
+
+        if (expectedSimplePage && normalize(expectedSimplePage) !== normalize(this.addresses.simplepage)) {
+            mismatches.push('simplepage');
+        }
+        if (expectedUniversalResolver && normalize(expectedUniversalResolver) !== normalize(this.addresses.universalResolver)) {
+            mismatches.push('universalResolver');
+        }
+        if (expectedEnsRegistry && normalize(expectedEnsRegistry) !== normalize(this.addresses.universalResolver)) {
+            mismatches.push('ensRegistry');
+        }
+
+        if (mismatches.length > 0) {
+            throw new Error(`Test env deployments mismatch for ${mismatches.join(', ')}`);
+        }
         // console.log('addresses', this.addresses)
 
         return this.addresses;

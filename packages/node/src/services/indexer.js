@@ -7,12 +7,14 @@ const START_BLOCKS = {
   1: 22939230,
   11155111: 8720518,
 }
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export class IndexerService {
   constructor(config) {
     this.client = createPublicClient({
       transport: http(config.rpcUrl)
     })
+    this.chainId = config.chainId
     this.startBlock = config.startBlock || START_BLOCKS[config.chainId] || 1
     this.simplePageContract = config.simplePageAddress || contracts.deployments[config.chainId].SimplePage
     this.universalResolver = config.universalResolver || contracts.universalResolver[config.chainId]
@@ -37,6 +39,8 @@ export class IndexerService {
       chainId: this.chainId
     })
 
+    await this.#ensureTemplateDomain()
+
     // Start polling loop
     this.pollLoop()
   }
@@ -47,6 +51,26 @@ export class IndexerService {
       await this.currentPoll
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, 500))
+    }
+  }
+
+  async #ensureTemplateDomain() {
+    const templateDomain = 'new.simplepage.eth'
+    await this.ipfsService.ensureDomain(templateDomain)
+    const storedResolver = await this.ipfsService.getDomainResolver(templateDomain)
+    if (!storedResolver) {
+      try {
+        const startupResolver = await this.client.getEnsResolver({
+          name: templateDomain,
+          universalResolverAddress: this.universalResolver,
+          blockNumber: BigInt(this.currentBlock)
+        })
+        if (startupResolver && startupResolver !== ZERO_ADDRESS) {
+          await this.ipfsService.setDomainResolver(templateDomain, startupResolver)
+        }
+      } catch (_error) {
+        // ignore resolver lookup failures
+      }
     }
   }
 
@@ -89,61 +113,86 @@ export class IndexerService {
 
   async processBlockRange(fromBlock, toBlock) {
     this.logger.debug('Processing block range', { fromBlock, toBlock })
-    const logs = await this.client.getLogs({
+    const mintLogs = await this.client.getLogs({
       address: this.simplePageContract,
       event: contracts.abis.SimplePage.find(abi => abi.name === 'Transfer'),
       args: { from: '0x0000000000000000000000000000000000000000' },
       fromBlock: BigInt(fromBlock),
       toBlock: BigInt(toBlock)
     })
-    if (logs.length > 0) {
-      this.logger.info('Processing new SimplePage registrations', { count: logs.length })
+    if (mintLogs.length > 0) {
+      this.logger.info('Processing new SimplePage registrations', { count: mintLogs.length })
     }
-    const pagesData = await Promise.all(logs.map(log => {
+    const pagesData = await Promise.all(mintLogs.map(log => {
       return this.fetchPageData(log.args.tokenId, log.blockNumber)
     }))
 
     // Persist pages and resolvers to IPFS
     for (const page of pagesData) {
       await this.ipfsService.ensureDomain(page.pageData.domain)
-      await this.ipfsService.addToList('resolvers', page.resolver)
+      await this.ipfsService.setDomainResolver(page.pageData.domain, page.resolver)
     }
+
+    const domains = await this.ipfsService.listDomains()
+    const domainFromNode = domains.reduce((acc, domain) => {
+      acc[namehash(domain)] = domain
+      return acc
+    }, {})
 
     // Track contenthash updates
     const resolvers = await this.ipfsService.getList('resolvers')
     if (resolvers.length > 0) {
       this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolvers.length })
     }
-    const chLogs = []
-    for (const resolver of resolvers) {
-      const logs = await this.client.getLogs({
-        address: resolver,
-        event: contracts.abis.EnsResolver.find(abi => abi.name === 'ContenthashChanged'),
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock)
-      })
-      chLogs.push(...logs)
-    }
-    // persist contenthash updates for names we care about
-    const domains = await this.ipfsService.listDomains()
-    // create a map from node to domain
-    const domainFromNode = domains.reduce((acc, domain) => {
-      acc[namehash(domain)] = domain
-      return acc
-    }, {})
-    // filter logs for domains we care about
-    const chLogsForDomains = chLogs.filter(log => domainFromNode[log.args.node])
-    for (const log of chLogsForDomains) {
-      const domain = domainFromNode[log.args.node]
-      try {
-        if (!await this.ipfsService.isDomainFinalizable(domain)) {
-          continue
+    const logAddresses = [...resolvers, contracts.ensRegistry[this.chainId]]
+
+    const logs = await this.client.getLogs({
+      address: logAddresses,
+      events: [
+        contracts.abis.EnsRegistry.find(abi => abi.name === 'NewResolver'),
+        contracts.abis.EnsResolver.find(abi => abi.name === 'ContenthashChanged')
+      ],
+      fromBlock: BigInt(fromBlock),
+      toBlock: BigInt(toBlock)
+    })
+
+    const sortedLogs = logs.sort((a, b) => {
+      const blockDiff = Number(a.blockNumber) - Number(b.blockNumber)
+      if (blockDiff !== 0) return blockDiff
+      return (a.logIndex ?? 0) - (b.logIndex ?? 0)
+    })
+
+    for (const log of sortedLogs) {
+      switch (log.eventName) {
+        case 'NewResolver': {
+          const domain = domainFromNode[log.args.node]
+          if (!domain) break
+          await this.ipfsService.setDomainResolver(domain, log.args.resolver)
+          break
         }
-        // Convert contenthash to CID before storing
-        const cid = ensContentHashToCID(log.args.hash)
-        await this.ipfsService.finalizePage(cid, domain, Number(log.blockNumber), log.transactionHash)
-      } catch (err) {
-        this.logger.warn('Error persisting contenthash', { hash: log.args.hash, blockNumber: log.blockNumber, error: err.message })
+        case 'ContenthashChanged': {
+          const domain = domainFromNode[log.args.node]
+          if (!domain) break
+          try {
+            if (!await this.ipfsService.isDomainFinalizable(domain)) {
+              break
+            }
+            const currentResolver = await this.ipfsService.getDomainResolver(domain)
+            if (!currentResolver || currentResolver === ZERO_ADDRESS) {
+              break
+            }
+            if (currentResolver !== log.address.toLowerCase()) {
+              break
+            }
+            const cid = ensContentHashToCID(log.args.hash)
+            await this.ipfsService.finalizePage(cid, domain, Number(log.blockNumber), log.transactionHash)
+          } catch (err) {
+            this.logger.warn('Error persisting contenthash', { hash: log.args.hash, blockNumber: log.blockNumber, error: err.message })
+          }
+          break
+        }
+        default:
+          break
       }
     }
   }

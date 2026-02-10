@@ -12,6 +12,7 @@ const SPG_PIN_FAILURES_DIR = `${SPG_DATA_ROOT}/pin-failures`
 const SPG_ROOT_PIN = 'spg_data_root'
 const FINALIZED_PIN_PREFIX = 'spg_finalized'
 const STAGED_PIN_PREFIX = 'spg_staged'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export class IpfsService {
   constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
@@ -22,7 +23,10 @@ export class IpfsService {
     this._listCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 5 }) // 5 min TTL
     this._lastPruneStaged = 0
     this._rootPinCid = null
+    this._domainsCache = null
+    this._resolverCache = new Map()
     this._lastRetryFailedPins = 0
+    this._rootEnsured = false
   }
 
   async #ensureDir(path) {
@@ -34,9 +38,13 @@ export class IpfsService {
   }
 
   async #ensureRootDir() {
+    if (this._rootEnsured) {
+      return
+    }
     await this.#ensureDir(SPG_DATA_ROOT)
     await this.#ensureDir(SPG_DOMAINS_DIR)
     await this.#ensureDir(SPG_PIN_FAILURES_DIR)
+    this._rootEnsured = true
   }
 
   async #pathExists(path) {
@@ -331,6 +339,10 @@ export class IpfsService {
     return `${SPG_DOMAINS_DIR}/${domain}/finalized`
   }
 
+  async #getResolverPath(domain) {
+    return `${SPG_DOMAINS_DIR}/${domain}/resolver`
+  }
+
   #pinFailurePath(domain, txHash) {
     const safeDomain = this.#sanitizeKey(domain)
     return `${SPG_PIN_FAILURES_DIR}/${safeDomain}-${txHash}.json`
@@ -469,6 +481,34 @@ export class IpfsService {
     await this.#ensureRootDir()
     await this.#ensureDir(await this.#getDomainDir(domain))
     await this.#updateRootPin()
+    if (this._domainsCache && !this._domainsCache.includes(domain)) {
+      this._domainsCache.push(domain)
+    }
+  }
+
+  async setDomainResolver(domain, resolver) {
+    await this.ensureDomain(domain)
+    const resolverPath = await this.#getResolverPath(domain)
+    const value = resolver ? resolver.toLowerCase() : ZERO_ADDRESS
+    if (value !== ZERO_ADDRESS) {
+      await this.addToList('resolvers', value)
+    }
+    await this.#writeFile(resolverPath, value, { updateRootPin: true })
+    this._resolverCache.set(domain, value)
+  }
+
+  async getDomainResolver(domain) {
+    if (this._resolverCache.has(domain)) {
+      return this._resolverCache.get(domain)
+    }
+    const resolverPath = await this.#getResolverPath(domain)
+    const content = await this.#readFile(resolverPath)
+    if (!content) {
+      return null
+    }
+    const trimmed = content.trim()
+    this._resolverCache.set(domain, trimmed)
+    return trimmed
   }
 
   async domainExists(domain) {
@@ -477,8 +517,13 @@ export class IpfsService {
 
   async listDomains() {
     await this.#ensureRootDir()
+    if (this._domainsCache) {
+      return this._domainsCache
+    }
     const entries = await this.#listDir(SPG_DOMAINS_DIR)
-    return entries.map(entry => entry.name)
+    const domains = entries.map(entry => entry.name)
+    this._domainsCache = domains
+    return domains
   }
 
   async listFinalizableDomains() {
@@ -677,6 +722,8 @@ export class IpfsService {
     await this.#ensureDir(SPG_DOMAINS_DIR)
     await this.#removePath(`${SPG_DATA_ROOT}/resolvers`, { recursive: false })
     this._listCache.clear()
+    this._domainsCache = null
+    this._resolverCache.clear()
     await this.#updateRootPin()
   }
 
@@ -745,6 +792,7 @@ export class IpfsService {
         domain,
         finalizationsRemoved: finalizations.length
       })
+      this._resolverCache.delete(domain)
     } catch (error) {
       this.logger.error('Error nuking page', {
         error: error.message,

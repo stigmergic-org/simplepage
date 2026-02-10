@@ -18,6 +18,8 @@ class MockIpfsService {
     this.latestBlockNumber = 0;
     this.stagedEntries = new Map();
     this.domains = new Set();
+    this.domainResolvers = new Map();
+    this.zeroAddress = '0x0000000000000000000000000000000000000000';
   }
 
   async getList(name) {
@@ -25,9 +27,10 @@ class MockIpfsService {
   }
 
   async addToList(name, value) {
+    const normalizedValue = typeof value === 'string' ? value.toLowerCase() : value;
     const list = this.lists.get(name) || [];
-    if (!list.includes(value)) {
-      list.push(value);
+    if (!list.includes(normalizedValue)) {
+      list.push(normalizedValue);
       this.lists.set(name, list);
     }
   }
@@ -43,6 +46,18 @@ class MockIpfsService {
 
   async ensureDomain(domain) {
     this.domains.add(domain);
+  }
+
+  async setDomainResolver(domain, resolver) {
+    const normalizedResolver = resolver ? resolver.toLowerCase() : this.zeroAddress;
+    this.domainResolvers.set(domain, normalizedResolver);
+    if (normalizedResolver !== this.zeroAddress) {
+      await this.addToList('resolvers', normalizedResolver);
+    }
+  }
+
+  async getDomainResolver(domain) {
+    return this.domainResolvers.get(domain) || null;
   }
 
   async domainExists(domain) {
@@ -154,6 +169,7 @@ describe('Pages Indexer', () => {
       // Initialize indexer with the deployed addresses and mock logger
       indexer = new IndexerService({
         rpcUrl: testEnv.url,
+        chainId: Number(testEnv.chainId),
         simplePageAddress: deployments.simplepage,
         universalResolver: deployments.universalResolver,
         startBlock: 1,
@@ -185,7 +201,7 @@ describe('Pages Indexer', () => {
       await indexer.stop()
 
       // Verify domains list
-      const domains = await ipfsMock.listDomains()
+      const domains = (await ipfsMock.listDomains()).filter(domain => domain !== 'new.simplepage.eth')
       expect(domains.length).toBe(TEST_DATA.length)
       for (const { name } of TEST_DATA) {
         expect(domains.find(d => d === name)).toBe(name)
@@ -194,8 +210,8 @@ describe('Pages Indexer', () => {
       // Verify resolvers list
       const resolvers = await ipfsMock.getList('resolvers')
       expect(resolvers.length).toBe(2) // Should have both resolvers
-      expect(resolvers).toContain(deployments.resolver1)
-      expect(resolvers).toContain(deployments.resolver2)
+      expect(resolvers).toContain(deployments.resolver1.toLowerCase())
+      expect(resolvers).toContain(deployments.resolver2.toLowerCase())
 
       // Verify finalizations for each domain
       for (const { name, cid } of TEST_DATA) {
@@ -254,8 +270,7 @@ describe('Pages Indexer', () => {
       expect(finalizations.length).toBe(0);
     });
 
-    it.skip('should handle resolver changes', async () => {
-      // TODO: We don't support listening for resolver changes yet
+    it('should handle resolver changes', async () => {
       await indexer.start();
       
       // Setup initial page with first resolver
@@ -282,12 +297,16 @@ describe('Pages Indexer', () => {
 
       // Verify both resolvers are tracked
       const resolvers = await ipfsMock.getList('resolvers');
-      expect(resolvers).toContain(deployments[initialResolver]);
-      expect(resolvers).toContain(deployments[newResolver]);
+      expect(resolvers).toContain(deployments[initialResolver].toLowerCase());
+      expect(resolvers).toContain(deployments[newResolver].toLowerCase());
 
-      // Verify contenthash updates from both resolvers
+      const storedResolver = await ipfsMock.getDomainResolver(domain)
+      expect(storedResolver).toBe(deployments[newResolver].toLowerCase())
+
+      // Verify contenthash updates from both resolvers in order
       const finalizations = await ipfsMock.getFinalizations(domain);
       expect(finalizations.length).toBe(2);
+      expect(finalizations[0].cid).toBe(initialCid);
       expect(finalizations[1].cid).toBe(newCid);
     });
 
@@ -424,7 +443,7 @@ describe('Pages Indexer', () => {
 
       // Verify that the resolver was tracked
       const resolvers = await ipfsMock.getList('resolvers');
-      expect(resolvers).toContain(deployments[resolver]);
+      expect(resolvers).toContain(deployments[resolver].toLowerCase());
 
       // Verify that contenthash updates were tracked
       const finalizations = await ipfsMock.getFinalizations(allowedDomain);
@@ -463,7 +482,6 @@ describe('Pages Indexer', () => {
 
       // Should only finalize new.eth
       const finalizedPages = await ipfsMock.listFinalizedPages();
-      console.log('finalizedPages', finalizedPages)
       expect(finalizedPages).toContain('new.eth');
       expect(finalizedPages).not.toContain('old.eth');
     });
