@@ -1,5 +1,11 @@
 # @simplepg/common
 
+## 1.2.4-rc.0
+
+### Patch Changes
+
+- da82f8d: chore: bump all versions
+
 ## 1.2.3
 
 ### Patch Changes

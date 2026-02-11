@@ -1,5 +1,13 @@
 # @simplepg/repo
 
+## 1.4.1-rc.2
+
+### Patch Changes
+
+- da82f8d: chore: bump all versions
+- Updated dependencies [da82f8d]
+  - @simplepg/common@1.2.4-rc.0
+
 ## 1.4.1-rc.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @simplepg/test-utils
 
+## 1.0.10-rc.2
+
+### Patch Changes
+
+- da82f8d: chore: bump all versions
+- Updated dependencies [da82f8d]
+  - @simplepg/node@1.4.0-rc.2
+
 ## 1.0.10-rc.1
 
 ### Patch Changes

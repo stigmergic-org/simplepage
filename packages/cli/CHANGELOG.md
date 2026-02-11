@@ -1,5 +1,13 @@
 # @simplepg/cli
 
+## 1.0.9-rc.2
+
+### Patch Changes
+
+- da82f8d: chore: bump all versions
+- Updated dependencies [da82f8d]
+  - @simplepg/common@1.2.4-rc.0
+
 ## 1.0.9-rc.1
 
 ### Patch Changes
