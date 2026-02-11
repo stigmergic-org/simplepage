@@ -4,6 +4,7 @@ import { CID } from 'multiformats/cid'
 import all from 'it-all'
 import * as u8a from 'uint8arrays'
 import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
+import { JSDOM } from 'jsdom'
 import { LRUCache } from 'lru-cache'
 
 const SPG_DATA_ROOT = '/spg-data'
@@ -13,6 +14,8 @@ const SPG_ROOT_PIN = 'spg_data_root'
 const FINALIZED_PIN_PREFIX = 'spg_finalized'
 const STAGED_PIN_PREFIX = 'spg_staged'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+const DOMParser = new JSDOM().window.DOMParser
 
 export class IpfsService {
   constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
@@ -256,6 +259,113 @@ export class IpfsService {
     // Add the root CID to the CAR
     car.roots.push(CID.parse(cid))
     return car.bytes
+  }
+
+  async getHistory(domain) {
+    const mainHistory = await this.getFinalizations(domain)
+    const historyEntries = new Map()
+    const visitedBlocks = new Set()
+    const auxDomains = new Set()
+    const metaByCid = new Map()
+    const parentsByCid = new Map()
+    const historyCar = emptyCar()
+
+    const addBlock = async cid => {
+      const cidKey = cid.toString()
+      if (visitedBlocks.has(cidKey)) return
+      const block = await this.client.block.get(cid)
+      visitedBlocks.add(cidKey)
+      historyCar.blocks.put(new CarBlock(cid, block))
+    }
+
+    const parseIndexMeta = async indexCid => {
+      const chunks = await all(await this.client.cat(indexCid))
+      const indexContent = new TextDecoder().decode(Buffer.concat(chunks))
+      const doc = new DOMParser().parseFromString(indexContent, 'text/html')
+      const domainMeta = doc.querySelector('meta[name="ens-domain"]')
+      const versionMeta = doc.querySelector('meta[name="version"]')
+      return {
+        domain: domainMeta?.getAttribute('content') || null,
+        version: versionMeta?.getAttribute('content') || null
+      }
+    }
+
+    const collectRoot = async rootCid => {
+      await addBlock(rootCid)
+      const parents = []
+      for await (const entry of this.client.ls(rootCid)) {
+        switch (entry.name) {
+          case 'index.html': {
+            await addBlock(entry.cid)
+            const meta = await parseIndexMeta(entry.cid)
+            metaByCid.set(rootCid.toString(), meta)
+            if (meta.domain && meta.domain !== domain) {
+              auxDomains.add(meta.domain)
+            }
+            break
+          }
+          case '_prev': {
+            await addBlock(entry.cid)
+            for await (const prevEntry of this.client.ls(entry.cid)) {
+              parents.push(prevEntry.cid)
+              await collectRoot(prevEntry.cid)
+            }
+            break
+          }
+          default:
+            break
+        }
+      }
+      if (parents.length > 0) {
+        parentsByCid.set(rootCid.toString(), parents)
+      }
+    }
+
+    const addHistoryEntries = history => {
+      for (const entry of history) {
+        historyEntries.set(entry.cid.toString(), {
+          tx: entry.txHash,
+          blockNumber: entry.blockNumber
+        })
+      }
+    }
+
+    addHistoryEntries(mainHistory)
+    for (const { cid } of mainHistory) {
+      await collectRoot(cid)
+    }
+
+    for (const auxDomain of auxDomains) {
+      const auxHistory = await this.getFinalizations(auxDomain)
+      addHistoryEntries(auxHistory)
+      for (const { cid } of auxHistory) {
+        await collectRoot(cid)
+      }
+    }
+
+    const entries = Array.from(historyEntries.entries()).map(([cidKey, entry]) => {
+      const meta = metaByCid.get(cidKey) || {}
+      return {
+        cid: CID.parse(cidKey),
+        tx: entry.tx,
+        blockNumber: entry.blockNumber,
+        domain: meta.domain,
+        version: meta.version,
+        parents: parentsByCid.get(cidKey) || []
+      }
+    })
+
+    entries.sort((a, b) => {
+      if (a.blockNumber && b.blockNumber) {
+        return b.blockNumber - a.blockNumber
+      }
+      if (a.blockNumber) return -1
+      if (b.blockNumber) return 1
+      return 0
+    })
+
+    historyCar.put({ entries }, { isRoot: true })
+    return historyCar.bytes
   }
 
   async readBlock(cid) {

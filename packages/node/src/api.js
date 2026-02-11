@@ -286,6 +286,23 @@ export function createApi({ ipfs, _indexer, version, logger }) {
     })
   })
 
+  app.get('/history', async (req, res) => {
+    try {
+      const { domain } = req.query
+      if (!domain) {
+        logger.warn('Missing domain parameter in GET /history request')
+        return res.status(400).json({ detail: 'Missing domain parameter' })
+      }
+
+      const car = await ipfs.getHistory(domain)
+      res.setHeader('Content-Type', 'application/vnd.ipld.car')
+      res.send(car)
+    } catch (error) {
+      logger.error('Error retrieving history', { domain: req.query.domain, error: error.message, stack: error.stack })
+      res.status(500).json({ detail: error.message })
+    }
+  })
+
   // Add a fallback route to manually serve OpenAPI spec
   app.get('/openapi.json', (req, res) => {
     logger.info('OpenAPI JSON requested')

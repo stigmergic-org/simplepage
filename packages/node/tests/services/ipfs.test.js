@@ -7,6 +7,7 @@ import * as raw from 'multiformats/codecs/raw'
 import { CID } from 'multiformats/cid'
 import { identity } from 'multiformats/hashes/identity'
 import { TestEnvironmentKubo } from '@simplepg/test-utils'
+import { carFromBytes } from '@simplepg/common'
 import all from 'it-all'
 
 
@@ -214,6 +215,45 @@ describe('IpfsService', () => {
         expect(content).toBe(files[link.Name])
       }
     }
+  })
+
+  it('getHistory: should return ordered entries and blocks', async () => {
+    const mainDomain = 'main.eth'
+    const auxDomain = 'aux.eth'
+
+    const mainV1 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${mainDomain}" /><meta name="version" content="v1" /></head><body>v1</body></html>`
+    })
+    const mainV2 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${mainDomain}" /><meta name="version" content="v2" /></head><body>v2</body></html>`,
+      '_prev/0/index.html': `<html><head><meta name="ens-domain" content="${auxDomain}" /><meta name="version" content="a1" /></head><body>a1</body></html>`
+    })
+    const auxV1 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${auxDomain}" /><meta name="version" content="a1" /></head><body>a1</body></html>`
+    })
+
+    await ipfsService.finalizePage(mainV1.rootCid, mainDomain, 100, txHashFor(100))
+    await ipfsService.finalizePage(mainV2.rootCid, mainDomain, 200, txHashFor(200))
+    await ipfsService.finalizePage(auxV1.rootCid, auxDomain, 150, txHashFor(150))
+
+    const historyBytes = await ipfsService.getHistory(mainDomain)
+    const historyCar = carFromBytes(historyBytes, { verify: true })
+    const root = historyCar.get(historyCar.roots[0])
+
+    expect(root.entries).toHaveLength(3)
+    expect(root.entries[0].blockNumber).toBe(200)
+    expect(root.entries[1].blockNumber).toBe(150)
+    expect(root.entries[2].blockNumber).toBe(100)
+
+    const entryCids = root.entries.map(entry => entry.cid.toString())
+    expect(entryCids).toContain(mainV1.rootCid.toString())
+    expect(entryCids).toContain(mainV2.rootCid.toString())
+    expect(entryCids).toContain(auxV1.rootCid.toString())
+
+    expect(historyCar.get(mainV2.rootCid)).toBeTruthy()
+    expect(historyCar.get(mainV2.pathToCid.get('index.html'))).toBeTruthy()
+    expect(historyCar.get(mainV2.pathToCid.get('_prev/0/index.html'))).toBeTruthy()
+    expect(historyCar.get(auxV1.rootCid)).toBeTruthy()
   })
 
   it('finalizePage: should create and preserve finalizations for each block number', async () => {
