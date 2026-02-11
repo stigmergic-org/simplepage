@@ -111,28 +111,21 @@ We use [Changesets](https://github.com/changesets/changesets) for versioning and
 3. Commit the generated `.md` file in `.changeset/` with your PR.
 
 ### Releasing New Versions
-1. **Version packages and update changelogs:**
-   ```bash
-   pnpm changeset version
-   pnpm install
-   ```
-2. **Build all packages:**
-   First make sure `.env` is configured for mainnet, then:
-   ```bash
-   pnpm run build
-   ```
-3. **Build and publish to npm:**
-   ```bash
-   pnpm changeset publish
-   ```
-4. **Stage the frontend release:**
-   ```bash
-   pnpm run stage # Make sure to update .env to correct chainid!
-   ```
-   _This step prepares the release for publishing and may generate a content hash._
-5. **Publish the resulting hash on ENS:**
-   - After publishing, update your ENS domain's contenthash record with the new hash (e.g., via the ENS Manager or CLI).
-   - https://app.ens.domains/new.simplepage.eth?tab=records
+
+We have two release flows: Sepolia prereleases (`-rc.N`) and mainnet releases.
+
+#### Sepolia Prerelease (rc)
+```bash
+./release.sh sepolia
+```
+Make sure `.env` is configured for Sepolia before running the script. This keeps prerelease mode active so subsequent Sepolia releases increment `-rc.N`. The script prepares the release and may generate a content hash to publish on ENS (Sepolia/test domain if applicable).
+
+#### Mainnet Release
+```bash
+./release.sh mainnet
+```
+Make sure `.env` is configured for mainnet before running the script. This exits prerelease mode (if active). After publishing, update your ENS domain's contenthash record with the new hash (e.g., via the ENS Manager or CLI).
+- https://app.ens.domains/new.simplepage.eth?tab=records
 
 - See [Changesets documentation](https://github.com/changesets/changesets) for more details.
 

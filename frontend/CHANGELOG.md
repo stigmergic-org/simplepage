@@ -1,5 +1,16 @@
 # @simplepg/frontend
 
+## 1.6.7-rc.0
+
+### Patch Changes
+
+- 2037b58: fix(frontend): fix anchor scrolling bug
+- 4b43bb4: fix(repo,frontend): disallow page creation at /feed and /rss.xml
+- 46057f3: chore(node): rename dservice to node
+- Updated dependencies [4b43bb4]
+- Updated dependencies [46057f3]
+  - @simplepg/repo@1.4.1-rc.0
+
 ## 1.6.6
 
 ### Patch Changes

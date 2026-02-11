@@ -125,7 +125,7 @@ importers:
         version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
       jest-environment-jsdom:
         specifier: ^30.0.5
         version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -186,7 +186,7 @@ importers:
     devDependencies:
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
 
   packages/common:
     dependencies:
@@ -257,6 +257,9 @@ importers:
       it-all:
         specifier: ^3.0.9
         version: 3.0.9
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       kubo-rpc-client:
         specifier: ^5.2.0
         version: 5.2.0(undici@7.11.0)
@@ -7145,6 +7148,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}

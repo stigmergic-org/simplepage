@@ -1,5 +1,18 @@
 # @simplepg/test-utils
 
+## 1.0.10-rc.0
+
+### Patch Changes
+
+- 46057f3: chore(node): rename dservice to node
+- Updated dependencies [ba0e9a1]
+- Updated dependencies [5d168fc]
+- Updated dependencies [63a53a0]
+- Updated dependencies [1810149]
+- Updated dependencies [46057f3]
+- Updated dependencies [e1ed787]
+  - @simplepg/node@1.4.0-rc.0
+
 ## 1.0.9
 
 ### Patch Changes
