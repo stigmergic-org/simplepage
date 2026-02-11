@@ -34,7 +34,7 @@ const startServer = () => {
     11155111: 'sepolia',
     1337: 'local'
   }
-  const chainId = parseInt(opts.chainId)
+  const chainId = Number.parseInt(opts.chainId, 10) || 1
   const chainName = chainNames[chainId] || 'unknown'
 
   const config = {
@@ -104,7 +104,7 @@ program
   .option('-a, --api-host <string>', 'API host', 'localhost')
   .option('-r, --rpc <url>', 'Ethereum RPC URL', 'http://localhost:8545')
   .option('-b, --start-block <number>', 'Starting block number for indexing')
-  .option('-c, --chain-id <number>', 'Chain ID')
+  .option('-c, --chain-id <number>', 'Chain ID', '1')
   .option('-d, --disable-indexing', 'Disable indexing')
   .option('-l, --log-level <level>', 'Stdout log level (error, warn, info, debug)', 'info')
   .option('--silent', 'Disable console logging')
@@ -121,7 +121,7 @@ program
   .description('Manage allow list')
   .argument('<action>', 'Action to perform (show|add|rm)')
   .argument('[name]', 'ENS domain to add or remove (e.g., example.eth)')
-  .action((action, name) => handleListCommand('allow-list', action, name, program.opts().ipfsApi))
+  .action((action, name) => handleListCommand('allow-list', action, name, program.opts().ipfsApi, Number.parseInt(program.opts().chainId, 10) || 1))
 
 // Add block-list command
 program
@@ -129,7 +129,7 @@ program
   .description('Manage block list')
   .argument('<action>', 'Action to perform (show|add|rm)')
   .argument('[name]', 'ENS domain to add or remove (e.g., example.eth)')
-  .action((action, name) => handleListCommand('block-list', action, name, program.opts().ipfsApi))
+  .action((action, name) => handleListCommand('block-list', action, name, program.opts().ipfsApi, Number.parseInt(program.opts().chainId, 10) || 1))
 
 // Add indexer-data command
 program
@@ -138,7 +138,7 @@ program
   .argument('<action>', 'Action to perform (show|reset)')
   .action((action) => {
     const opts = program.opts();
-    handleIndexerDataCommand(action, opts.ipfsApi);
+    handleIndexerDataCommand(action, opts.ipfsApi, Number.parseInt(opts.chainId, 10) || 1);
   });
 
 program
@@ -146,7 +146,7 @@ program
   .description('List failed finalized pins')
   .action(() => {
     const opts = program.opts();
-    handlePinCommand(opts.ipfsApi);
+    handlePinCommand(opts.ipfsApi, Number.parseInt(opts.chainId, 10) || 1);
   });
 
 program.parse()

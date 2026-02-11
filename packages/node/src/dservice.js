@@ -40,7 +40,12 @@ export class DService {
       
       // Initialize IPFS service
       this.logger.info('Initializing IPFS service')
-      this.ipfs = new IpfsService({ ...this.config.ipfs, logger: this.logger })
+      const chainId = this.config.blockchain?.chainId
+      this.ipfs = new IpfsService({
+        ...this.config.ipfs,
+        logger: this.logger,
+        namespace: chainId
+      })
       const healthy = await this.ipfs.healthCheck()
       if (!healthy) {
         this.logger.error('IPFS health check failed')

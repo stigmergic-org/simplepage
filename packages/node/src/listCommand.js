@@ -3,9 +3,9 @@ import { IpfsService } from './services/ipfs.js'
 // ENS domain validation regex
 const ENS_DOMAIN_REGEX = /^[a-z0-9-]+\.eth$/
 
-export async function handleListCommand(type, action, name, ipfsApiUrl) {
+export async function handleListCommand(type, action, name, ipfsApiUrl, chainId) {
   const logger = { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} };
-  const ipfs = new IpfsService({ api: ipfsApiUrl, logger });
+  const ipfs = new IpfsService({ api: ipfsApiUrl, logger, namespace: chainId });
   const healthy = await ipfs.healthCheck()
   if (!healthy) {
     console.error('Cannot connect to IPFS node, exiting...')

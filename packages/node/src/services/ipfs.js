@@ -7,22 +7,26 @@ import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
 import { JSDOM } from 'jsdom'
 import { LRUCache } from 'lru-cache'
 
-const SPG_DATA_ROOT = '/spg-data'
-const SPG_DOMAINS_DIR = `${SPG_DATA_ROOT}/domains`
-const SPG_PIN_FAILURES_DIR = `${SPG_DATA_ROOT}/pin-failures`
-const SPG_ROOT_PIN = 'spg_data_root'
-const FINALIZED_PIN_PREFIX = 'spg_finalized'
-const STAGED_PIN_PREFIX = 'spg_staged'
+const DEFAULT_SPG_DATA_ROOT = '/spg-data'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 const DOMParser = new JSDOM().window.DOMParser
 
 export class IpfsService {
-  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger }) { // Default 1 hour
+  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger, namespace }) { // Default 1 hour
     assert(api || ipfsClient, 'api or ipfsClient must be provided')
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
     this.logger = logger || { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} }
+    assert(Boolean(namespace), 'namespace (chainId) is required')
+    this.namespace = String(namespace)
+    this.pinPrefix = `spg_${this.namespace}_`
+    this.finalizedPinPrefix = `${this.pinPrefix}finalized`
+    this.stagedPinPrefix = `${this.pinPrefix}staged`
+    this.rootPinName = `${this.pinPrefix}data_root`
+    this.dataRoot = `${DEFAULT_SPG_DATA_ROOT}/${this.namespace}`
+    this.domainsDir = `${this.dataRoot}/domains`
+    this.pinFailuresDir = `${this.dataRoot}/pin-failures`
     this._listCache = new LRUCache({ max: 100, ttl: 1000 * 60 * 5 }) // 5 min TTL
     this._lastPruneStaged = 0
     this._rootPinCid = null
@@ -44,9 +48,9 @@ export class IpfsService {
     if (this._rootEnsured) {
       return
     }
-    await this.#ensureDir(SPG_DATA_ROOT)
-    await this.#ensureDir(SPG_DOMAINS_DIR)
-    await this.#ensureDir(SPG_PIN_FAILURES_DIR)
+    await this.#ensureDir(this.dataRoot)
+    await this.#ensureDir(this.domainsDir)
+    await this.#ensureDir(this.pinFailuresDir)
     this._rootEnsured = true
   }
 
@@ -115,7 +119,7 @@ export class IpfsService {
   }
 
   async #getRootPinCid() {
-    const pins = await all(await this.client.pin.ls({ name: SPG_ROOT_PIN }))
+    const pins = await all(await this.client.pin.ls({ name: this.rootPinName }))
     if (pins.length > 1) {
       const [keep, ...rest] = pins
       for (const pin of rest) {
@@ -132,13 +136,13 @@ export class IpfsService {
 
   async #updateRootPin() {
     await this.#ensureRootDir()
-    const stat = await this.client.files.stat(SPG_DATA_ROOT)
+    const stat = await this.client.files.stat(this.dataRoot)
     const newCid = stat.cid
     if (!this._rootPinCid) {
       this._rootPinCid = await this.#getRootPinCid()
     }
     if (!this._rootPinCid) {
-      await this.client.pin.add(newCid, { recursive: false, name: SPG_ROOT_PIN })
+      await this.client.pin.add(newCid, { recursive: false, name: this.rootPinName })
       this._rootPinCid = newCid
       return
     }
@@ -146,7 +150,7 @@ export class IpfsService {
       try {
         await this.client.pin.update(this._rootPinCid, newCid, { recursive: false })
       } catch (_error) {
-        await this.client.pin.add(newCid, { recursive: false, name: SPG_ROOT_PIN })
+        await this.client.pin.add(newCid, { recursive: false, name: this.rootPinName })
       }
       this._rootPinCid = newCid
     }
@@ -179,7 +183,7 @@ export class IpfsService {
       }
 
       const timestamp = Math.floor(Date.now() / 1000)
-      const pinName = `${STAGED_PIN_PREFIX}_${stageDomain}_${timestamp}`
+      const pinName = `${this.stagedPinPrefix}_${stageDomain}_${timestamp}`
 
       // Pin to ensure the car file is complete before adding to mfs.
       // This ensures we don't get locking while pinning the mfs root if blocks
@@ -438,24 +442,24 @@ export class IpfsService {
   }
 
   async #getDomainDir(domain) {
-    return `${SPG_DOMAINS_DIR}/${domain}`
+    return `${this.domainsDir}/${domain}`
   }
 
   async #getStagedDir(domain) {
-    return `${SPG_DOMAINS_DIR}/${domain}/staged`
+    return `${this.domainsDir}/${domain}/staged`
   }
 
   async #getFinalizedDir(domain) {
-    return `${SPG_DOMAINS_DIR}/${domain}/finalized`
+    return `${this.domainsDir}/${domain}/finalized`
   }
 
   async #getResolverPath(domain) {
-    return `${SPG_DOMAINS_DIR}/${domain}/resolver`
+    return `${this.domainsDir}/${domain}/resolver`
   }
 
   #pinFailurePath(domain, txHash) {
     const safeDomain = this.#sanitizeKey(domain)
-    return `${SPG_PIN_FAILURES_DIR}/${safeDomain}-${txHash}.json`
+    return `${this.pinFailuresDir}/${safeDomain}-${txHash}.json`
   }
 
   async #recordPinFailure({ domain, txHash, cid, error }) {
@@ -488,10 +492,10 @@ export class IpfsService {
 
   async listFailedPins() {
     await this.#ensureRootDir()
-    const entries = await this.#listDir(SPG_PIN_FAILURES_DIR)
+    const entries = await this.#listDir(this.pinFailuresDir)
     const results = []
     for (const entry of entries) {
-      const content = await this.#readFile(`${SPG_PIN_FAILURES_DIR}/${entry.name}`)
+      const content = await this.#readFile(`${this.pinFailuresDir}/${entry.name}`)
       if (!content) continue
       try {
         results.push(JSON.parse(content))
@@ -518,7 +522,7 @@ export class IpfsService {
         index += 1
         const failure = workItems[currentIndex]
         const cid = CID.parse(failure.cid)
-        const pinName = `${FINALIZED_PIN_PREFIX}_${failure.domain}_${failure.txHash}`
+        const pinName = `${this.finalizedPinPrefix}_${failure.domain}_${failure.txHash}`
         const abortController = new AbortController()
         const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
         try {
@@ -544,7 +548,7 @@ export class IpfsService {
     if (this._listCache.has(name)) {
       return this._listCache.get(name)
     }
-    const path = `${SPG_DATA_ROOT}/${name}`
+    const path = `${this.dataRoot}/${name}`
     const content = await this.#readFile(path)
     if (!content) {
       this._listCache.set(name, [])
@@ -562,7 +566,7 @@ export class IpfsService {
     const list = await this.getList(name)
     if (!list.includes(value)) {
       list.push(value)
-      await this.#writeFile(`${SPG_DATA_ROOT}/${name}`, list.join('\n'), { updateRootPin: true })
+      await this.#writeFile(`${this.dataRoot}/${name}`, list.join('\n'), { updateRootPin: true })
       this._listCache.delete(name)
       this.logger.info('Added item to list', { name, value })
     } else {
@@ -577,7 +581,7 @@ export class IpfsService {
       this.logger.debug('Item not in list', { name, value })
       return
     }
-    const path = `${SPG_DATA_ROOT}/${name}`
+    const path = `${this.dataRoot}/${name}`
     if (nextList.length === 0) {
       await this.#removePath(path, { recursive: false })
     } else {
@@ -630,7 +634,7 @@ export class IpfsService {
     if (this._domainsCache) {
       return this._domainsCache
     }
-    const entries = await this.#listDir(SPG_DOMAINS_DIR)
+    const entries = await this.#listDir(this.domainsDir)
     const domains = entries.map(entry => entry.name)
     this._domainsCache = domains
     return domains
@@ -699,7 +703,7 @@ export class IpfsService {
           const age = now - entry.timestamp
           if (age > this.maxStagedAge) {
             await this.#removePath(`${await this.#getStagedDir(domain)}/${entry.timestamp}`, { recursive: true })
-            const pinName = `${STAGED_PIN_PREFIX}_${domain}_${entry.timestamp}`
+            const pinName = `${this.stagedPinPrefix}_${domain}_${entry.timestamp}`
             try {
               await this.client.pin.rm(entry.cid, { name: pinName })
             } catch (_error) {
@@ -775,7 +779,7 @@ export class IpfsService {
 
       await this.recordFinalization({ domain, txHash, blockNumber, cid })
 
-      const pinName = `${FINALIZED_PIN_PREFIX}_${domain}_${txHash}`
+      const pinName = `${this.finalizedPinPrefix}_${domain}_${txHash}`
       try {
         await this.client.pin.add(cid, { recursive: true, name: pinName })
         await this.#removePinFailure(domain, txHash)
@@ -790,7 +794,13 @@ export class IpfsService {
         txHash
       })
 
-      await this.providePage(cid)
+       this.providePage(cid).catch(error => {
+         this.logger.warn('Error providing page', {
+           error: error.message,
+           cid: cid.toString(),
+           stack: error.stack
+         })
+       })
     } catch (error) {
       this.logger.error('Error finalizing page', {
         error: error.message,
@@ -828,9 +838,9 @@ export class IpfsService {
   }
 
   async resetIndexerData() {
-    await this.#removePath(SPG_DOMAINS_DIR, { recursive: true })
-    await this.#ensureDir(SPG_DOMAINS_DIR)
-    await this.#removePath(`${SPG_DATA_ROOT}/resolvers`, { recursive: false })
+    await this.#removePath(this.domainsDir, { recursive: true })
+    await this.#ensureDir(this.domainsDir)
+    await this.#removePath(`${this.dataRoot}/resolvers`, { recursive: false })
     this._listCache.clear()
     this._domainsCache = null
     this._resolverCache.clear()
@@ -856,7 +866,7 @@ export class IpfsService {
       const stagedDir = await this.#getStagedDir(domain)
       await this.#removePath(stagedDir, { recursive: true })
 
-      const finalizedPinPrefix = `${FINALIZED_PIN_PREFIX}_${domain}_`
+      const finalizedPinPrefix = `${this.finalizedPinPrefix}_${domain}_`
       const finalizedPins = await all(await this.client.pin.ls({ name: finalizedPinPrefix }))
       for (const pin of finalizedPins) {
         try {
@@ -866,7 +876,7 @@ export class IpfsService {
         }
       }
 
-      const stagedPinPrefix = `${STAGED_PIN_PREFIX}_${domain}_`
+      const stagedPinPrefix = `${this.stagedPinPrefix}_${domain}_`
       const stagedPins = await all(await this.client.pin.ls({ name: stagedPinPrefix }))
       for (const pin of stagedPins) {
         try {
@@ -918,7 +928,7 @@ export class IpfsService {
     if (this._listCache.has('latestBlockNumber')) {
       return this._listCache.get('latestBlockNumber')
     }
-    const content = await this.#readFile(`${SPG_DATA_ROOT}/latestBlockNumber`)
+    const content = await this.#readFile(`${this.dataRoot}/latestBlockNumber`)
     if (!content) {
       this._listCache.set('latestBlockNumber', 0)
       return 0
@@ -933,7 +943,7 @@ export class IpfsService {
 
   async setLatestBlockNumber(blockNumber) {
     this.logger.debug('Setting latest block number', { blockNumber })
-    await this.#writeFile(`${SPG_DATA_ROOT}/latestBlockNumber`, String(blockNumber), { updateRootPin: true })
+    await this.#writeFile(`${this.dataRoot}/latestBlockNumber`, String(blockNumber), { updateRootPin: true })
     this._listCache.set('latestBlockNumber', blockNumber)
   }
 }

@@ -1,8 +1,8 @@
 import { IpfsService } from './services/ipfs.js'
 
-export async function handleIndexerDataCommand(action, ipfsApiUrl) {
+export async function handleIndexerDataCommand(action, ipfsApiUrl, chainId) {
   const logger = { info: () => {}, debug: () => {}, error: () => {}, warn: () => {} };
-  const ipfs = new IpfsService({ api: ipfsApiUrl, logger });
+  const ipfs = new IpfsService({ api: ipfsApiUrl, logger, namespace: chainId });
   const healthy = await ipfs.healthCheck();
   if (!healthy) {
     console.error('Cannot connect to IPFS node, exiting...');

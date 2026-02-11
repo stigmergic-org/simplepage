@@ -87,6 +87,10 @@ export class IndexerService {
       // Process any new blocks
       while (this.currentBlock <= latestBlock) {
         if (!this.isRunning) return
+        const remainingBlocks = latestBlock - this.currentBlock + 1
+        if (remainingBlocks > 0) {
+          this.logger.info('Indexer catch-up progress', { remainingBlocks })
+        }
         const toBlock = Math.min(this.currentBlock + this.blockInterval - 1, latestBlock)
         await this.processBlockRange(this.currentBlock, toBlock)
         this.currentBlock = toBlock + 1
