@@ -23,6 +23,8 @@ export class IndexerService {
     this.isRunning = false
     this.currentBlock = null // will be set in start()
     this.blockInterval = config.blockInterval || 1000
+    this.progressEveryBlocks = this.blockInterval * 10
+    this._lastCheckpointBlock = null
   }
 
   async start() {
@@ -32,6 +34,7 @@ export class IndexerService {
     // On startup, get the highest block number we've already indexed
     const storedBlock = await this.ipfsService.getLatestBlockNumber()
     this.currentBlock = Math.max(this.startBlock, storedBlock)
+    this._lastCheckpointBlock = this.currentBlock - this.progressEveryBlocks
 
     this.logger.info('Indexer service started', {
       startBlock: this.startBlock,
@@ -83,21 +86,23 @@ export class IndexerService {
   async poll() {
     try {
       const latestBlock = Number(await getBlockNumber(this.client))
-      let processedAny = false;
+      const startingBlock = this.currentBlock
       // Process any new blocks
       while (this.currentBlock <= latestBlock) {
         if (!this.isRunning) return
-        const remainingBlocks = latestBlock - this.currentBlock + 1
-        if (remainingBlocks > 0) {
-          this.logger.info('Indexer catch-up progress', { remainingBlocks })
-        }
         const toBlock = Math.min(this.currentBlock + this.blockInterval - 1, latestBlock)
         await this.processBlockRange(this.currentBlock, toBlock)
         this.currentBlock = toBlock + 1
-        processedAny = true;
+        const lastProcessedBlock = this.currentBlock - 1
+        if (lastProcessedBlock - this._lastCheckpointBlock >= this.progressEveryBlocks) {
+          await this.ipfsService.setLatestBlockNumber(lastProcessedBlock)
+          const remainingBlocks = latestBlock - this.currentBlock + 1
+          this.logger.info('Indexer catch-up progress', { remainingBlocks })
+          this._lastCheckpointBlock = lastProcessedBlock
+        }
       }
       // Persist the highest block number we've processed
-      if (processedAny) {
+      if (this.currentBlock !== startingBlock) {
         await this.ipfsService.setLatestBlockNumber(this.currentBlock - 1)
       }
       // We caught up so sync pages on IPFS
