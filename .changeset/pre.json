@@ -1,0 +1,22 @@
+{
+  "mode": "pre",
+  "tag": "rc",
+  "initialVersions": {
+    "@simplepg/frontend": "1.6.7-rc.0",
+    "@simplepg/cli": "1.0.9-rc.0",
+    "@simplepg/common": "1.2.3",
+    "@simplepg/node": "1.4.0-rc.0",
+    "@simplepg/repo": "1.4.1-rc.0",
+    "@simplepg/test-utils": "1.0.10-rc.0"
+  },
+  "changesets": [
+    "bumpy-suits-allow",
+    "calm-chicken-travel",
+    "cool-beds-count",
+    "cruel-points-attack",
+    "fifty-paws-scream",
+    "nine-kings-bow",
+    "orange-pens-learn",
+    "rotten-shirts-glow"
+  ]
+}

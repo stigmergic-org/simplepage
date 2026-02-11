@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/repo",
-  "version": "1.4.1-rc.0",
+  "version": "1.4.1-rc.1",
   "description": "SimplePage repository",
   "main": "src/index.js",
   "type": "module",

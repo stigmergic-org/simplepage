@@ -1,5 +1,12 @@
 # @simplepg/repo
 
+## 1.4.1-rc.1
+
+### Patch Changes
+
+- 4b43bb4: fix(repo,frontend): disallow page creation at /feed and /rss.xml
+- 46057f3: chore(node): rename dservice to node
+
 ## 1.4.1-rc.0
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @simplepg/node
 
+## 1.4.0-rc.1
+
+### Minor Changes
+
+- 63a53a0: feat(node): add history endpoint
+- e1ed787: feat(node): support names that change resolvers
+
+### Patch Changes
+
+- ba0e9a1: chore(node): MFS based state management
+- 5d168fc: chore(node): network specific storage
+- 1810149: fix(node): more resilient pinning during indexing
+- 46057f3: chore(node): rename dservice to node
+
 ## 1.4.0-rc.0
 
 ### Minor Changes
