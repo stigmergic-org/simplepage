@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/test-utils",
-  "version": "1.0.10-rc.4",
+  "version": "1.0.10-rc.5",
   "private": true,
   "main": "src/index.js",
   "type": "module",

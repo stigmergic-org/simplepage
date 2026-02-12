@@ -1,5 +1,12 @@
 # @simplepg/node
 
+## 1.4.0-rc.5
+
+### Patch Changes
+
+- 192e770: fix:(node): add flag to set block interval for indexing
+- a8b9fbd: fix(node): add option to disable DHT provide
+
 ## 1.4.0-rc.4
 
 ### Patch Changes
