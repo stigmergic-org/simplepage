@@ -1,5 +1,16 @@
 # @simplepg/frontend
 
+## 1.7.0-rc.3
+
+### Minor Changes
+
+- 9cdaa30: feat: history, partial impl
+
+### Patch Changes
+
+- Updated dependencies [9cdaa30]
+  - @simplepg/repo@1.5.0-rc.3
+
 ## 1.6.7-rc.2
 
 ### Patch Changes

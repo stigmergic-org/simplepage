@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.4.0-rc.3
+
+### Patch Changes
+
+- 9cdaa30: feat: history, partial impl
+
 ## 1.4.0-rc.2
 
 ### Patch Changes

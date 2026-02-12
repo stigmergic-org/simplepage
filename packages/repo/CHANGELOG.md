@@ -1,5 +1,11 @@
 # @simplepg/repo
 
+## 1.5.0-rc.3
+
+### Minor Changes
+
+- 9cdaa30: feat: history, partial impl
+
 ## 1.4.1-rc.2
 
 ### Patch Changes
