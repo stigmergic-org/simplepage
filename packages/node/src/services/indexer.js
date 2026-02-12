@@ -129,10 +129,16 @@ export class IndexerService {
       fromBlock: BigInt(fromBlock),
       toBlock: BigInt(toBlock)
     })
+    this.logger.debug('Mint logs fetched', { count: mintLogs.length, fromBlock, toBlock })
     if (mintLogs.length > 0) {
       this.logger.info('Processing new SimplePage registrations', { count: mintLogs.length })
     }
     const pagesData = await Promise.all(mintLogs.map(log => {
+      this.logger.debug('Mint log', {
+        txHash: log.transactionHash,
+        blockNumber: Number(log.blockNumber),
+        tokenId: log.args?.tokenId?.toString?.()
+      })
       return this.fetchPageData(log.args.tokenId, log.blockNumber)
     }))
 
@@ -153,47 +159,101 @@ export class IndexerService {
     if (resolvers.length > 0) {
       this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolvers.length })
     }
-    const logAddresses = [...resolvers, contracts.ensRegistry[this.chainId]]
+    const resolverAddresses = [...new Set(resolvers.map(resolver => resolver.toLowerCase()))]
+    const ensRegistryEvent = contracts.abis.EnsRegistry.find(abi => abi.name === 'NewResolver')
+    const resolverEvent = contracts.abis.EnsResolver.find(abi => abi.name === 'ContenthashChanged')
 
-    const logs = await this.client.getLogs({
-      address: logAddresses,
-      events: [
-        contracts.abis.EnsRegistry.find(abi => abi.name === 'NewResolver'),
-        contracts.abis.EnsResolver.find(abi => abi.name === 'ContenthashChanged')
-      ],
-      fromBlock: BigInt(fromBlock),
-      toBlock: BigInt(toBlock)
+    const [newResolverLogs, contenthashLogBatches] = await Promise.all([
+      this.client.getLogs({
+        address: contracts.ensRegistry[this.chainId],
+        event: ensRegistryEvent,
+        fromBlock: BigInt(fromBlock),
+        toBlock: BigInt(toBlock)
+      }),
+      Promise.all(
+        resolverAddresses.map(resolver => this.client.getLogs({
+          address: resolver,
+          event: resolverEvent,
+          fromBlock: BigInt(fromBlock),
+          toBlock: BigInt(toBlock)
+        }))
+      )
+    ])
+    const contenthashLogs = contenthashLogBatches.flat()
+
+    this.logger.debug('NewResolver logs fetched', { count: newResolverLogs.length, fromBlock, toBlock })
+    this.logger.debug('Contenthash logs fetched', {
+      count: contenthashLogs.length,
+      resolverCount: resolverAddresses.length,
+      fromBlock,
+      toBlock
     })
 
-    const sortedLogs = logs.sort((a, b) => {
+    const logDedupKey = (log) => `${log.transactionHash}-${log.logIndex ?? 'na'}-${log.address}`
+    const seenLogs = new Set()
+    const combinedLogs = [...newResolverLogs, ...contenthashLogs].filter(log => {
+      const key = logDedupKey(log)
+      if (seenLogs.has(key)) return false
+      seenLogs.add(key)
+      return true
+    })
+
+    const sortedLogs = combinedLogs.sort((a, b) => {
       const blockDiff = Number(a.blockNumber) - Number(b.blockNumber)
       if (blockDiff !== 0) return blockDiff
       return (a.logIndex ?? 0) - (b.logIndex ?? 0)
     })
 
     for (const log of sortedLogs) {
+      this.logger.debug('Indexer log', {
+        eventName: log.eventName,
+        txHash: log.transactionHash,
+        blockNumber: Number(log.blockNumber),
+        address: log.address,
+        node: log.args?.node
+      })
       switch (log.eventName) {
         case 'NewResolver': {
           const domain = domainFromNode[log.args.node]
-          if (!domain) break
+          if (!domain) {
+            this.logger.debug('Skipping NewResolver (domain unknown)', { node: log.args.node })
+            break
+          }
           await this.ipfsService.setDomainResolver(domain, log.args.resolver)
+          this.logger.debug('Resolver updated', { domain, resolver: log.args.resolver })
           break
         }
         case 'ContenthashChanged': {
           const domain = domainFromNode[log.args.node]
-          if (!domain) break
+          if (!domain) {
+            this.logger.debug('Skipping ContenthashChanged (domain unknown)', { node: log.args.node })
+            break
+          }
           try {
             if (!await this.ipfsService.isDomainFinalizable(domain)) {
+              this.logger.debug('Skipping ContenthashChanged (not finalizable)', { domain })
               break
             }
             const currentResolver = await this.ipfsService.getDomainResolver(domain)
             if (!currentResolver || currentResolver === ZERO_ADDRESS) {
+              this.logger.debug('Skipping ContenthashChanged (missing resolver)', { domain, resolver: currentResolver })
               break
             }
             if (currentResolver !== log.address.toLowerCase()) {
+              this.logger.debug('Skipping ContenthashChanged (resolver mismatch)', {
+                domain,
+                resolver: currentResolver,
+                logAddress: log.address
+              })
               break
             }
             const cid = ensContentHashToCID(log.args.hash)
+            this.logger.debug('Finalizing contenthash', {
+              domain,
+              cid: cid.toString(),
+              blockNumber: Number(log.blockNumber),
+              txHash: log.transactionHash
+            })
             await this.ipfsService.finalizePage(cid, domain, Number(log.blockNumber), log.transactionHash)
           } catch (err) {
             this.logger.warn('Error persisting contenthash', { hash: log.args.hash, blockNumber: log.blockNumber, error: err.message })
