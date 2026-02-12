@@ -13,7 +13,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DOMParser = new JSDOM().window.DOMParser
 
 export class IpfsService {
-  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger, namespace }) { // Default 1 hour
+  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger, namespace, disableProvide = false }) { // Default 1 hour
     assert(api || ipfsClient, 'api or ipfsClient must be provided')
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
@@ -34,6 +34,7 @@ export class IpfsService {
     this._resolverCache = new Map()
     this._lastRetryFailedPins = 0
     this._rootEnsured = false
+    this.disableProvide = Boolean(disableProvide)
   }
 
   async #ensureDir(path) {
@@ -437,6 +438,10 @@ export class IpfsService {
   }
 
   async providePage(cid) {
+    if (this.disableProvide) {
+      this.logger.debug('Skipping providePage (disabled)', { cid: cid.toString() })
+      return
+    }
     // Recursively walk the DAG from cid, skipping any path containing '_prev'
     const cids = new CidSet();
     const self = this;
