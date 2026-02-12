@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.4.0-rc.4
+
+### Patch Changes
+
+- 0b3f96c: fix(node): fetch less logs at the same time
+
 ## 1.4.0-rc.3
 
 ### Patch Changes
