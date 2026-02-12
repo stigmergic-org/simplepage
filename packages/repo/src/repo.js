@@ -26,6 +26,7 @@ import { generateRssItem, generateRssFeed } from './utils/rss.js'
 import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
+import { History } from './history.js'
 import { CHANGE_TYPE, isReservedPath } from './constants.js'
 
 
@@ -54,6 +55,8 @@ const EDIT_PREFIX = 'spg_edit_'
  * @param {string} options.apiEndpoint - The api endpoint.
  */
 export class Repo {
+  #repoRootPromise = null
+  #resolveRepoRootPromise = null
   #initPromise = null
   #resolveInitPromise = null
 
@@ -68,7 +71,11 @@ export class Repo {
     this.unixfs = fs;
     this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
     this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
+    this.history = new History(this.domain, this.dservice);
     
+    this.#repoRootPromise = new Promise((resolve) => {
+      this.#resolveRepoRootPromise = resolve;
+    });
     this.#initPromise = new Promise((resolve) => {
       this.#resolveInitPromise = resolve;
     });
@@ -98,6 +105,9 @@ export class Repo {
       (this.templateRoot = await resolveEnsDomain(this.viemClient, TEMPLATE_DOMAIN, this.universalResolver))
     ])
     assert(this.repoRoot.cid, `Repo root not found for ${this.domain}`)
+    this.#resolveRepoRootPromise()
+
+    this.history.init(this.viemClient, this.repoRoot.cid)
 
     await Promise.all([
       this.#ensureRepoData(false, true),
@@ -111,6 +121,11 @@ export class Repo {
 
   get initialized() {
     return Boolean(this.repoRoot && this.templateRoot)
+  }
+
+  async getRoot() {
+    await this.#repoRootPromise
+    return this.repoRoot.cid
   }
 
   async #importRepoData(cid) {
@@ -654,6 +669,7 @@ export class Repo {
     // clear out all edits
     this.restoreAllPages()
     this.repoRoot.cid = cid;
+    this.history.setRepoRoot(cid)
     const filesRoot = (await ls(this.blockstore, cid)).find(([name]) => name === FILES_FOLDER)[1]
     await this.files.finalizeCommit(filesRoot)
     const settingsCid = (await ls(this.blockstore, cid)).find(([name]) => name === SETTINGS_FILE)[1]

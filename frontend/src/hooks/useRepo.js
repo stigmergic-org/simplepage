@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { Repo } from '@simplepg/repo';
 import { useDomain } from './useDomain';
@@ -56,6 +56,7 @@ export const useRepo = () => {
   const customDserviceUrl = useDserviceParam('new.simplepage.eth');
   const [dserviceFailed, setDserviceFailed] = useState(false);
   const [rpcFailed, setRpcFailed] = useState(false);
+  const [root, setRoot] = useState(null);
 
   // Create singleton instance if it doesn't exist
   if (!repoInstance) {
@@ -88,9 +89,23 @@ export const useRepo = () => {
     });
   }, [viemClient, chainId]);
 
+  useEffect(() => {
+    const loadRoot = async () => {
+      try {
+        const repoRoot = await repoInstance.getRoot();
+        setRoot(repoRoot);
+      } catch (_error) {
+        setRoot(null);
+      }
+    };
+
+    loadRoot();
+  }, [repoInstance]);
+
   return {
     repo: repoInstance,
+    root,
     dserviceFailed,
     rpcFailed,
   };
-}; 
+};

@@ -101,6 +101,14 @@ export const ICONS = {
     src: `${PREFIX}map.svg`,
     alt: '🗺️',
   },
+  'proof': {
+    src: `${PREFIX}proof.svg`,
+    alt: '🛡️',
+  },
+  'close': {
+    src: `${PREFIX}close.svg`,
+    alt: '❌',
+  },
   'search': {
     src: `${PREFIX}search.svg`,
     alt: '🔍',

@@ -2550,6 +2550,56 @@ Thoughts and insights about technology and development.`,
     });
   })
 
+  describe('History Integration', () => {
+    const historyDomain = 'history.eth';
+    let historyStorage;
+    let historyRepo;
+
+    beforeAll(async () => {
+      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
+      testEnv.evm.mintPage(historyDomain, 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001');
+      testEnv.evm.setResolver(addresses.universalResolver, historyDomain, addresses.resolver1);
+    });
+
+    beforeEach(async () => {
+      historyStorage = new MockStorage();
+      historyRepo = new Repo(historyDomain, historyStorage);
+      testEnv.evm.setContenthash(addresses.resolver1, historyDomain, testDataCid.toString());
+      await historyRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+    });
+
+    afterEach(async () => {
+      historyStorage.clear();
+      resetIDB();
+      await historyRepo.close();
+    });
+
+    it('should retrieve history with parent relationships', async () => {
+      const previousRoot = historyRepo.repoRoot.cid;
+
+      await historyRepo.setPageEdit('/', '# Updated', '<h1>Updated</h1>');
+      const result = await historyRepo.stage(historyDomain, false);
+      const hash = await walletClient.writeContract(result.prepTx);
+      const receipt = await client.waitForTransactionReceipt({ hash });
+      await historyRepo.finalizeCommit(result.cid);
+      await testEnv.waitUntilBlockIsIndexed(Number(receipt.blockNumber));
+
+      const history = await historyRepo.history.get();
+      const entriesByCid = new Map(history.map(entry => [entry.cid.toString(), entry]));
+
+      const latestEntry = entriesByCid.get(result.cid.toString());
+      expect(latestEntry).toBeDefined();
+      expect(latestEntry.parents.map(parent => parent.toString())).toContain(previousRoot.toString());
+
+      const previousEntry = entriesByCid.get(previousRoot.toString());
+      expect(previousEntry).toBeDefined();
+      expect(latestEntry.blockNumber).toBeGreaterThan(previousEntry.blockNumber);
+    });
+  });
+
   describe('Error Handling Tests', () => {
     it('should handle initialization errors gracefully', async () => {
       const invalidRepo = new Repo('invalid.eth', storage, {

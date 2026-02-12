@@ -267,11 +267,13 @@ export class IpfsService {
 
   async getHistory(domain) {
     const mainHistory = await this.getFinalizations(domain)
-    const historyEntries = new Map()
+    const historyEntriesByCid = new Map()
+    const knownTxs = new Set()
     const visitedBlocks = new Set()
     const auxDomains = new Set()
     const metaByCid = new Map()
     const parentsByCid = new Map()
+    const chainCids = new Set()
     const historyCar = emptyCar()
 
     const addBlock = async cid => {
@@ -295,6 +297,7 @@ export class IpfsService {
     }
 
     const collectRoot = async rootCid => {
+      chainCids.add(rootCid.toString())
       await addBlock(rootCid)
       const parents = []
       for await (const entry of this.client.ls(rootCid)) {
@@ -325,39 +328,61 @@ export class IpfsService {
       }
     }
 
-    const addHistoryEntries = history => {
-      for (const entry of history) {
-        historyEntries.set(entry.cid.toString(), {
-          tx: entry.txHash,
-          blockNumber: entry.blockNumber
-        })
-      }
+    const addHistoryEntry = (entry) => {
+      const txHash = entry.txHash
+      if (!txHash || knownTxs.has(txHash)) return
+      knownTxs.add(txHash)
+      const cidKey = entry.cid.toString()
+      const existing = historyEntriesByCid.get(cidKey) || []
+      existing.push({
+        tx: txHash,
+        blockNumber: entry.blockNumber
+      })
+      historyEntriesByCid.set(cidKey, existing)
     }
 
-    addHistoryEntries(mainHistory)
+    for (const entry of mainHistory) {
+      addHistoryEntry(entry)
+    }
     for (const { cid } of mainHistory) {
       await collectRoot(cid)
     }
 
     for (const auxDomain of auxDomains) {
       const auxHistory = await this.getFinalizations(auxDomain)
-      addHistoryEntries(auxHistory)
-      for (const { cid } of auxHistory) {
-        await collectRoot(cid)
+      for (const entry of auxHistory) {
+        if (!chainCids.has(entry.cid.toString())) continue
+        addHistoryEntry(entry)
       }
     }
 
-    const entries = Array.from(historyEntries.entries()).map(([cidKey, entry]) => {
+    const entries = []
+    for (const cidKey of chainCids) {
       const meta = metaByCid.get(cidKey) || {}
-      return {
-        cid: CID.parse(cidKey),
-        tx: entry.tx,
-        blockNumber: entry.blockNumber,
-        domain: meta.domain,
-        version: meta.version,
-        parents: parentsByCid.get(cidKey) || []
+      const parents = parentsByCid.get(cidKey) || []
+      const historyEntries = historyEntriesByCid.get(cidKey) || []
+      if (historyEntries.length === 0) {
+        entries.push({
+          cid: CID.parse(cidKey),
+          tx: null,
+          blockNumber: null,
+          domain: meta.domain,
+          version: meta.version,
+          parents
+        })
+        continue
       }
-    })
+      for (const entry of historyEntries) {
+        entries.push({
+          cid: CID.parse(cidKey),
+          tx: entry.tx,
+          blockNumber: entry.blockNumber,
+          domain: meta.domain,
+          version: meta.version,
+          parents
+        })
+      }
+    }
 
     entries.sort((a, b) => {
       if (a.blockNumber && b.blockNumber) {

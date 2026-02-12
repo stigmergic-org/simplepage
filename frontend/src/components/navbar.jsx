@@ -21,9 +21,9 @@ const Navbar = ({
   const { data: ensAvatar } = useEnsAvatar({
     name: domain,
   });
-  const { repo, dserviceFailed, rpcFailed } = useRepo();
+  const { repo, root: repoRoot, dserviceFailed, rpcFailed } = useRepo();
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings, goToHistory } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
@@ -299,6 +299,15 @@ const Navbar = ({
         </div>
         <div className="navbar-center flex items-center justify-center h-full">
           {domainTitle}
+          {repoRoot && (
+            <div
+              data-tip="Integrity"
+              className="tooltip tooltip-bottom text-base cursor-pointer pl-1"
+              onClick={goToHistory}
+            >
+              <Icon name="proof" size={4} />
+            </div>
+          )}
         </div>
         <div className="navbar-end mr-4">
           <div className="flex gap-2 items-center">
