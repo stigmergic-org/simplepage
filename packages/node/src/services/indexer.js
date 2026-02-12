@@ -22,7 +22,7 @@ export class IndexerService {
     this.logger = config.logger
     this.isRunning = false
     this.currentBlock = null // will be set in start()
-    this.blockInterval = config.blockInterval || 1000
+    this.blockInterval = config.blockInterval || 500
     this.progressEveryBlocks = this.blockInterval * 10
     this._lastCheckpointBlock = null
   }

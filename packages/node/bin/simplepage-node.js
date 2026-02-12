@@ -51,6 +51,7 @@ const startServer = () => {
     blockchain: {
       rpcUrl: opts.rpc,
       startBlock: parseInt(opts.startBlock),
+      blockInterval: parseInt(opts.blockInterval),
       chainId: chainId,
       disableIndexing: opts.disableIndexing,
       universalResolver: opts.universalResolver,
@@ -69,6 +70,7 @@ const startServer = () => {
     apiPort: config.api.port,
     apiHost: config.api.host,
     rpcUrl: config.blockchain.rpcUrl,
+    blockInterval: config.blockchain.blockInterval,
     logLevel: config.logLevel,
     logDir: config.logDir
   })
@@ -106,6 +108,7 @@ program
   .option('-a, --api-host <string>', 'API host', 'localhost')
   .option('-r, --rpc <url>', 'Ethereum RPC URL', 'http://localhost:8545')
   .option('-b, --start-block <number>', 'Starting block number for indexing')
+  .option('--block-interval <number>', 'Block interval for indexing batches', '500')
   .option('-c, --chain-id <number>', 'Chain ID', '1')
   .option('-d, --disable-indexing', 'Disable indexing')
   .option('-l, --log-level <level>', 'Stdout log level (error, warn, info, debug)', 'info')
