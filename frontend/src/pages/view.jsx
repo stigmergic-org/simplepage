@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
-import Sidebar from '../components/Sidebar';
-import TableOfContents from '../components/TableOfContents';
-import SidebarNavigation from '../components/SidebarNavigation';
+import { TableOfContentsPanel } from '../components/TableOfContents';
+import { SidebarNavigationPanel } from '../components/SidebarNavigation';
 import { usePagePath } from '../hooks/usePagePath';
 import { useBasename } from '../hooks/useBasename';
 import { useNavigation } from '../hooks/useNavigation';
@@ -14,19 +13,17 @@ import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
 
+
 const View = ({ existingContent }) => {
   const basename = useBasename();
   const [content, setContent] = useState(existingContent);
-  const [sidebarToc, setSidebarToc] = useState(false);
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
-  const [navItems, setNavItems] = useState([]);
   const hasScrolledToHash = useRef(false);
-  const rootNavItem = navItems.find(item => item.path === '/');
   const sidebarSemaphoreState = useState(null);
   const { path, isVirtual } = usePagePath();
   const { repo } = useRepo();
-  const { goToNotFound, goToViewWithPreview, goToRoot } = useNavigation();
+  const { goToNotFound } = useNavigation();
 
   useEffect(() => {
     const loadContent = async () => {
@@ -40,7 +37,6 @@ const View = ({ existingContent }) => {
       
       let loadedContent = await repo.getHtmlBody(path, ignoreEdits);
       const loadedMetadata = await repo.getMetadata(path, ignoreEdits);
-      setSidebarToc(loadedMetadata['sidebar-toc'] || false);
       document.title = loadedMetadata.title
       
       // Parse content once and apply all modifications
@@ -73,25 +69,6 @@ const View = ({ existingContent }) => {
     }
   }, [repo, basename, isVirtual, path, goToNotFound]);
 
-
-
-  // Load navigation items
-  useEffect(() => {
-    const loadNavigation = async () => {
-      if (!repo) return;
-      try {
-        const items = await repo.getSidebarNavInfo(path, !isVirtual);
-        setNavItems(items);
-      } catch (error) {
-        console.error('Failed to load sidebar navigation:', error);
-        setNavItems([]);
-      }
-    };
-
-    loadNavigation();
-  }, [repo, path, isVirtual]);
-
-
   // Track content container width
   useEffect(() => {
     const updateContentWidth = () => {
@@ -115,35 +92,17 @@ const View = ({ existingContent }) => {
         activePage={isVirtual ? "Preview" : undefined}
         onNavbarInfoChange={setNavbarEffectiveTop}
       />
-
-      {/* Sidebar with Table of Contents */}
-      {sidebarToc && (
-        <Sidebar
-          position="right"
-          title="On this page"
-          icon="toc"
-          effectiveTop={navbarEffectiveTop}
-          contentWidth={contentWidth}
-          semaphoreState={sidebarSemaphoreState}
-        >
-          <TableOfContents content={content} />
-        </Sidebar>
-      )}
-      {/* Navigation Sidebar */}
-      {navItems.length > 0 && (
-        <Sidebar
-          position="left"
-          title={rootNavItem?.title || 'Navigation'}
-          onTitleClick={rootNavItem ? () => { isVirtual ? goToViewWithPreview(rootNavItem?.path) : goToRoot() } : undefined}
-          icon="map"
-          effectiveTop={navbarEffectiveTop}
-          contentWidth={contentWidth}
-          semaphoreState={sidebarSemaphoreState}
-        >
-          <SidebarNavigation navItems={navItems} isVirtual={isVirtual} />
-        </Sidebar>
-      )}
-
+      <TableOfContentsPanel
+        content={content}
+        effectiveTop={navbarEffectiveTop}
+        contentWidth={contentWidth}
+        semaphoreState={sidebarSemaphoreState}
+      />
+      <SidebarNavigationPanel
+        effectiveTop={navbarEffectiveTop}
+        contentWidth={contentWidth}
+        semaphoreState={sidebarSemaphoreState}
+      />
       <div id="content" className="min-h-70 flex items-center justify-center pt-8">
         <div id="content-container" className="w-full max-w-4xl editor-preview !px-6" style={{ backgroundColor: 'transparent' }}>
           <ContentArea content={content} />

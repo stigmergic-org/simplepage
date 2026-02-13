@@ -1,4 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Sidebar from './Sidebar';
+import { usePagePath } from '../hooks/usePagePath';
+import { useRepo } from '../hooks/useRepo';
+
+const readSidebarTocMeta = () => {
+  const meta = document.querySelector('meta[name="sidebar-toc"]');
+  if (!meta) {
+    return { value: false, found: false };
+  }
+  return { value: meta.getAttribute('content') === 'true', found: true };
+};
 
 const TableOfContents = ({ content, className = '' }) => {
   const [headings, setHeadings] = useState([]);
@@ -127,4 +138,59 @@ const TableOfContents = ({ content, className = '' }) => {
   );
 };
 
+const TableOfContentsPanel = ({ content, effectiveTop = 64, contentWidth = 0, semaphoreState }) => {
+  const { repo } = useRepo();
+  const { path, isVirtual } = usePagePath();
+  const initialMeta = useMemo(() => readSidebarTocMeta(), []);
+  const [sidebarToc, setSidebarToc] = useState(initialMeta.value);
+  const [hasMeta, setHasMeta] = useState(initialMeta.found);
+
+  useEffect(() => {
+    if (isVirtual) return;
+    const meta = readSidebarTocMeta();
+    setSidebarToc(meta.value);
+    setHasMeta(meta.found);
+  }, [path, isVirtual]);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!repo) return undefined;
+    if (!isVirtual && hasMeta) return undefined;
+
+    const loadTocSetting = async () => {
+      try {
+        const metadata = await repo.getMetadata(path, !isVirtual);
+        const nextValue = Boolean(metadata['sidebar-toc']);
+        if (isActive) {
+          setSidebarToc(nextValue);
+        }
+      } catch (error) {
+        console.warn('Failed to load sidebar toc metadata:', error);
+      }
+    };
+
+    loadTocSetting();
+
+    return () => {
+      isActive = false;
+    };
+  }, [repo, path, isVirtual, hasMeta]);
+
+  if (!sidebarToc) return null;
+
+  return (
+    <Sidebar
+      position="right"
+      title="On this page"
+      icon="toc"
+      effectiveTop={effectiveTop}
+      contentWidth={contentWidth}
+      semaphoreState={semaphoreState}
+    >
+      <TableOfContents content={content} />
+    </Sidebar>
+  );
+};
+
+export { TableOfContentsPanel };
 export default TableOfContents;

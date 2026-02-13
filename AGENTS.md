@@ -21,6 +21,10 @@
 - When running scripts, use `pnpm run <script>` format
 - For workspace operations, use `pnpm --filter <package-name> <command>`
 - For adding dependencies to specific workspaces, use `pnpm --filter <package-name> add <package>`
+- Run `pnpm lint` after code changes (skip for doc-only edits unless asked); no need to mention it unless the user asks
+
+## Documentation
+- Reference `ARCHITECTURE.md` for system overview and publishing flow context
 
 ## Code Style
 - Follow existing code style and patterns

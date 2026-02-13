@@ -33,6 +33,68 @@ import { CHANGE_TYPE, isReservedPath } from './constants.js'
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
 
+const pathToTitle = (path) => {
+  if (!path) return ''
+  const lastSegment = path.split('/').filter(Boolean).pop()
+  if (!lastSegment) return ''
+  return lastSegment.split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
+const buildSidebarNavItems = (metaItems, selectedPath = null) => {
+  let showNavInfo = !selectedPath
+  const navItems = []
+  for (const meta of metaItems) {
+    const path = meta.path
+    if (selectedPath && selectedPath === path) {
+      showNavInfo = true
+    }
+    const newItem = {
+      selected: selectedPath === path,
+      path,
+      title: meta.title || pathToTitle(meta.path) || path,
+      priority: meta['sidebar-nav-prio'],
+      children: [],
+    }
+    const pathSplit = meta.path.split('/').filter(Boolean)
+    let sectionPointer = navItems
+    for (let i = 1; i < pathSplit.length; i++) {
+      const parentPath = `/${pathSplit.slice(0, i).join('/')}/`
+      let parentItem = sectionPointer.find(item => item.path === parentPath)
+
+      if (!parentItem) {
+        parentItem = {
+          virtual: true,
+          path: parentPath,
+          title: pathToTitle(parentPath),
+          priority: newItem.priority,
+          children: [],
+        }
+        sectionPointer.push(parentItem)
+      } else if (parentItem.virtual) {
+        parentItem.priority = Math.min(parentItem.priority, newItem.priority)
+      }
+      sectionPointer = parentItem.children
+    }
+    const virtualNewItem = sectionPointer.find(item => item.path === path && item.virtual)
+    if (virtualNewItem) {
+      virtualNewItem.title = newItem.title
+      virtualNewItem.priority = newItem.priority
+      virtualNewItem.selected = newItem.selected
+      delete virtualNewItem.virtual
+    } else {
+      sectionPointer.push(newItem)
+    }
+  }
+
+  const sort = items => {
+    items.sort((a, b) => a.priority - b.priority)
+    items.forEach(item => sort(item.children))
+    return items
+  }
+  return { navItems: sort(navItems), showNavInfo }
+}
+
 
 
 /**
@@ -350,6 +412,29 @@ export class Repo {
     return parseFrontmatter(markdown)
   }
 
+  async #getSidebarNavMeta(ignoreEdits = false) {
+    let allPaths = []
+    if (ignoreEdits) {
+      allPaths = await this.getAllPages()
+    } else {
+      const [allPages, allEdits] = await Promise.all([ this.getAllPages(), this.getChanges() ])
+      const deletedPaths = new Set(
+        allEdits.filter(edit => edit.type === CHANGE_TYPE.DELETE).map(edit => edit.path)
+      )
+      const updatedPaths = allEdits
+        .filter(edit => edit.type !== CHANGE_TYPE.DELETE)
+        .map(edit => edit.path)
+      // remove duplicates and deleted paths
+      allPaths = [...new Set([...allPages, ...updatedPaths])]
+        .filter(path => !deletedPaths.has(path))
+    }
+
+    const allMetadata = await Promise.all(
+      allPaths.map(async path => ({ ...(await this.getMetadata(path, ignoreEdits)), path }))
+    )
+    return allMetadata.filter(meta => meta['sidebar-nav-prio'] && meta['sidebar-nav-prio'] > 0)
+  }
+
   /**
    * Returns the sidebar navigation info for a page.
    * @param {string} selectedPath - The path of the page.
@@ -358,80 +443,10 @@ export class Repo {
    */
   async getSidebarNavInfo(selectedPath, ignoreEdits = false) {
     // TODO - deal with selectedPath being root
-    let allPaths = []
-    if (ignoreEdits) {
-      allPaths = await this.getAllPages()
-    } else {
-      const [allPages, allEdits] = await Promise.all([ this.getAllPages(), this.getChanges() ])
-      //remove duplicates
-      allPaths = [...new Set([...allPages, ...allEdits.map(edit => edit.path)])]
-    }
-    
-    // get the metadata for all pages
-    const allMetadata = await Promise.all(allPaths.map(async path => ({ ...(await this.getMetadata(path, ignoreEdits)), path })))
-    const metaItems = allMetadata.filter(meta => meta['sidebar-nav-prio'] && meta['sidebar-nav-prio'] > 0)
-
-    // Helper function to convert path to title
-    const pathToTitle = (path) => {
-      if (!path) return ''
-      return path.split('/').filter(Boolean).pop().split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    }
-
-    let showNavInfo = false
-    const navItems = []
-    for (const meta of metaItems) {
-
-      const path = meta.path
-      if (selectedPath === path) {
-        showNavInfo = true
-      }
-      const newItem = {
-        selected: selectedPath === path,
-        path,
-        title: meta.title || pathToTitle(meta.path) || path,
-        priority: meta['sidebar-nav-prio'],
-        children: [],
-      }
-      const pathSplit = meta.path.split('/').filter(Boolean)
-      let sectionPointer = navItems
-      for (let i = 1; i < pathSplit.length; i++) {
-        const parentPath = `/${pathSplit.slice(0, i).join('/')}/`
-        let parentItem = sectionPointer.find(item => item.path === parentPath)
-
-        if (!parentItem) {
-          parentItem = {
-            virtual: true,
-            path: parentPath,
-            title: pathToTitle(parentPath),
-            priority: newItem.priority,
-            children: [],
-          }
-          sectionPointer.push(parentItem)
-        } else if (parentItem.virtual) {
-          parentItem.priority = Math.min(parentItem.priority, newItem.priority)
-        }
-        sectionPointer = parentItem.children
-      }
-      const virtualNewItem = sectionPointer.find(item => item.path === path && item.virtual)
-      if (virtualNewItem) {
-        virtualNewItem.title = newItem.title
-        virtualNewItem.priority = newItem.priority
-        virtualNewItem.selected = newItem.selected
-        delete virtualNewItem.virtual
-      } else {
-        sectionPointer.push(newItem)
-      }
-    }
-
+    const metaItems = await this.#getSidebarNavMeta(ignoreEdits)
+    const { navItems, showNavInfo } = buildSidebarNavItems(metaItems, selectedPath)
     if (!showNavInfo) return []
-
-    const sort = items => {
-      items.sort((a, b) => a.priority - b.priority)
-      items.forEach(item => sort(item.children))
-      return items
-    }
-    return sort(navItems)
+    return navItems
   }
 
   /**
@@ -612,6 +627,11 @@ export class Repo {
     const pages = await this.getAllPages(rootPointer)
     const redirects = populateRedirects(pages)
     rootPointer = await addFile(this.unixfs, rootPointer, '_redirects', redirects)
+
+    const navMetaItems = await this.#getSidebarNavMeta(false)
+    const { navItems } = buildSidebarNavItems(navMetaItems)
+    const sidenavJson = JSON.stringify({ items: navItems }, null, 2)
+    rootPointer = await addFile(this.unixfs, rootPointer, 'sidenav.json', sidenavJson)
     const flushPromise = this.blockstore.flush()
 
     // create car file with staged changes

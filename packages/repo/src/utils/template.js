@@ -1,6 +1,6 @@
 import { mimeType } from '@simplepg/common'
 
-export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null, domainSuffix = '.link') {
+export function populateTemplate(templateHtml, body, targetDomain, path, { title, description, 'sidebar-toc': sidebarToc } = {}, avatarPath = null, domainSuffix = '.link') {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
@@ -9,9 +9,16 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     const baseDomain = `${targetDomain}${domainSuffix}`
     const baseUrl = `https://${baseDomain}`
     const populateUrl = (path) => [baseUrl, ...(path.split('/').filter(Boolean))].join('/')
-    const select = (name, isProp = false) => templateDoc.querySelector(`meta[${isProp ? 'property' : 'name'}="${name}"`)
+    const head = templateDoc.querySelector('head')
+    const select = (name, isProp = false) => templateDoc.querySelector(`meta[${isProp ? 'property' : 'name'}="${name}"]`)
     const setMeta = (name, content, isProp = false) => {
-      select(name, isProp)?.setAttribute('content', content)
+      let meta = select(name, isProp)
+      if (!meta) {
+        meta = templateDoc.createElement('meta')
+        meta.setAttribute(isProp ? 'property' : 'name', name)
+        head.appendChild(meta)
+      }
+      meta.setAttribute('content', content)
     }
 
     const titleText = title || targetDomain
@@ -23,6 +30,7 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     titleElement.textContent = titleText
     setMeta('description', descriptionText)
     setMeta('ens-domain', targetDomain)
+    setMeta('sidebar-toc', sidebarToc ? 'true' : 'false')
 
     // set favicon
     const faviconElement = templateDoc.querySelector('link[rel="icon"]')
@@ -55,7 +63,6 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     if (imageUrl) setMeta('twitter:image', imageUrl)
 
     // RSS autodiscovery
-    const head = templateDoc.querySelector('head')
     const rssLink = templateDoc.createElement('link')
     rssLink.setAttribute('rel', 'alternate')
     rssLink.setAttribute('type', 'application/rss+xml')

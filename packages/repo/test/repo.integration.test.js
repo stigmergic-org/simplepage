@@ -1228,6 +1228,90 @@ This is a test.`;
       expect(redirects.trim()).toContain('/about/* /about/ 200');
     });
 
+    it('should include sidenav.json during staging', async () => {
+      const rootMarkdown = `---
+title: Home
+sidebar-nav-prio: 1
+---
+
+# Home`;
+      const rootBody = '<h1>Home</h1>';
+      const aboutMarkdown = `---
+title: About
+sidebar-nav-prio: 2
+---
+
+# About`;
+      const aboutBody = '<h1>About</h1>';
+      const docsMarkdown = `---
+title: Guides
+sidebar-nav-prio: 3
+---
+
+# Guides`;
+      const docsBody = '<h1>Guides</h1>';
+
+      await repo.setPageEdit('/', rootMarkdown, rootBody);
+      await repo.setPageEdit('/about/', aboutMarkdown, aboutBody);
+      await repo.setPageEdit('/docs/guides/', docsMarkdown, docsBody);
+
+      const result = await repo.stage('test.eth', false);
+
+      const sidenavJson = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/sidenav.json`);
+      const sidenavData = JSON.parse(sidenavJson);
+      expect(Array.isArray(sidenavData.items)).toBe(true);
+
+      const collectPaths = (items) => items.reduce((acc, item) => {
+        acc.push(item.path);
+        return acc.concat(collectPaths(item.children || []));
+      }, []);
+
+      const paths = collectPaths(sidenavData.items);
+      expect(paths).toContain('/');
+      expect(paths).toContain('/about/');
+      expect(paths).toContain('/docs/');
+      expect(paths).toContain('/docs/guides/');
+    });
+
+    it('should include sidebar-toc meta in staged html', async () => {
+      const rootMarkdown = `---
+title: Home
+sidebar-toc: true
+---
+
+# Home`;
+      const rootBody = '<h1>Home</h1>';
+      const aboutMarkdown = '# About';
+      const aboutBody = '<h1>About</h1>';
+
+      await repo.setPageEdit('/', rootMarkdown, rootBody);
+      await repo.setPageEdit('/about/', aboutMarkdown, aboutBody);
+
+      const result = await repo.stage('test.eth', false);
+
+      const rootHtml = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/index.html`);
+      const aboutHtml = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/about/index.html`);
+      const rootDoc = parser.parseFromString(rootHtml, 'text/html');
+      const aboutDoc = parser.parseFromString(aboutHtml, 'text/html');
+
+      checkMeta(rootDoc, 'sidebar-toc', 'true');
+      checkMeta(aboutDoc, 'sidebar-toc', 'false');
+    });
+
+    it('should include empty sidenav.json when no sidebar nav is configured', async () => {
+      const rootMarkdown = '# Home';
+      const rootBody = '<h1>Home</h1>';
+
+      await repo.setPageEdit('/', rootMarkdown, rootBody);
+
+      const result = await repo.stage('test.eth', false);
+
+      const sidenavJson = await cat(testEnv.kubo.kuboApi, `/ipfs/${result.cid.toString()}/sidenav.json`);
+      const sidenavData = JSON.parse(sidenavJson);
+      expect(Array.isArray(sidenavData.items)).toBe(true);
+      expect(sidenavData.items.length).toBe(0);
+    });
+
     it('should persist committed pages and allow loading from a new Repo instance', async () => {
       // Add two pages
       const page1 = {
