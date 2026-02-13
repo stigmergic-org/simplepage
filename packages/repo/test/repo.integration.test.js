@@ -2559,6 +2559,7 @@ Thoughts and insights about technology and development.`,
       testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
       testEnv.evm.mintPage(historyDomain, 365 * 24 * 60 * 60, '0x0000000000000000000000000000000000000001');
       testEnv.evm.setResolver(addresses.universalResolver, historyDomain, addresses.resolver1);
+      await testEnv.waitUntilBlockIsIndexed(Number(testEnv.evm.getBlockNumber()));
     });
 
     beforeEach(async () => {

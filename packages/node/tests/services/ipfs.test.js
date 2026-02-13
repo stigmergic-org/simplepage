@@ -15,6 +15,7 @@ describe('IpfsService', () => {
   let testEnvKubo
   let ipfsService
   let kuboApi
+  const namespace = 'test'
 
   const mockLogger = {
     info: () => {},
@@ -75,7 +76,7 @@ describe('IpfsService', () => {
     testEnvKubo = new TestEnvironmentKubo()
     kuboApi = await testEnvKubo.start()
     
-    ipfsService = new IpfsService({ ipfsClient: kuboApi, logger: mockLogger })
+    ipfsService = new IpfsService({ ipfsClient: kuboApi, logger: mockLogger, namespace })
     // ipfsService.client = kuboApi
   }, 30000)
 
@@ -140,13 +141,13 @@ describe('IpfsService', () => {
     const carData = await createUnixFsCar({ 'index.md': '# Pinned' })
 
     const stagedCid = await ipfsService.stageCar(carData.carBuffer, domain)
-    const stagedPins = await all(await kuboApi.pin.ls({ name: `spg_staged_${domain}_` }))
+    const stagedPins = await all(await kuboApi.pin.ls({ name: `spg_${namespace}_staged_${domain}_` }))
     const stagedPin = stagedPins.find(pin => pin.cid.toString() === stagedCid.toString())
     expect(stagedPin).toBeTruthy()
     expect(stagedPin.type).toBe('recursive')
 
     await ipfsService.finalizePage(stagedCid, domain, 4242, txHash)
-    const finalizedPins = await all(await kuboApi.pin.ls({ name: `spg_finalized_${domain}_${txHash}` }))
+    const finalizedPins = await all(await kuboApi.pin.ls({ name: `spg_${namespace}_finalized_${domain}_${txHash}` }))
     expect(finalizedPins.length).toBe(1)
     expect(finalizedPins[0].cid.toString()).toBe(stagedCid.toString())
     expect(finalizedPins[0].type).toBe('recursive')
@@ -339,7 +340,8 @@ describe('IpfsService', () => {
     const ipfsServiceWithPrune = new IpfsService({ 
       ipfsClient: kuboApi,
       maxStagedAge: 60 * 60, // 1 hour in seconds
-      logger: mockLogger
+      logger: mockLogger,
+      namespace
     })
     ipfsServiceWithPrune.client = kuboApi
     
@@ -721,7 +723,7 @@ describe('IpfsService', () => {
 
       await ipfsService.listFailedPins()
 
-      const failurePath = `/spg-data/pin-failures/${domain}-${txHash}.json`
+      const failurePath = `/spg-data/${namespace}/pin-failures/${domain}-${txHash}.json`
       const payload = {
         domain,
         txHash,
