@@ -74,7 +74,7 @@ const Sidebar = ({
       {/* Toggle button */}
       <button
         onClick={handleToggle}
-        className={`fixed ${toggleButtonPosition} z-50 btn btn-sm btn-circle bg-base-200 border-base-300 hover:bg-base-300`}
+        className={`fixed ${toggleButtonPosition} z-50 btn btn-sm btn-circle ${isOpen ? 'bg-base-200 border-base-300 hover:bg-base-300' : 'btn-soft btn-primary'}`}
         style={{
           top: `${effectiveTop + 16}px`,
           transition: 'top 0.1s ease-out'
