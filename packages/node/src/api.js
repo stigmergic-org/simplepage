@@ -3,12 +3,55 @@ import expressJSDocSwagger from 'express-jsdoc-swagger'
 import swaggerUi from 'swagger-ui-express'
 import multer from 'multer'
 import cors from 'cors'
+import { CID } from 'multiformats/cid'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 
 // Get current file's directory
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+const localhostHosts = new Set(['localhost', '127.0.0.1', '::1'])
+
+const isCidLabel = (label) => {
+  try {
+    CID.parse(label)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const hasEthLabel = (labels) => labels.includes('eth')
+
+const isBlockedIpfsOrigin = (labels) => {
+  for (let i = 1; i < labels.length; i += 1) {
+    if (labels[i] === 'ipfs' && isCidLabel(labels[i - 1])) {
+      return true
+    }
+  }
+  return false
+}
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true
+  if (typeof origin !== 'string' || origin === 'null') return false
+
+  let hostname
+  try {
+    hostname = new URL(origin).hostname.toLowerCase()
+  } catch {
+    return false
+  }
+
+  if (localhostHosts.has(hostname)) return true
+
+  const labels = hostname.split('.').filter(Boolean)
+  if (labels.length === 0) return false
+  if (isBlockedIpfsOrigin(labels)) return false
+
+  return hasEthLabel(labels)
+}
 
 // Move error class into api.js
 class HTTPError extends Error {
@@ -49,7 +92,9 @@ export function createApi({ ipfs, _indexer, version, logger }) {
 
   // Setup CORS middleware
   const corsOptions = {
-    origin: '*',
+    origin: (origin, callback) => {
+      callback(null, isAllowedOrigin(origin))
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }
