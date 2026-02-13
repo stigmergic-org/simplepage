@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRepo } from '../hooks/useRepo';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Navbar from '../components/navbar';
@@ -28,7 +28,6 @@ const calculateColumnLayout = (historyData) => {
   const columnsByKey = {};
   const columnsByCid = new Map();
   const lanes = [];
-  const availableCids = new Set(historyData.map(entry => entry.cid));
 
   const reserveLane = (cid, preferredIndex = null) => {
     if (!cid) return null;
@@ -65,7 +64,7 @@ const calculateColumnLayout = (historyData) => {
     }
     lanes[laneIndex] = null;
 
-    const parents = (entry.parents || []).filter(parentCid => availableCids.has(parentCid));
+    const parents = entry.parents || [];
     if (parents.length > 0) {
       const primaryParent = parents[0];
       const primaryIndex = reserveLane(primaryParent, laneIndex);
@@ -92,6 +91,7 @@ const HistoryPage = () => {
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const entriesRef = useRef(null);
 
   useEffect(() => {
     if (!repo) return;
@@ -103,11 +103,13 @@ const HistoryPage = () => {
         setError(null);
         const data = await repo.history.get();
         if (!isMounted) return;
-        const normalized = data.map(normalizeEntry);
-        const withKeys = normalized.map((entry, index) => ({
-          ...entry,
-          entryKey: getEntryKey(entry, index),
-        }));
+        const withKeys = data.map((entry, index) => {
+          const normalized = normalizeEntry(entry);
+          return {
+            ...normalized,
+            entryKey: getEntryKey(normalized, index),
+          };
+        });
         setHistoryData(withKeys);
       } catch (err) {
         if (!isMounted) return;
@@ -124,21 +126,21 @@ const HistoryPage = () => {
     };
   }, [repo]);
 
-  const entriesByCid = useMemo(() => {
+  const parentKeysByEntry = useMemo(() => {
     const map = new Map();
-    historyData.forEach((entry, index) => {
-      const list = map.get(entry.cid) || [];
-      list.push({ key: entry.entryKey, index });
-      map.set(entry.cid, list);
-    });
+    const lastSeenByCid = new Map();
+
+    for (let i = historyData.length - 1; i >= 0; i -= 1) {
+      const entry = historyData[i];
+      const parentKeys = (entry.parents || [])
+        .map(parentCid => lastSeenByCid.get(parentCid))
+        .filter(Boolean);
+      map.set(entry.entryKey, parentKeys);
+      lastSeenByCid.set(entry.cid, entry.entryKey);
+    }
+
     return map;
   }, [historyData]);
-
-  const resolveParentKey = (parentCid, currentIndex) => {
-    const list = entriesByCid.get(parentCid) || [];
-    const match = list.find(item => item.index > currentIndex);
-    return match ? match.key : null;
-  };
 
   const { columnsByKey, maxColumn } = useMemo(() => {
     return calculateColumnLayout(historyData);
@@ -181,13 +183,12 @@ const HistoryPage = () => {
           <div className="bg-base-100 rounded-lg p-6 md:p-8">
             {historyData.length > 0 ? (
               <div className="relative">
-                <TimelineConnections historyData={historyData} resolveParentKey={resolveParentKey} />
-                <div className="space-y-0">
-                  {historyData.map((entry, index) => (
+                <TimelineConnections historyData={historyData} parentKeysByEntry={parentKeysByEntry} entriesRef={entriesRef} />
+                <div ref={entriesRef} className="timeline-entries space-y-6">
+                  {historyData.map((entry) => (
                     <TimelineEntry
                       key={entry.entryKey}
                       entry={entry}
-                      index={index}
                       columnsByKey={columnsByKey}
                       maxColumn={maxColumn}
                     />

@@ -302,7 +302,7 @@ const Navbar = ({
           {repoRoot && (
             <div
               data-tip="Integrity"
-              className="tooltip tooltip-bottom text-base cursor-pointer pl-1"
+              className="tooltip tooltip-bottom text-base cursor-pointer pl-1 flex items-center leading-none"
               onClick={goToHistory}
             >
               <Icon name="proof" size={4} />

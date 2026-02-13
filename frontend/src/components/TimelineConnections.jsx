@@ -72,7 +72,7 @@ const areAllIconsReady = (historyData) => {
   });
 };
 
-const TimelineConnections = ({ historyData, resolveParentKey }) => {
+const TimelineConnections = ({ historyData, parentKeysByEntry, entriesRef }) => {
   const svgRef = useRef(null);
   const [lines, setLines] = useState([]);
   const timeoutRef = useRef(null);
@@ -91,16 +91,15 @@ const TimelineConnections = ({ historyData, resolveParentKey }) => {
     const svgRect = svgRef.current.getBoundingClientRect();
     const newLines = [];
 
-    historyData.forEach((entry, entryIndex) => {
-      entry.parents?.filter(parentCid => parentCid !== '').forEach((parentCid, parentIndex) => {
-        const parentKey = resolveParentKey(parentCid, entryIndex);
-        if (!parentKey) return;
+    historyData.forEach((entry) => {
+      const parentKeys = parentKeysByEntry.get(entry.entryKey) || [];
+      parentKeys.forEach((parentKey, parentIndex) => {
         newLines.push(...processConnection(entry.entryKey, parentKey, parentIndex, svgRect));
       });
     });
 
     setLines(newLines);
-  }, [historyData, resolveParentKey]);
+  }, [historyData, parentKeysByEntry]);
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -131,7 +130,7 @@ const TimelineConnections = ({ historyData, resolveParentKey }) => {
       }
     });
 
-    const timelineContainer = document.querySelector('.space-y-0');
+    const timelineContainer = entriesRef?.current;
     if (timelineContainer) {
       mutationObserverRef.current.observe(timelineContainer, {
         childList: true,
@@ -152,7 +151,7 @@ const TimelineConnections = ({ historyData, resolveParentKey }) => {
       if (mutationObserverRef.current) mutationObserverRef.current.disconnect();
       window.removeEventListener('resize', handleResize);
     };
-  }, [drawLines]);
+  }, [drawLines, entriesRef]);
 
   return (
     <svg

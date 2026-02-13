@@ -22,33 +22,71 @@ const getIpfsUrl = (cid) => {
   return `https://explore.ipld.io/#/explore/${cid}`;
 };
 
-const EntryContent = ({ entry, chainId }) => {
+const EntryContent = ({ entry, chainId, variant = 'full', onDetails, showTitle = true }) => {
   const { timestamp, loading, error } = useBlockTimestamp(entry.blockNumber);
   const versionLabel = entry.version ? `v${entry.version}` : 'unknown';
   const domainLabel = entry.domain || 'unknown';
   const txHash = entry.tx || '';
   const hasTx = Boolean(txHash);
   const hasCid = Boolean(entry.cid);
+  const isCompact = variant === 'compact';
+  const titleLabel = entry.title || domainLabel || 'Untitled';
 
-  const formatTimestamp = (value) => {
-    if (!value) return 'Loading...';
+  const formatDateBadge = (value) => {
+    if (!value) return 'Date ???';
     return new Date(value).toISOString().replace('T', ' ').split('.')[0];
   };
 
+  const dateBadge = loading
+    ? 'Date ???'
+    : error
+      ? 'Date error'
+      : formatDateBadge(timestamp);
+
+  if (isCompact) {
+    return (
+      <div className="space-y-3">
+        <div className="text-base font-semibold">
+          {titleLabel}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="badge badge-soft badge-secondary badge-sm">{dateBadge}</span>
+          <span className="badge badge-soft badge-accent badge-sm">{domainLabel}</span>
+          <span className="badge badge-soft badge-info badge-sm">{versionLabel}</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {onDetails && (
+            <button
+              onClick={onDetails}
+              className="btn btn-outline btn-primary btn-xs"
+            >
+              More info
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-lg">
-            Notarized: {loading ? '???' : error ? 'Error loading timestamp' : formatTimestamp(timestamp)}
+        <div className="flex items-center justify-between">
+          {showTitle && (
+            <div className="text-lg font-semibold">
+              {titleLabel}
+            </div>
+          )}
+          <span className="text-sm text-base-content/60">
+            Notarized in block #{entry.blockNumber || '???'}
           </span>
         </div>
-        <span className="text-sm text-base-content/60">
-          Block #{entry.blockNumber || '???'}
-        </span>
-      </div>
 
       <div className="flex flex-row flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-base-content/70">Date:</span>
+          <span className="badge badge-soft badge-secondary badge-sm">{dateBadge}</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-base-content/70">Domain:</span>
           <span className="badge badge-soft badge-accent badge-sm">{domainLabel}</span>
@@ -70,7 +108,7 @@ const EntryContent = ({ entry, chainId }) => {
               className="flex items-center gap-1 text-sm text-base-content/70 hover:text-base-content transition-colors"
               title="View on Etherscan"
             >
-              <span>Transaction:</span>
+              <span>Transaction</span>
               <Icon name="external-link" size={4} />
             </a>
           ) : (
@@ -92,7 +130,7 @@ const EntryContent = ({ entry, chainId }) => {
               className="flex items-center gap-1 text-sm text-base-content/70 hover:text-base-content transition-colors"
               title="Inspect IPFS data"
             >
-              <span>Content Hash:</span>
+              <span>Content Hash</span>
               <Icon name="external-link" size={4} />
             </a>
           ) : (
@@ -142,7 +180,7 @@ const EntryModal = ({ isOpen, onClose, entry, chainId }) => {
       <div className="bg-base-100 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Version Details</h3>
+            <h3 className="text-lg font-semibold">{entry.title || entry.domain || 'Untitled'}</h3>
             <button
               onClick={onClose}
               className="btn btn-ghost btn-sm btn-circle"
@@ -150,31 +188,30 @@ const EntryModal = ({ isOpen, onClose, entry, chainId }) => {
               <Icon name="close" size={4} />
             </button>
           </div>
-          <EntryContent entry={entry} chainId={chainId} />
+          <EntryContent entry={entry} chainId={chainId} showTitle={false} />
         </div>
       </div>
     </div>
   );
 };
 
-const TimelineEntry = ({ entry, index, columnsByKey, maxColumn }) => {
+const TimelineEntry = ({ entry, columnsByKey, maxColumn }) => {
   const column = columnsByKey[entry.entryKey] || 0;
   const chainId = useChainId();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div key={entry.entryKey} className="relative flex items-center last:mb-0">
+    <div key={entry.entryKey} className="relative flex items-center">
       <div className="flex items-center relative">
         {Array.from({ length: maxColumn + 1 }, (_value, colIndex) => (
           <div
             key={colIndex}
-            className="flex items-center justify-center w-12"
+            className="flex items-center justify-center w-8 md:w-12"
           >
             {column === colIndex && (
               <div
                 id={`icon-${entry.entryKey}`}
                 data-column={column}
-                data-index={index}
                 className="relative flex items-center"
               >
                 <Icon name="check" size={6} />
@@ -184,16 +221,16 @@ const TimelineEntry = ({ entry, index, columnsByKey, maxColumn }) => {
         ))}
       </div>
 
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="md:hidden mt-2 btn btn-primary btn-soft btn-sm"
-        title="View details"
-      >
-        <Icon name="info" size={4} />
-        <span className="ml-1">Details</span>
-      </button>
+      <div className="md:hidden flex-1 rounded-lg ml-3 p-4 border border-base-300 bg-base-100 shadow-sm">
+        <EntryContent
+          entry={entry}
+          chainId={chainId}
+          variant="compact"
+          onDetails={() => setIsModalOpen(true)}
+        />
+      </div>
 
-      <div className="hidden md:block flex-1 rounded-lg ml-4 mb-8 p-6 border border-base-300">
+      <div className="hidden md:block flex-1 rounded-lg ml-4 p-6 border border-base-300 shadow-sm">
         <EntryContent entry={entry} chainId={chainId} />
       </div>
 

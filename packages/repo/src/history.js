@@ -1,5 +1,6 @@
 import { CID } from 'multiformats/cid'
-import { carFromBytes, assert } from '@simplepg/common'
+import { carFromBytes, assert, emptyUnixfs, cat } from '@simplepg/common'
+import all from 'it-all'
 
 const normalizeCid = (value, fieldName) => {
   if (!value) return null
@@ -25,6 +26,23 @@ const normalizeEntry = (entry) => {
     cid,
     parents,
     blockNumber: Number.isFinite(blockNumber) ? blockNumber : null
+  }
+}
+
+const parseIndexHtml = (html) => {
+  if (typeof DOMParser === 'undefined') {
+    return { domain: null, version: null, title: null }
+  }
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const domainMeta = doc.querySelector('meta[name="ens-domain"]')
+    const versionMeta = doc.querySelector('meta[name="version"]')
+    const domain = domainMeta?.getAttribute('content') || null
+    const version = versionMeta?.getAttribute('content') || null
+    const title = doc.querySelector('title')?.textContent?.trim() || null
+    return { domain, version, title }
+  } catch (_error) {
+    return { domain: null, version: null, title: null }
   }
 }
 
@@ -70,12 +88,39 @@ export class History {
     const root = car.get(car.roots[0])
     assert(root?.entries, 'Missing history entries in response')
 
-    console.log('History response', {
-      domain: this.#domain,
-      entries: root.entries,
-    })
+    const { fs, blockstore } = emptyUnixfs()
+    // Process all blocks in parallel using Promise.all
+    await Promise.all(
+      (await all(car.blocks)).map(block => blockstore.put(block.cid, block.payload))
+    );
 
-    const entries = root.entries.map(normalizeEntry)
+    const indexMetaByCid = new Map()
+    const getIndexMeta = async (cid) => {
+      const key = cid.toString()
+      if (indexMetaByCid.has(key)) return indexMetaByCid.get(key)
+      try {
+        const html = await cat(fs, cid, 'index.html')
+        const meta = parseIndexHtml(html)
+        indexMetaByCid.set(key, meta)
+        return meta
+      } catch (_error) {
+        indexMetaByCid.set(key, null)
+        return null
+      }
+    }
+
+    const normalizedEntries = root.entries.map(normalizeEntry)
+    const entriesWithMeta = await Promise.all(normalizedEntries.map(async (entry) => {
+      const meta = await getIndexMeta(entry.cid)
+      return {
+        ...entry,
+        domain: meta?.domain || entry.domain || null,
+        version: meta?.version || entry.version || null,
+        title: meta?.title || null,
+      }
+    }))
+
+    const entries = entriesWithMeta
     entries.sort((a, b) => {
       if (a.blockNumber && b.blockNumber) {
         return b.blockNumber - a.blockNumber
@@ -85,43 +130,6 @@ export class History {
       return 0
     })
 
-    const entryMap = new Map(entries.map(entry => [entry.cid.toString(), entry]))
-    const keep = new Set()
-    const stack = []
-
-    if (this.#repoRoot) {
-      const repoRootKey = this.#repoRoot.toString()
-      if (entryMap.has(repoRootKey)) {
-        stack.push(repoRootKey)
-      }
-    }
-
-    if (stack.length === 0) {
-      for (const entry of entries) {
-        if (entry.domain === this.#domain) {
-          stack.push(entry.cid.toString())
-        }
-      }
-    }
-
-    while (stack.length > 0) {
-      const cid = stack.pop()
-      if (keep.has(cid)) continue
-      const entry = entryMap.get(cid)
-      if (!entry) continue
-      keep.add(cid)
-      for (const parent of entry.parents || []) {
-        const parentKey = parent.toString()
-        if (!keep.has(parentKey)) {
-          stack.push(parentKey)
-        }
-      }
-    }
-
-    if (keep.size === 0) {
-      return entries
-    }
-
-    return entries.filter(entry => keep.has(entry.cid.toString()))
+    return entries
   }
 }
