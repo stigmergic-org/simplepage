@@ -40,7 +40,7 @@ export class IpfsService {
   async #ensureDir(path) {
     try {
       await this.client.files.stat(path)
-    } catch (error) {
+    } catch (_error) {
       await this.client.files.mkdir(path, { parents: true })
     }
   }
@@ -849,9 +849,11 @@ export class IpfsService {
     for (const entry of stagedEntries) {
       await this.#removePath(`${stagedDir}/${entry.timestamp}`, { recursive: false })
       try {
-          } catch (_error) {
-            // ignore if missing
-          }
+        const pinName = `${this.stagedPinPrefix}_${domain}_${entry.timestamp}`
+        await this.client.pin.rm(entry.cid, { name: pinName })
+      } catch (_error) {
+        // ignore if missing
+      }
     }
   }
 

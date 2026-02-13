@@ -1,12 +1,14 @@
 import { mimeType } from '@simplepg/common'
 
-export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null) {
+export function populateTemplate(templateHtml, body, targetDomain, path, { title, description } = {}, avatarPath = null, domainSuffix = '.link') {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
     rootElem.innerHTML = body
 
-    const populateUrl = (path) => [`https://${targetDomain}.link`, ...(path.split('/').filter(Boolean))].join('/')
+    const baseDomain = `${targetDomain}${domainSuffix}`
+    const baseUrl = `https://${baseDomain}`
+    const populateUrl = (path) => [baseUrl, ...(path.split('/').filter(Boolean))].join('/')
     const select = (name, isProp = false) => templateDoc.querySelector(`meta[${isProp ? 'property' : 'name'}="${name}"`)
     const setMeta = (name, content, isProp = false) => {
       select(name, isProp)?.setAttribute('content', content)
@@ -46,7 +48,7 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
 
     // Twitter
     setMeta('twitter:card', twitterCardType)
-    setMeta('twitter:domain', `${targetDomain}.link`)
+    setMeta('twitter:domain', baseDomain)
     setMeta('twitter:url', url)
     setMeta('twitter:title', titleText)
     setMeta('twitter:description', descriptionText)

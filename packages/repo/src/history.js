@@ -52,8 +52,6 @@ const parseIndexHtml = (html) => {
 export class History {
   #domain
   #dservice
-  #viemClient
-  #repoRoot
   #initPromise
   #resolveInitPromise
 
@@ -65,14 +63,11 @@ export class History {
     })
   }
 
-  init(viemClient, repoRootCid) {
-    this.#viemClient = viemClient
-    this.#repoRoot = repoRootCid
+  init(_viemClient, _repoRootCid) {
     this.#resolveInitPromise()
   }
 
-  setRepoRoot(repoRootCid) {
-    this.#repoRoot = repoRootCid
+  setRepoRoot(_repoRootCid) {
   }
 
   async get() {

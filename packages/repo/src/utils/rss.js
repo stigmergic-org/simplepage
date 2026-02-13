@@ -201,9 +201,10 @@ export function populateRssFeed(channel, items, options = {}) {
  * Generates a single RSS item from page data
  * @param {object} edit - The edit object containing page data
  * @param {string} targetDomain - The domain of the target repository
+ * @param {string} domainSuffix - Gateway suffix (default: '.link')
  * @returns {object|null} RSS item object or null if not eligible
  */
-export function generateRssItem(edit, targetDomain) {
+export function generateRssItem(edit, targetDomain, domainSuffix = '.link') {
   const frontmatter = parseFrontmatter(edit.markdown)
   
   // Skip pages without rss: true
@@ -216,9 +217,10 @@ export function generateRssItem(edit, targetDomain) {
   }
   
   // Build absolute URL
+  const baseUrl = `https://${targetDomain}${domainSuffix}`
   const pageUrl = edit.path === '/' 
-    ? `https://${targetDomain}.link` 
-    : `https://${targetDomain}.link/${edit.path.split('/').filter(Boolean).join('/')}`
+    ? baseUrl
+    : `${baseUrl}/${edit.path.split('/').filter(Boolean).join('/')}`
   
   // Build item
   return {
@@ -237,17 +239,20 @@ export function generateRssItem(edit, targetDomain) {
  * Generates RSS feed XML from items and channel metadata
  * @param {Array} items - Array of RSS item objects
  * @param {string} targetDomain - The domain of the target repository
+ * @param {string} domainSuffix - Gateway suffix (default: '.link')
  * @param {object} rootMetadata - Root page frontmatter
  * @returns {string|null} RSS XML feed or null if no items
  */
-export function generateRssFeed(items, targetDomain, rootMetadata) {
+export function generateRssFeed(items, targetDomain, rootMetadata, domainSuffix = '.link') {
   // If no RSS items, don't generate feed
   if (items.length === 0) return null
+
+  const baseUrl = `https://${targetDomain}${domainSuffix}`
   
   // Build channel metadata
   const channel = {
     title: rootMetadata.title || targetDomain,
-    link: `https://${targetDomain}.link`,
+    link: baseUrl,
     description: rootMetadata.description || `A SimplePage by ${targetDomain}`,
     language: rootMetadata.language || 'en'
   }
@@ -255,4 +260,3 @@ export function generateRssFeed(items, targetDomain, rootMetadata) {
   // Generate RSS feed
   return populateRssFeed(channel, items)
 }
-

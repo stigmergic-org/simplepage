@@ -489,12 +489,16 @@ export class Repo {
     }
   }
 
-  async #renderHtml({ body, markdown }, targetDomain, path, root, avatarPath) {
+  #getDomainSuffix() {
+    return this.chainId === 11155111 ? '.sepoliaens.eth.link' : '.link'
+  }
+
+  async #renderHtml({ body, markdown }, targetDomain, path, root, avatarPath, domainSuffix) {
     const templateHtml = await cat(this.unixfs, root, '/_template.html')
     
     // Extract title and description from markdown frontmatter
     const frontmatter = parseFrontmatter(markdown)
-    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath)
+    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath, domainSuffix)
   }
 
 
@@ -563,6 +567,7 @@ export class Repo {
       }
     }
     const avatarPath = await this.files.getAvatarPath()
+    const domainSuffix = this.#getDomainSuffix()
 
     // Collect RSS items while processing edits
     const rssItems = []
@@ -581,11 +586,11 @@ export class Repo {
         case CHANGE_TYPE.NEW:
         case CHANGE_TYPE.UPGRADE: {
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
-          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath)
+          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath, domainSuffix)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
           
           // Generate RSS item if applicable
-          const rssItem = generateRssItem(edit, targetDomain)
+          const rssItem = generateRssItem(edit, targetDomain, domainSuffix)
           if (rssItem) {
             rssItems.push(rssItem)
           }
@@ -599,7 +604,7 @@ export class Repo {
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
     
     // Generate RSS feed
-    const rssXml = generateRssFeed(rssItems, targetDomain, rootMetadata)
+    const rssXml = generateRssFeed(rssItems, targetDomain, rootMetadata, domainSuffix)
     if (rssXml) {
       rootPointer = await addFile(this.unixfs, rootPointer, 'rss.xml', rssXml)
     }
