@@ -296,8 +296,8 @@ const Publish = () => {
     checkExistingContent();
   }, [selectedDomain, domain]);
 
-  const publishOrFork = selectedDomain === domain ? 'Publish' : 'Fork';
-  document.title = `${publishOrFork} - ${selectedDomain}`;
+  const publishLabel = 'Publish';
+  document.title = `${publishLabel} - ${selectedDomain}`;
 
 
   return (
@@ -315,7 +315,7 @@ const Publish = () => {
           publishedDomain={selectedDomain !== domain ? selectedDomain : null}
         >
           <h1 className="text-3xl font-bold mb-6">
-            {publishOrFork} {unstagedEdits.length + fileChanges.length + settingsChangeDiff.length} {(unstagedEdits.length + fileChanges.length + settingsChangeDiff.length) === 1 ? 'change' : 'changes'}
+            {publishLabel} {unstagedEdits.length + fileChanges.length + settingsChangeDiff.length} {(unstagedEdits.length + fileChanges.length + settingsChangeDiff.length) === 1 ? 'change' : 'changes'}
           </h1>
           
           <div className="mb-6">
@@ -365,7 +365,7 @@ const Publish = () => {
           <div className="mb-6">
             {unstagedEdits.length > 0 && (
               <>
-                <h2 className="text-xl font-semibold mb-2">Pages being {publishOrFork.toLowerCase()}ed:</h2>
+                <h2 className="text-xl font-semibold mb-2">Pages being {publishLabel.toLowerCase()}ed:</h2>
                 <ul className="list-inside">
                   {unstagedEdits.map((change, index) => (
                     <li key={index}>
@@ -380,7 +380,7 @@ const Publish = () => {
 
           {fileChanges.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Files being {publishOrFork.toLowerCase()}ed:</h2>
+              <h2 className="text-xl font-semibold mb-2">Files being {publishLabel.toLowerCase()}ed:</h2>
               <ul className="list-inside">
                 {fileChanges.map((file, index) => (
                   <li key={index} className="flex items-center justify-between">
@@ -400,7 +400,7 @@ const Publish = () => {
 
           {settingsChangeDiff.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Settings being {publishOrFork.toLowerCase()}ed:</h2>
+              <h2 className="text-xl font-semibold mb-2">Settings being {publishLabel.toLowerCase()}ed:</h2>
               <div className="border border-base-300 rounded-md p-3 bg-base-200">
                 <div className="mt-2">
                   <span className="text-sm font-medium text-base-content/80">Changes:</span>
@@ -475,7 +475,7 @@ const Publish = () => {
                   <span>Preparing...</span>
                 </>
               ) : (
-                publishOrFork
+                publishLabel
               )}
             </button>
           </div>

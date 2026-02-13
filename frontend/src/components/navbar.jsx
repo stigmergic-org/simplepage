@@ -238,9 +238,10 @@ const Navbar = ({
   }, [onNavbarInfoChange]);
 
   const forkButton = forkStyle && (
-    <div className="tooltip tooltip-bottom" data-tip={forkStyle === 'plain' ? 'Fork' : ''}>
+    <div className="tooltip tooltip-bottom" data-tip={forkStyle === 'plain' ? 'Edit' : ''}>
       <button
         className={`btn btn-sm ${forkStyle === 'rainbow' ? 'btn-ghost rainbow-fork' : 'bg-transparent'} text-lg`}
+        aria-label="Edit"
         onClick={() => { goToEdit(path) }}
       >
         {forkStyle === 'rainbow' ? (<>
@@ -256,7 +257,7 @@ const Navbar = ({
               </mask>
             </defs>
           </svg>
-          fork
+          edit
         </>) : (
           <Icon name="fork" size={4} />
         )}
@@ -353,7 +354,7 @@ const Navbar = ({
             )}
 
 
-            {/* Fork button */}
+            {/* Edit button */}
             {!editMode ? forkButton : (<>
                 {/* Hamburger menu */}
                 <div className="dropdown dropdown-end relative z-[100]">

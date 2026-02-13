@@ -69,7 +69,7 @@ const Settings = () => {
     loadSettings();
   }, [repo]);
 
-  // Save fork button style to settings
+  // Save edit button style to settings
   const handleForkButtonStyleChange = async (newStyle) => {
     await repo.settings.writeProperty('appearance.forkStyle', newStyle);
     setForkStyle(newStyle);
@@ -172,10 +172,10 @@ const Settings = () => {
               Appearance
             </h2>
 
-            {/* Fork Button Style */}
+            {/* Edit Button Style */}
             <div className="form-control mb-6">
               <label className="label">
-                <span className="label-text font-medium mb-2">Fork Button Style</span>
+                <span className="label-text font-medium mb-2">Edit Button Style</span>
               </label>
               <div className="flex flex-row gap-6">
                 <label className="label cursor-pointer justify-start gap-3">
@@ -198,7 +198,7 @@ const Settings = () => {
                         </mask>
                       </defs>
                     </svg>
-                    {'fork'}
+                    {'edit'}
                   </button>
                 </label>
 
