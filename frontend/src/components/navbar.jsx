@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router';
 import { useEnsAvatar } from 'wagmi'
 import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
@@ -23,7 +24,7 @@ const Navbar = ({
   });
   const { repo, root: repoRoot, dserviceFailed, rpcFailed } = useRepo();
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToRoot, goToSettings, goToHistory } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToSettings, ROUTES } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
@@ -262,10 +263,11 @@ const Navbar = ({
       </button>
     </div>
   )
+  const rootHref = window.location.origin;
   const domainTitle = (
-    <span className="text-base font-bold cursor-pointer" onClick={goToRoot} >
+    <a className="text-base font-bold" href={rootHref}>
       {domain}
-    </span>
+    </a>
   )
   const showSearch = searchEnabled && !editMode
 
@@ -290,23 +292,24 @@ const Navbar = ({
     <div className="relative z-[100] border-b bg-base-100 border-base-300">
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
-          <img
-            src={avatarPath}
-            alt="Logo"
-            className={`h-9 w-9 cursor-pointer ${avatarPath.includes(defaultLogo) ? '' : 'mask mask-squircle'}`}
-            onClick={goToRoot}
-          />
+          <a href={rootHref} className="inline-flex">
+            <img
+              src={avatarPath}
+              alt="Logo"
+              className={`h-9 w-9 ${avatarPath.includes(defaultLogo) ? '' : 'mask mask-squircle'}`}
+            />
+          </a>
         </div>
         <div className="navbar-center flex items-center justify-center h-full">
           {domainTitle}
           {repoRoot && (
-            <div
+            <Link
               data-tip="Integrity"
               className="tooltip tooltip-bottom text-base cursor-pointer pl-1 flex items-center leading-none"
-              onClick={goToHistory}
+              to={ROUTES.HISTORY}
             >
               <Icon name="proof" size={4} />
-            </div>
+            </Link>
           )}
         </div>
         <div className="navbar-end mr-4">
