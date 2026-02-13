@@ -12,30 +12,26 @@ import Icon from './components/Icon';
 import WalletInfo from './components/WalletInfo';
 import Notice from './components/Notice';
 import UnitToggle from './components/UnitToggle';
-import { createConfig, WagmiProvider, unstable_connector, useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
+import { WagmiProvider, useAccount, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia } from 'wagmi/chains';
-import { injected, safe } from 'wagmi/connectors';
 import { normalize } from 'viem/ens';
 import { useChainId } from './hooks/useChainId';
+import { buildWagmiConfig } from './wagmi/config';
 import './app.css';
 
-// Create wagmi config for iframe
-const wagmiConfig = createConfig({
-  chains: [mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia],
-  connectors: [injected(), safe()],
-  transports: {
-    [mainnet.id]: unstable_connector(injected),
-    [sepolia.id]: unstable_connector(injected),
-    [base.id]: unstable_connector(injected),
-    [baseSepolia.id]: unstable_connector(injected),
-    [arbitrum.id]: unstable_connector(injected),
-    [arbitrumSepolia.id]: unstable_connector(injected),
-    [optimism.id]: unstable_connector(injected),
-    [optimismSepolia.id]: unstable_connector(injected),
-    [linea.id]: unstable_connector(injected),
-    [lineaSepolia.id]: unstable_connector(injected),
-  },
+const walletConnectProjectId = process.env.WALLETCONNECT_PROJECT_ID;
+const chains = [mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia, linea, lineaSepolia];
+const rpcMap = {
+  ...(process.env.MAINNET_RPC_URL ? { [mainnet.id]: process.env.MAINNET_RPC_URL } : {}),
+  ...(process.env.SEPOLIA_RPC_URL ? { [sepolia.id]: process.env.SEPOLIA_RPC_URL } : {}),
+};
+
+const wagmiConfig = buildWagmiConfig({
+  chains,
+  rpcMap,
+  walletConnectProjectId,
+  useConnectorFallback: true,
 });
 
 // Create query client
@@ -68,6 +64,7 @@ const Web3FormApp = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txFailure, setTxFailure] = useState(null);
   const [showTxFailureDetails, setShowTxFailureDetails] = useState(false);
+  const [isConnectUiOpen, setIsConnectUiOpen] = useState(false);
   const [valueUnit, setValueUnit] = useState('ETH');
   const [argUnits, setArgUnits] = useState([]);
   const [returnUnit, setReturnUnit] = useState('scaled');
@@ -230,7 +227,7 @@ const Web3FormApp = () => {
       const height = containerRef.current.scrollHeight;
       iframeRef.style.height = `${height + 20}px`;
     }
-  }, [parsedData, isLoading, parseError, formError, iframeRef, returnValue, txHash, txFailure, showTxFailureDetails]);
+  }, [parsedData, isLoading, parseError, formError, iframeRef, returnValue, txHash, txFailure, showTxFailureDetails, isConnectUiOpen]);
 
   const handleInputChange = (e) => {
     setFormInputs(prev => ({
@@ -723,7 +720,11 @@ const Web3FormApp = () => {
       </form>
 
       <div className="divider"></div>
-      <WalletInfo expectedChainId={parsedData?.chainId} noBottomMargin={true} />
+      <WalletInfo
+        expectedChainId={parsedData?.chainId}
+        noBottomMargin={true}
+        onConnectUiChange={setIsConnectUiOpen}
+      />
     </div>
   );
 };
