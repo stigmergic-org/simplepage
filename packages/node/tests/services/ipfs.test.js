@@ -715,6 +715,113 @@ describe('IpfsService', () => {
     })
   })
 
+  describe('Resolver index', () => {
+    const resolver1 = '0x1111111111111111111111111111111111111111'
+    const resolver2 = '0x2222222222222222222222222222222222222222'
+    const resolver3 = '0x3333333333333333333333333333333333333333'
+
+    it('setDomainResolver should update resolver counts', async () => {
+      await ipfsService.resetIndexerData()
+      const domain1 = 'resolver-index-1.eth'
+      const domain2 = 'resolver-index-2.eth'
+
+      await ipfsService.setDomainResolver(domain1, resolver1)
+      await ipfsService.setDomainResolver(domain2, resolver1)
+      let counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver1)).toBe(2)
+
+      await ipfsService.setDomainResolver(domain1, resolver2)
+      counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver1)).toBe(1)
+      expect(counts.get(resolver2)).toBe(1)
+
+      await ipfsService.setDomainResolver(domain2, resolver2)
+      counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver1)).toBeUndefined()
+      expect(counts.get(resolver2)).toBe(2)
+    })
+
+    it('setDomainResolver should remove resolver on zero address', async () => {
+      await ipfsService.resetIndexerData()
+      const domain = 'resolver-index-zero.eth'
+
+      await ipfsService.setDomainResolver(domain, resolver3)
+      let counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver3)).toBe(1)
+
+      await ipfsService.setDomainResolver(domain, '0x0000000000000000000000000000000000000000')
+      counts = await ipfsService.getResolverCounts()
+      expect(counts.has(resolver3)).toBe(false)
+    })
+
+    it('rebuildResolverIndex should rebuild from domain resolver files', async () => {
+      await ipfsService.resetIndexerData()
+      const domain1 = 'resolver-rebuild-1.eth'
+      const domain2 = 'resolver-rebuild-2.eth'
+
+      await ipfsService.ensureDomain(domain1)
+      await ipfsService.ensureDomain(domain2)
+      const resolverPath1 = `/spg-data/${namespace}/domains/${domain1}/resolver`
+      const resolverPath2 = `/spg-data/${namespace}/domains/${domain2}/resolver`
+      await kuboApi.files.write(resolverPath1, new TextEncoder().encode(resolver1), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+      await kuboApi.files.write(resolverPath2, new TextEncoder().encode(resolver2), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+
+      await ipfsService.rebuildResolverIndex()
+      const counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver1)).toBe(1)
+      expect(counts.get(resolver2)).toBe(1)
+    })
+
+    it('getResolverCounts should rebuild legacy resolver index', async () => {
+      await ipfsService.resetIndexerData()
+      const domain1 = 'resolver-legacy-1.eth'
+      const domain2 = 'resolver-legacy-2.eth'
+      const domain3 = 'resolver-legacy-3.eth'
+
+      await ipfsService.ensureDomain(domain1)
+      await ipfsService.ensureDomain(domain2)
+      await ipfsService.ensureDomain(domain3)
+      const resolverPath1 = `/spg-data/${namespace}/domains/${domain1}/resolver`
+      const resolverPath2 = `/spg-data/${namespace}/domains/${domain2}/resolver`
+      const resolverPath3 = `/spg-data/${namespace}/domains/${domain3}/resolver`
+      await kuboApi.files.write(resolverPath1, new TextEncoder().encode(resolver1), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+      await kuboApi.files.write(resolverPath2, new TextEncoder().encode(resolver2), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+      await kuboApi.files.write(resolverPath3, new TextEncoder().encode(resolver2), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+
+      const resolversPath = `/spg-data/${namespace}/resolvers`
+      const legacyContent = `${resolver1}\n${resolver2}\n`
+      await kuboApi.files.write(resolversPath, new TextEncoder().encode(legacyContent), {
+        create: true,
+        truncate: true,
+        parents: true
+      })
+
+      const counts = await ipfsService.getResolverCounts()
+      expect(counts.get(resolver1)).toBe(1)
+      expect(counts.get(resolver2)).toBe(2)
+    })
+  })
+
   describe('Pin failures', () => {
     it('should list and retry failed finalized pins', async () => {
       const domain = 'pin-fail.eth'

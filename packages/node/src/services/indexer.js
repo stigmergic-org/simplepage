@@ -43,6 +43,7 @@ export class IndexerService {
     })
 
     await this.#ensureTemplateDomain()
+    await this.ipfsService.rebuildResolverIndex()
 
     // Start polling loop
     this.pollLoop()
@@ -122,6 +123,8 @@ export class IndexerService {
 
   async processBlockRange(fromBlock, toBlock) {
     this.logger.debug('Processing block range', { fromBlock, toBlock })
+    const baseResolvers = await this.ipfsService.listActiveResolvers()
+    const resolverSet = new Set(baseResolvers.map(resolver => resolver.toLowerCase()))
     const mintLogs = await this.client.getLogs({
       address: this.simplePageContract,
       event: contracts.abis.SimplePage.find(abi => abi.name === 'Transfer'),
@@ -146,6 +149,9 @@ export class IndexerService {
     for (const page of pagesData) {
       await this.ipfsService.ensureDomain(page.pageData.domain)
       await this.ipfsService.setDomainResolver(page.pageData.domain, page.resolver)
+      if (page.resolver && page.resolver !== ZERO_ADDRESS) {
+        resolverSet.add(page.resolver.toLowerCase())
+      }
     }
 
     const domains = await this.ipfsService.listDomains()
@@ -154,32 +160,41 @@ export class IndexerService {
       return acc
     }, {})
 
-    // Track contenthash updates
-    const resolvers = await this.ipfsService.getList('resolvers')
-    if (resolvers.length > 0) {
-      this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolvers.length })
-    }
-    const resolverAddresses = [...new Set(resolvers.map(resolver => resolver.toLowerCase()))]
     const ensRegistryEvent = contracts.abis.EnsRegistry.find(abi => abi.name === 'NewResolver')
     const resolverEvent = contracts.abis.EnsResolver.find(abi => abi.name === 'ContenthashChanged')
 
-    const [newResolverLogs, contenthashLogBatches] = await Promise.all([
-      this.client.getLogs({
-        address: contracts.ensRegistry[this.chainId],
-        event: ensRegistryEvent,
+    const newResolverLogs = await this.client.getLogs({
+      address: contracts.ensRegistry[this.chainId],
+      event: ensRegistryEvent,
+      fromBlock: BigInt(fromBlock),
+      toBlock: BigInt(toBlock)
+    })
+
+    for (const log of newResolverLogs) {
+      const domain = domainFromNode[log.args.node]
+      if (!domain) continue
+      const currentResolver = await this.ipfsService.getDomainResolver(domain)
+      if (currentResolver && currentResolver !== ZERO_ADDRESS) {
+        resolverSet.add(currentResolver.toLowerCase())
+      }
+      if (log.args?.resolver && log.args.resolver !== ZERO_ADDRESS) {
+        resolverSet.add(log.args.resolver.toLowerCase())
+      }
+    }
+
+    const resolverAddresses = [...resolverSet]
+    if (resolverAddresses.length > 0) {
+      this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolverAddresses.length })
+    }
+    let contenthashLogs = []
+    if (resolverAddresses.length > 0) {
+      contenthashLogs = await this.client.getLogs({
+        address: resolverAddresses,
+        event: resolverEvent,
         fromBlock: BigInt(fromBlock),
         toBlock: BigInt(toBlock)
-      }),
-      Promise.all(
-        resolverAddresses.map(resolver => this.client.getLogs({
-          address: resolver,
-          event: resolverEvent,
-          fromBlock: BigInt(fromBlock),
-          toBlock: BigInt(toBlock)
-        }))
-      )
-    ])
-    const contenthashLogs = contenthashLogBatches.flat()
+      })
+    }
 
     this.logger.debug('NewResolver logs fetched', { count: newResolverLogs.length, fromBlock, toBlock })
     this.logger.debug('Contenthash logs fetched', {

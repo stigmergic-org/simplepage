@@ -11,9 +11,9 @@ export async function handleIndexerDataCommand(action, ipfsApiUrl, chainId) {
   try {
     if (action === 'show') {
       const domains = await ipfs.listDomains();
-      const resolvers = await ipfs.getList('resolvers');
+      const resolverCounts = await ipfs.getResolverCounts();
       console.log('Domains:', domains);
-      console.log('Resolvers:', resolvers);
+      console.log('Resolvers:', Array.from(resolverCounts.entries()).map(([resolver, count]) => ({ resolver, count })));
       for (const domain of domains) {
         const finalizations = await ipfs.getFinalizations(domain);
         console.log(`finalized_${domain}:`, finalizations.map(entry => ({

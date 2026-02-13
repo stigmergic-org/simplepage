@@ -19,10 +19,14 @@ class MockIpfsService {
     this.stagedEntries = new Map();
     this.domains = new Set();
     this.domainResolvers = new Map();
+    this.resolverCounts = new Map();
     this.zeroAddress = '0x0000000000000000000000000000000000000000';
   }
 
   async getList(name) {
+    if (name === 'resolvers') {
+      return Array.from(this.resolverCounts.keys());
+    }
     return this.lists.get(name) || [];
   }
 
@@ -50,9 +54,38 @@ class MockIpfsService {
 
   async setDomainResolver(domain, resolver) {
     const normalizedResolver = resolver ? resolver.toLowerCase() : this.zeroAddress;
+    const currentResolver = this.domainResolvers.get(domain) || null;
+    if (currentResolver !== normalizedResolver) {
+      if (currentResolver && currentResolver !== this.zeroAddress) {
+        const currentCount = this.resolverCounts.get(currentResolver) || 0;
+        if (currentCount <= 1) {
+          this.resolverCounts.delete(currentResolver);
+        } else {
+          this.resolverCounts.set(currentResolver, currentCount - 1);
+        }
+      }
+      if (normalizedResolver !== this.zeroAddress) {
+        const nextCount = this.resolverCounts.get(normalizedResolver) || 0;
+        this.resolverCounts.set(normalizedResolver, nextCount + 1);
+      }
+    }
     this.domainResolvers.set(domain, normalizedResolver);
-    if (normalizedResolver !== this.zeroAddress) {
-      await this.addToList('resolvers', normalizedResolver);
+  }
+
+  async getResolverCounts() {
+    return new Map(this.resolverCounts);
+  }
+
+  async listActiveResolvers() {
+    return Array.from(this.resolverCounts.keys());
+  }
+
+  async rebuildResolverIndex() {
+    this.resolverCounts.clear();
+    for (const resolver of this.domainResolvers.values()) {
+      if (!resolver || resolver === this.zeroAddress) continue;
+      const current = this.resolverCounts.get(resolver) || 0;
+      this.resolverCounts.set(resolver, current + 1);
     }
   }
 
@@ -208,10 +241,10 @@ describe('Pages Indexer', () => {
       }
 
       // Verify resolvers list
-      const resolvers = await ipfsMock.getList('resolvers')
-      expect(resolvers.length).toBe(2) // Should have both resolvers
-      expect(resolvers).toContain(deployments.resolver1.toLowerCase())
-      expect(resolvers).toContain(deployments.resolver2.toLowerCase())
+      const resolverCounts = await ipfsMock.getResolverCounts()
+      expect(resolverCounts.size).toBe(2) // Should have both resolvers
+      expect(resolverCounts.get(deployments.resolver1.toLowerCase())).toBe(1)
+      expect(resolverCounts.get(deployments.resolver2.toLowerCase())).toBe(1)
 
       // Verify finalizations for each domain
       for (const { name, cid } of TEST_DATA) {
@@ -295,10 +328,19 @@ describe('Pages Indexer', () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       await indexer.stop();
 
-      // Verify both resolvers are tracked
-      const resolvers = await ipfsMock.getList('resolvers');
-      expect(resolvers).toContain(deployments[initialResolver].toLowerCase());
-      expect(resolvers).toContain(deployments[newResolver].toLowerCase());
+      // Verify resolver counts match current domain resolvers
+      const resolverCounts = await ipfsMock.getResolverCounts();
+      const domains = await ipfsMock.listDomains();
+      const expectedCounts = new Map();
+      for (const name of domains) {
+        const resolver = await ipfsMock.getDomainResolver(name);
+        if (!resolver || resolver === ipfsMock.zeroAddress) continue;
+        expectedCounts.set(resolver, (expectedCounts.get(resolver) || 0) + 1);
+      }
+      expect(resolverCounts.size).toBe(expectedCounts.size);
+      for (const [resolver, count] of expectedCounts) {
+        expect(resolverCounts.get(resolver)).toBe(count);
+      }
 
       const storedResolver = await ipfsMock.getDomainResolver(domain)
       expect(storedResolver).toBe(deployments[newResolver].toLowerCase())
@@ -442,8 +484,8 @@ describe('Pages Indexer', () => {
       expect(domains).toContain(allowedDomain);
 
       // Verify that the resolver was tracked
-      const resolvers = await ipfsMock.getList('resolvers');
-      expect(resolvers).toContain(deployments[resolver].toLowerCase());
+      const resolverCounts = await ipfsMock.getResolverCounts();
+      expect(resolverCounts.get(deployments[resolver].toLowerCase())).toBe(1);
 
       // Verify that contenthash updates were tracked
       const finalizations = await ipfsMock.getFinalizations(allowedDomain);

@@ -32,6 +32,7 @@ export class IpfsService {
     this._rootPinCid = null
     this._domainsCache = null
     this._resolverCache = new Map()
+    this._resolverCountsCache = null
     this._lastRetryFailedPins = 0
     this._rootEnsured = false
     this.disableProvide = Boolean(disableProvide)
@@ -621,6 +622,83 @@ export class IpfsService {
     this.logger.info('Removed item from list', { name, value })
   }
 
+  #parseResolverCounts(content) {
+    const counts = new Map()
+    let hasLegacy = false
+    if (!content) {
+      return { counts, hasLegacy }
+    }
+    const lines = content
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+    for (const line of lines) {
+      const [rawResolver, rawCount] = line.split(/\s+/)
+      if (!rawResolver) continue
+      const resolver = rawResolver.toLowerCase()
+      let count = Number.parseInt(rawCount, 10)
+      if (!rawCount || Number.isNaN(count)) {
+        hasLegacy = true
+        count = 1
+      }
+      if (count <= 0) continue
+      counts.set(resolver, (counts.get(resolver) || 0) + count)
+    }
+    return { counts, hasLegacy }
+  }
+
+  async #writeResolverCounts(counts) {
+    const entries = [...counts.entries()].filter(([, count]) => count > 0)
+    entries.sort(([a], [b]) => a.localeCompare(b))
+    const path = `${this.dataRoot}/resolvers`
+    if (entries.length === 0) {
+      await this.#removePath(path, { recursive: false })
+      this._resolverCountsCache = new Map()
+      this._listCache.delete('resolvers')
+      return
+    }
+    const content = entries.map(([resolver, count]) => `${resolver} ${count}`).join('\n')
+    await this.#writeFile(path, content, { updateRootPin: true })
+    this._resolverCountsCache = new Map(entries)
+    this._listCache.delete('resolvers')
+  }
+
+  async getResolverCounts() {
+    await this.#ensureRootDir()
+    if (this._resolverCountsCache) {
+      return new Map(this._resolverCountsCache)
+    }
+    const content = await this.#readFile(`${this.dataRoot}/resolvers`)
+    const { counts, hasLegacy } = this.#parseResolverCounts(content)
+    if (hasLegacy) {
+      this.logger.debug('Legacy resolver index detected, rebuilding')
+      await this.rebuildResolverIndex()
+      return new Map(this._resolverCountsCache || [])
+    }
+    this._resolverCountsCache = counts
+    return new Map(counts)
+  }
+
+  async listActiveResolvers() {
+    const counts = await this.getResolverCounts()
+    return [...counts.entries()]
+      .filter(([, count]) => count > 0)
+      .map(([resolver]) => resolver)
+  }
+
+  async rebuildResolverIndex() {
+    const domains = await this.listDomains()
+    const counts = new Map()
+    for (const domain of domains) {
+      const resolver = await this.getDomainResolver(domain)
+      if (!resolver || resolver === ZERO_ADDRESS) continue
+      const normalized = resolver.toLowerCase()
+      counts.set(normalized, (counts.get(normalized) || 0) + 1)
+    }
+    await this.#writeResolverCounts(counts)
+    this.logger.debug('Rebuilt resolver index', { resolverCount: counts.size, domainCount: domains.length })
+  }
+
   async ensureDomain(domain) {
     await this.#ensureRootDir()
     await this.#ensureDir(await this.#getDomainDir(domain))
@@ -634,8 +712,23 @@ export class IpfsService {
     await this.ensureDomain(domain)
     const resolverPath = await this.#getResolverPath(domain)
     const value = resolver ? resolver.toLowerCase() : ZERO_ADDRESS
-    if (value !== ZERO_ADDRESS) {
-      await this.addToList('resolvers', value)
+    const currentResolver = await this.getDomainResolver(domain)
+    const normalizedCurrent = currentResolver ? currentResolver.toLowerCase() : null
+    if (normalizedCurrent !== value) {
+      const counts = await this.getResolverCounts()
+      if (normalizedCurrent && normalizedCurrent !== ZERO_ADDRESS) {
+        const currentCount = counts.get(normalizedCurrent) || 0
+        if (currentCount <= 1) {
+          counts.delete(normalizedCurrent)
+        } else {
+          counts.set(normalizedCurrent, currentCount - 1)
+        }
+      }
+      if (value !== ZERO_ADDRESS) {
+        const nextCount = counts.get(value) || 0
+        counts.set(value, nextCount + 1)
+      }
+      await this.#writeResolverCounts(counts)
     }
     await this.#writeFile(resolverPath, value, { updateRootPin: true })
     this._resolverCache.set(domain, value)
@@ -876,6 +969,7 @@ export class IpfsService {
     this._listCache.clear()
     this._domainsCache = null
     this._resolverCache.clear()
+    this._resolverCountsCache = null
     await this.#updateRootPin()
   }
 
