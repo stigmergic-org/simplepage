@@ -6,6 +6,7 @@ import cors from 'cors'
 import { CID } from 'multiformats/cid'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { createUploadRateLimiters, getClientIp, resolveUploadRateLimits } from './rateLimit.js'
 
 // Get current file's directory
 const __filename = fileURLToPath(import.meta.url)
@@ -82,8 +83,9 @@ class HTTPError extends Error {
  * @property {string} file.required - The CAR file to upload - binary
  */
 
-export function createApi({ ipfs, _indexer, version, logger }) {
+export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, trustProxy = false }) {
   const app = express()
+  app.set('trust proxy', Boolean(trustProxy))
   const upload = multer({
     limits: {
       fileSize: 500 * 1024 * 1024 // 500MB limit
@@ -105,7 +107,7 @@ export function createApi({ ipfs, _indexer, version, logger }) {
   
   // Request logging middleware
   app.use((req, res, next) => {
-    const clientIP = req.ip || req.socket.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown'
+    const clientIP = getClientIp(req)
     const userAgent = req.get('User-Agent') || 'unknown'
     const startTime = Date.now()
     
@@ -179,6 +181,13 @@ export function createApi({ ipfs, _indexer, version, logger }) {
     }))
     
     logger.info('Swagger UI setup complete at /docs')
+  })
+
+  const maxStagedAgeSeconds = Number.isFinite(ipfs?.maxStagedAge) ? ipfs.maxStagedAge : 60 * 60
+  const uploadRateLimits = resolveUploadRateLimits({ rateLimits, maxStagedAgeSeconds })
+  const { preUploadLimiter, postUploadLimiter } = createUploadRateLimiters({
+    logger,
+    ...uploadRateLimits
   })
 
   /**
@@ -273,7 +282,7 @@ export function createApi({ ipfs, _indexer, version, logger }) {
    * @returns {ErrorResponse} 413 - File too large (max 500MB) - application/json
    * @returns {ErrorResponse} 500 - Server error - application/json
    */
-  app.post('/page', upload.single('file'), async (req, res, _next) => {
+  app.post('/page', preUploadLimiter, upload.single('file'), postUploadLimiter, async (req, res, _next) => {
     try {
       const { domain } = req.query
       if (!domain) {

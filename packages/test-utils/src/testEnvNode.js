@@ -42,7 +42,12 @@ export class TestEnvironmentNode {
       },
       api: {
         port: this.dservicePort,
-        host: 'localhost'
+        host: 'localhost',
+        rateLimits: {
+          upload: {
+            enabled: false
+          }
+        }
       },
       blockchain: {
         rpcUrl: this.evm.url,

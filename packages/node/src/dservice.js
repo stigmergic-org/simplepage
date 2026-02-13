@@ -71,9 +71,11 @@ export class DService {
       this.logger.info('Creating API application')
       this.app = createApi({ 
         ipfs: this.ipfs, 
-        indexer: this.indexer, 
+        _indexer: this.indexer, 
         version: this.config.version,
-        logger: this.logger
+        logger: this.logger,
+        rateLimits: this.config.api?.rateLimits,
+        trustProxy: this.config.api?.trustProxy
       })
 
       // Start server
