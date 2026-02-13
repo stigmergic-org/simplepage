@@ -5,6 +5,7 @@ import { globSource } from '@helia/unixfs'
 import all from 'it-all'
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts'
+import { Buffer } from 'node:buffer';
 import { join } from 'path';
 import { CID } from 'multiformats/cid'
 import { JSDOM } from 'jsdom'
@@ -69,6 +70,19 @@ class MockStorage {
 const cat = async (kubo, path) => {
   const content = await all(await kubo.cat(path))
   return new TextDecoder().decode(content[0])
+}
+
+const catBytes = async (kubo, path) => {
+  const content = await all(await kubo.cat(path))
+  if (content.length === 1) return content[0]
+  const length = content.reduce((sum, chunk) => sum + chunk.length, 0)
+  const merged = new Uint8Array(length)
+  let offset = 0
+  for (const chunk of content) {
+    merged.set(chunk, offset)
+    offset += chunk.length
+  }
+  return merged
 }
 
 const ls = async (kubo, path) => {
@@ -1218,6 +1232,7 @@ This is a test.`;
       expect(manifestData.icons.length).toBe(1);
       expect(manifestData.icons[0].src).toBe('/_assets/images/logo.png');
       expect(manifestData.icons[0].type).toBe('image/png');
+      expect(manifestData.icons[0].sizes).toBe('256x256');
       expect(manifestData.dapp_repository).toBe('https://github.com/stigmergic-org/simplepage');
       expect(manifestData.dapp_contracts).toEqual([]);
 
@@ -2329,7 +2344,8 @@ Thoughts and insights about technology and development.`,
       await repo.finalizeCommit(initialResult.cid);
 
       // Set an avatar
-      const avatarContent = new TextEncoder().encode('fake-avatar-png-data');
+      const avatarPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+      const avatarContent = Uint8Array.from(Buffer.from(avatarPngBase64, 'base64'));
       await repo.files.setAvatar(avatarContent, 'png');
 
       // Make a small edit to one page to trigger staging
@@ -2341,8 +2357,8 @@ Thoughts and insights about technology and development.`,
       expect(avatarResult.cid instanceof CID).toBe(true);
 
       // Verify avatar file is stored in the _files directory
-      const storedAvatarContent = await cat(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/.avatar.png`);
-      expect(storedAvatarContent).toBe('fake-avatar-png-data');
+      const storedAvatarContent = await catBytes(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/.avatar.png`);
+      expect(storedAvatarContent).toEqual(avatarContent);
 
       // Verify that ALL pages now have the avatar as favicon, Open Graph image, and Twitter image
       for (const page of Object.values(pages)) {
@@ -2390,6 +2406,7 @@ Thoughts and insights about technology and development.`,
       expect(manifestData.icons.length).toBe(1);
       expect(manifestData.icons[0].src).toBe('/_files/.avatar.png');
       expect(manifestData.icons[0].type).toBe('image/png');
+      expect(manifestData.icons[0].sizes).toBe('1x1');
     });
 
     it('should use first img tag in page content for social media previews', async () => {

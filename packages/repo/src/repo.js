@@ -33,6 +33,20 @@ import { CHANGE_TYPE, isReservedPath } from './constants.js'
 const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 const EDIT_PREFIX = 'spg_edit_'
 
+const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
+
+const readPngSize = (bytes) => {
+  if (!bytes || bytes.length < 24) return null
+  for (let i = 0; i < PNG_SIGNATURE.length; i++) {
+    if (bytes[i] !== PNG_SIGNATURE[i]) return null
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const width = view.getUint32(16)
+  const height = view.getUint32(20)
+  if (!width || !height) return null
+  return { width, height }
+}
+
 const pathToTitle = (path) => {
   if (!path) return ''
   const lastSegment = path.split('/').filter(Boolean).pop()
@@ -582,6 +596,17 @@ export class Repo {
       }
     }
     const avatarPath = await this.files.getAvatarPath()
+    const avatarFilePath = avatarPath ? avatarPath.replace(`/${FILES_FOLDER}/`, '') : null
+    let avatarIconSizes = null
+    if (avatarFilePath && avatarFilePath.toLowerCase().endsWith('.png')) {
+      try {
+        const avatarBytes = await this.files.cat(avatarFilePath)
+        const avatarSize = readPngSize(avatarBytes)
+        if (avatarSize) {
+          avatarIconSizes = `${avatarSize.width}x${avatarSize.height}`
+        }
+      } catch (_e) { /* Ignore size detection errors */ }
+    }
     const domainSuffix = this.#getDomainSuffix()
 
     // Collect RSS items while processing edits
@@ -614,7 +639,7 @@ export class Repo {
       }
     }
     const rootMetadata = await this.getMetadata('/')
-    const manifest = populateManifest(targetDomain, rootMetadata, avatarPath)
+    const manifest = populateManifest(targetDomain, rootMetadata, avatarPath, { sizes: avatarIconSizes })
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.json', manifest)
     rootPointer = await addFile(this.unixfs, rootPointer, 'manifest.webmanifest', manifest)
     

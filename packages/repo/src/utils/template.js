@@ -39,6 +39,18 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
       faviconElement.setAttribute('href', avatarPath)
       imageUrl = populateUrl(avatarPath)
     }
+
+    // set apple touch icon (iOS homescreen)
+    const appleTouchIconHref = avatarPath && mimeType(avatarPath) !== 'image/svg+xml'
+      ? avatarPath
+      : '/_assets/images/logo.png'
+    let appleTouchIcon = templateDoc.querySelector('link[rel="apple-touch-icon"]')
+    if (!appleTouchIcon) {
+      appleTouchIcon = templateDoc.createElement('link')
+      appleTouchIcon.setAttribute('rel', 'apple-touch-icon')
+      head.appendChild(appleTouchIcon)
+    }
+    appleTouchIcon.setAttribute('href', appleTouchIconHref)
     let twitterCardType = 'summary'
     // Check if body has any img tags and use the first one for social media
     const firstImgSrc = rootElem.querySelector('img')?.getAttribute('src')
@@ -73,7 +85,7 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     return `<!DOCTYPE html>\n${templateDoc.documentElement.outerHTML}`;
 }
 
-export function populateManifest(domain, { title, description } = {}, avatarPath = null) {
+export function populateManifest(domain, { title, description } = {}, avatarPath = null, avatarIcon = null) {
   const manifest = {
     name: title || domain,
     short_name: domain,
@@ -82,18 +94,18 @@ export function populateManifest(domain, { title, description } = {}, avatarPath
     dapp_contracts: [],
     icons: [],
   }
+  const buildIcon = (src, type, sizes = null) => {
+    const icon = { src, type }
+    if (sizes) icon.sizes = sizes
+    return icon
+  }
   // If avatar is present, add it as an icon with proper MIME type
   if (avatarPath) {
     const avatarMimeType = mimeType(avatarPath) || 'image/svg+xml'
-    manifest.icons.push({
-      src: avatarPath,
-      type: avatarMimeType
-    })
+    const avatarSizes = avatarIcon?.sizes || (avatarMimeType === 'image/svg+xml' ? 'any' : null)
+    manifest.icons.push(buildIcon(avatarPath, avatarMimeType, avatarSizes))
   } else {
-    manifest.icons.push({
-      src: "/_assets/images/logo.png",
-      type: "image/png"
-    })
+    manifest.icons.push(buildIcon("/_assets/images/logo.png", "image/png", "256x256"))
   }
   return JSON.stringify(manifest)
 }

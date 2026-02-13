@@ -1,4 +1,8 @@
-import { parseFrontmatter } from '../src/utils/template.js'
+import { JSDOM } from 'jsdom'
+import { parseFrontmatter, populateTemplate } from '../src/utils/template.js'
+
+const dom = new JSDOM()
+global.DOMParser = dom.window.DOMParser
 
 describe('parseFrontmatter', () => {
   describe('basic functionality', () => {
@@ -1152,3 +1156,32 @@ rss: fals
   })
 })
 
+describe('populateTemplate', () => {
+  const templateHtml = `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <title>Template</title>
+      <link rel="icon" href="/_assets/images/logo.png">
+    </head>
+    <body>
+      <div id="content-container"></div>
+    </body>
+  </html>`
+  const bodyHtml = '<p>Body</p>'
+
+  test('should add apple-touch-icon for raster avatars', () => {
+    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.avatar.png')
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const appleTouchIcon = doc.querySelector('link[rel="apple-touch-icon"]')
+    expect(appleTouchIcon).not.toBeNull()
+    expect(appleTouchIcon.getAttribute('href')).toBe('/_files/.avatar.png')
+  })
+
+  test('should fall back to default apple-touch-icon for svg avatars', () => {
+    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.avatar.svg')
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const appleTouchIcon = doc.querySelector('link[rel="apple-touch-icon"]')
+    expect(appleTouchIcon).not.toBeNull()
+    expect(appleTouchIcon.getAttribute('href')).toBe('/_assets/images/logo.png')
+  })
+})

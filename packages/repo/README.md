@@ -177,14 +177,16 @@ Populate an HTML template with content and metadata.
   - `description` (string): Page description
 - Returns: `string` - Populated HTML
 
-#### `populateManifest(name, shortName, metadata)`
+#### `populateManifest(domain, metadata, avatarPath, avatarIcon)`
 
 Generate a web app manifest.
 
-- `name` (string): App name
-- `shortName` (string): Short app name
+- `domain` (string): App domain
 - `metadata` (object): Manifest metadata
   - `description` (string): App description
+- `avatarPath` (string|null): Avatar path to use as icon
+- `avatarIcon` (object|null): Optional icon metadata
+  - `sizes` (string): Icon sizes string (e.g. `256x256`)
 - Returns: `string` - JSON manifest
 
 
