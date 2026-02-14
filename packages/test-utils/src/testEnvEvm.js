@@ -1,9 +1,15 @@
 import { spawn, execSync } from 'child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CID } from 'multiformats/cid'
 import { contracts } from '@simplepg/common/src/contracts.js'
 import { namehash } from 'viem/ens'
 import { toString } from 'uint8arrays/to-string'
 import net from 'net';
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const CONTRACTS_DIR = path.resolve(__dirname, '../../../contracts')
 
 export class TestEnvironmentEvm {
     constructor() {
@@ -26,7 +32,13 @@ export class TestEnvironmentEvm {
     }
 
     async start(options = {}) {
-        const { port, externalAnvil = false, withManager = false } = options;
+        const {
+            port,
+            externalAnvil = false,
+            withManager = false,
+            blockGasLimit,
+            disableBlockGasLimit = false,
+        } = options;
         
         // Find an available port
         this.port = port || await this.findAvailablePort();
@@ -34,11 +46,21 @@ export class TestEnvironmentEvm {
 
         if (!externalAnvil) {
             // Start Anvil (using chainId from StdChains.sol)
-            this.anvilProcess = spawn('anvil', [
+            const anvilArgs = [
                 '--chain-id', this.chainId,
                 '--block-time', '0.5',
-                '--port', this.port.toString()
-            ]);
+                '--port', this.port.toString(),
+            ];
+
+            if (blockGasLimit) {
+                anvilArgs.push('--gas-limit', String(blockGasLimit));
+            }
+
+            if (disableBlockGasLimit) {
+                anvilArgs.push('--disable-block-gas-limit');
+            }
+
+            this.anvilProcess = spawn('anvil', anvilArgs);
 
             // Add error handling for the process
             this.anvilProcess.on('error', (error) => {
@@ -61,8 +83,8 @@ export class TestEnvironmentEvm {
         // Deploy contracts
         const scriptFunction = withManager ? 'runWithManager()' : 'run()';
         const output = execSync(
-            `cd ../../contracts && forge script script/DeployTestEnv.s.sol:DeployTestEnv --sig "${scriptFunction}" --broadcast --rpc-url ${this.url} --private-key ${this.secretKey}`,
-            { encoding: 'utf8' }
+            `forge script script/DeployTestEnv.s.sol:DeployTestEnv --sig "${scriptFunction}" --broadcast --rpc-url ${this.url} --private-key ${this.secretKey}`,
+            { encoding: 'utf8', cwd: CONTRACTS_DIR }
         );
 
         // Parse deployment addresses

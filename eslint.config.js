@@ -13,6 +13,7 @@ export default [
       '**/coverage/**',
       '**/.pnpm-store/**',
       '**/lib/**',
+      '**/preview/**',
       'contracts/**',
       'frontend/public/**',
       '**/*.min.js',
@@ -144,4 +145,3 @@ export default [
     },
   },
 ];
-

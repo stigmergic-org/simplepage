@@ -134,7 +134,7 @@ importers:
         version: 5.6.3(webpack@5.100.2(webpack-cli@6.0.1))
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.3.0)
+        version: 30.0.4(@types/node@24.0.14)
       jest-environment-jsdom:
         specifier: ^30.0.5
         version: 30.0.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -243,6 +243,19 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3(encoding@0.1.13)
 
+  packages/foam:
+    dependencies:
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.8.0
+    devDependencies:
+      '@simplepg/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      jest:
+        specifier: ^30.0.3
+        version: 30.0.4(@types/node@24.3.0)
+
   packages/node:
     dependencies:
       '@simplepg/common':
@@ -314,7 +327,7 @@ importers:
         version: 15.0.2(undici@7.11.0)
       jest:
         specifier: ^30.0.3
-        version: 30.0.4(@types/node@24.0.14)
+        version: 30.0.4(@types/node@24.3.0)
       kubo:
         specifier: ^0.35.0
         version: 0.35.0
@@ -367,6 +380,9 @@ importers:
 
   packages/test-utils:
     dependencies:
+      '@simplepg/common':
+        specifier: workspace:*
+        version: link:../common
       '@simplepg/node':
         specifier: workspace:*
         version: link:../node

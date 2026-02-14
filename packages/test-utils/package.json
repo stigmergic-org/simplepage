@@ -11,6 +11,7 @@
     "src"
   ],
   "dependencies": {
+    "@simplepg/common": "workspace:*",
     "@simplepg/node": "workspace:*",
     "ipfsd-ctl": "^15.0.2",
     "kubo": "^0.35.0",

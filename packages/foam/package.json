@@ -1,0 +1,31 @@
+{
+  "name": "@simplepg/foam-identicon",
+  "version": "0.1.0-rc.0",
+  "description": "Procedural foam identicon generator for SimplePage",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "preview": "node scripts/preview.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "keywords": [
+    "simplepage",
+    "procedural",
+    "svg",
+    "identicon",
+    "foam"
+  ],
+  "author": "Joel Thorstensson",
+  "license": "GPL-3.0-only",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0"
+  },
+  "devDependencies": {
+    "@simplepg/test-utils": "workspace:*",
+    "jest": "^30.0.3"
+  }
+}
