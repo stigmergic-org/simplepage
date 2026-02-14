@@ -237,6 +237,12 @@ contract FoamIdenticon {
             return ("", "", state);
         }
 
+        int256 frameInset = ctx.strokeWidth / 2;
+        (poly, polyLen) = snapPolygonToFrame(poly, polyLen, ctx.sizeFp, frameInset, ctx.cellInset);
+        if (polyLen < 3) {
+            return ("", "", state);
+        }
+
         (poly, polyLen) = simplifyPolygon(poly, polyLen, ctx.simplifyThreshold);
         if (polyLen < 3) {
             return ("", "", state);
@@ -600,6 +606,47 @@ contract FoamIdenticon {
             area += p1.x * p2.y - p2.x * p1.y;
         }
         return area;
+    }
+
+    function snapPolygonToFrame(
+        Point[] memory points,
+        uint256 len,
+        int256 sizeFp,
+        int256 frameInset,
+        int256 snapThreshold
+    ) internal pure returns (Point[] memory, uint256) {
+        if (len < 3 || frameInset <= 0 || snapThreshold <= 0) {
+            return (points, len);
+        }
+
+        int256 maxLine = sizeFp - frameInset;
+        if (maxLine <= frameInset) {
+            return (points, len);
+        }
+
+        int256 minSnap = snapThreshold;
+        int256 maxSnap = sizeFp - snapThreshold;
+        for (uint256 i = 0; i < len; i++) {
+            Point memory point = points[i];
+            int256 x = point.x;
+            int256 y = point.y;
+
+            if (x <= minSnap) {
+                x = frameInset;
+            } else if (x >= maxSnap) {
+                x = maxLine;
+            }
+
+            if (y <= minSnap) {
+                y = frameInset;
+            } else if (y >= maxSnap) {
+                y = maxLine;
+            }
+
+            points[i] = Point(x, y);
+        }
+
+        return (points, len);
     }
 
     function simplifyPolygon(

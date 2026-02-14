@@ -98,7 +98,8 @@ export function generateFoamSvg(seed, size = DEFAULT_SIZE) {
   const marginFp = margin * FP
 
   const points = generatePoints(rng, pixelSize, Number(cellCount), margin, marginFp)
-  const cells = buildCells(points, sizeFp, rng, palette, gradient, cellInset)
+  const frameInset = strokeWidth / 2n
+  const cells = buildCells(points, sizeFp, rng, palette, gradient, cellInset, frameInset)
 
   return buildSvg(pixelSize, strokeWidth, cells)
 }
@@ -241,7 +242,7 @@ function createGradient(size, dirX, dirY) {
   return { dirX, dirY, min: min ?? 0n, max: max ?? 1n }
 }
 
-function buildCells(points, sizeFp, rng, palette, gradient, cellInset) {
+function buildCells(points, sizeFp, rng, palette, gradient, cellInset, frameInset) {
   const cells = []
   const count = points.length
   const area = sizeFp * sizeFp
@@ -282,7 +283,8 @@ function buildCells(points, sizeFp, rng, palette, gradient, cellInset) {
     if (insetPoly.length < 3) {
       continue
     }
-    const simplified = simplifyPolygon(insetPoly, simplifyThreshold)
+    const snapped = snapPolygonToFrame(insetPoly, sizeFp, frameInset, cellInset)
+    const simplified = simplifyPolygon(snapped, simplifyThreshold)
     if (simplified.length < 3) {
       continue
     }
@@ -418,6 +420,40 @@ function insetPolygonByEdges(points, inset) {
   }
 
   return clipped
+}
+
+function snapPolygonToFrame(points, sizeFp, frameInset, snapThreshold) {
+  if (!points.length || frameInset <= 0n || snapThreshold <= 0n) {
+    return points
+  }
+  const maxLine = sizeFp - frameInset
+  if (maxLine <= frameInset) {
+    return points
+  }
+  const minSnap = snapThreshold
+  const maxSnap = sizeFp - snapThreshold
+
+  const snapped = new Array(points.length)
+  for (let i = 0; i < points.length; i += 1) {
+    let x = points[i][0]
+    let y = points[i][1]
+
+    if (x <= minSnap) {
+      x = frameInset
+    } else if (x >= maxSnap) {
+      x = maxLine
+    }
+
+    if (y <= minSnap) {
+      y = frameInset
+    } else if (y >= maxSnap) {
+      y = maxLine
+    }
+
+    snapped[i] = [x, y]
+  }
+
+  return snapped
 }
 
 
