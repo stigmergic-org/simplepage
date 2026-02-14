@@ -13,6 +13,7 @@ console.log('🔍 Parsing forge script output for tokenURI data...');
 
 let svgCount = 0;
 let jsonCount = 0;
+const renderedEntries = [];
 
 // Function to extract and save SVG from tokenURI
 function extractAndSaveSVG(tokenURI, domain, version) {
@@ -46,13 +47,20 @@ function extractAndSaveSVG(tokenURI, domain, version) {
             const width = svgContent.match(/width="(\d+)"/)?.[1] || 'not found';
             const height = svgContent.match(/height="(\d+)"/)?.[1] || 'not found';
             console.log(`   📐 SVG: ${width}x${height}, ${svgContent.length} chars`);
-            
-            return true;
+
+            return {
+                domain,
+                version,
+                svgFilename,
+                jsonFilename,
+                width,
+                height,
+            };
         }
     } catch (error) {
         console.warn(`⚠️  Failed to process ${domain}-${version}:`, error.message);
     }
-    return false;
+    return null;
 }
 
 // Read from stdin (piped from forge script)
@@ -70,7 +78,7 @@ process.stdin.on('end', () => {
     
     if (matches.length === 0) {
         console.log('❌ No tokenURI data found in the input');
-        console.log('Make sure to run: forge script script/TestRenderers.s.sol --rpc-url http://localhost:8545 | node extract-svgs.cjs');
+        console.log('Make sure to run: forge script script/DemoRenderers.s.sol:RenderersDemoScript --rpc-url http://localhost:8545 --broadcast | node script/extract-svgs.cjs');
         process.exit(1);
     }
     
@@ -100,7 +108,9 @@ process.stdin.on('end', () => {
                 const svgBase64 = jsonData.image.replace('data:image/svg+xml;base64,', '');
                 const svgContent = Buffer.from(svgBase64, 'base64').toString();
                 
-                if (svgContent.includes('SimplePage Subscription')) {
+                if (svgContent.includes('SimplePage Renderer V3')) {
+                    version = 'v3';
+                } else if (svgContent.includes('SimplePage Subscription')) {
                     version = 'v1';
                 } else if (svgContent.includes('Simple Page')) {
                     version = 'v2';
@@ -108,7 +118,10 @@ process.stdin.on('end', () => {
             }
             
             console.log(`\n🎯 Processing ${domain} (${version})...`);
-            extractAndSaveSVG(tokenURI, domain, version);
+            const entry = extractAndSaveSVG(tokenURI, domain, version);
+            if (entry) {
+                renderedEntries.push(entry);
+            }
             
         } catch (error) {
             console.warn(`⚠️  Failed to process match ${index + 1}:`, error.message);
@@ -124,8 +137,133 @@ process.stdin.on('end', () => {
         console.log(`\n🎉 Successfully extracted ${svgCount} SVG files!`);
         console.log('📁 Check the test-render-outputs/ directory for the generated files.');
         console.log('You can open the .svg files in a web browser to view the rendered tokens.');
+
+        const indexHtml = buildIndexHtml(renderedEntries);
+        const indexPath = `${FOLDER_NAME}/index.html`;
+        fs.writeFileSync(indexPath, indexHtml);
+        console.log('Saved preview index: index.html');
     } else {
         console.log('\n❌ No SVG files were extracted. Check the input data.');
     }
 });
 
+function buildIndexHtml(entries) {
+    const versionOrder = { v1: 1, v2: 2, v3: 3 };
+    const sorted = entries.slice().sort((a, b) => {
+        const orderA = versionOrder[a.version] ?? 99;
+        const orderB = versionOrder[b.version] ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.domain !== b.domain) return a.domain.localeCompare(b.domain);
+        return a.version.localeCompare(b.version);
+    });
+
+    const cards = sorted
+        .map((entry) => {
+            const title = escapeHtml(entry.domain);
+            const versionLabel = escapeHtml(entry.version.toUpperCase());
+            const sizeLabel = `${entry.width}x${entry.height}`;
+            const svgLink = escapeHtml(entry.svgFilename);
+            const jsonLink = escapeHtml(entry.jsonFilename);
+            return `\n        <article class="card">\n          <div class="thumb">\n            <img src="${svgLink}" alt="${title} ${versionLabel}" />\n          </div>\n          <div class="meta">\n            <div class="title">${title}</div>\n            <div class="sub">${versionLabel} - ${sizeLabel}</div>\n            <div class="links"><a href="${svgLink}">svg</a> | <a href="${jsonLink}">json</a></div>\n          </div>\n        </article>`;
+        })
+        .join('');
+
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SimplePage Renderer Previews</title>
+    <style>
+      :root {
+        color-scheme: light;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        background: #f8fafc;
+      }
+      header {
+        padding: 24px 32px 8px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0;
+        opacity: 0.7;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        padding: 24px 32px 40px;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .thumb {
+        display: grid;
+        place-items: center;
+        background: #f1f5f9;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .thumb img {
+        width: 160px;
+        height: auto;
+        display: block;
+      }
+      .meta {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .title {
+        font-size: 13px;
+        font-weight: 600;
+        word-break: break-all;
+      }
+      .sub {
+        color: #475569;
+      }
+      .links a {
+        color: #1d4ed8;
+        text-decoration: none;
+      }
+      .links a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SimplePage Renderer Previews</h1>
+      <p>Generated SVGs from the renderer demo pipeline.</p>
+    </header>
+    <main>${cards}
+    </main>
+  </body>
+</html>
+`;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}

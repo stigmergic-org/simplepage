@@ -6,15 +6,26 @@ import "forge-std/console.sol";
 import "../src/SimplePage.sol";
 import "../src/TokenRenderer.sol";
 import "../src/TokenRendererV2.sol";
+import "../src/TokenRendererV3.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
 contract RenderersDemoScript is Script {
     SimplePage public pages;
     TokenRenderer public rendererV1;
     TokenRendererV2 public rendererV2;
+    TokenRendererV3 public rendererV3;
 
     // Test domains and configurations
-    string[] public sampleDomains = ["test1.eth", "test2.eth", "test3.eth", "test4.eth"];
+    string[] public sampleDomains = [
+        "test1.eth",
+        "test2.eth",
+        "test3.eth",
+        "test4.eth",
+        "test5.eth",
+        "test6.eth",
+        "simplepage.eth",
+        "new.simplepage.eth"
+    ];
 
     // Test unit configurations (expiration timestamps)
     // Each unit must expire after the previous one sequentially
@@ -25,7 +36,7 @@ contract RenderersDemoScript is Script {
 
     function setUp() public {
         initialTimestamp = block.timestamp;
-        sampleUnits = new uint256[][](4);
+        sampleUnits = new uint256[][](8);
 
         // Single unit, expires in 1 year
         sampleUnits[0] = new uint256[](1);
@@ -49,6 +60,30 @@ contract RenderersDemoScript is Script {
         sampleUnits[3][2] = initialTimestamp + 180 days; // Third unit expires sooner
         sampleUnits[3][3] = initialTimestamp + 30 days; // Fourth unit expires soon
         sampleUnits[3][4] = initialTimestamp + 1 days; // Fifth unit expires very soon
+
+        // Four units, varied times (reversed)
+        sampleUnits[4] = new uint256[](4);
+        sampleUnits[4][0] = initialTimestamp + 540 days; // First unit expires later
+        sampleUnits[4][1] = initialTimestamp + 240 days; // Second unit expires sooner
+        sampleUnits[4][2] = initialTimestamp + 120 days; // Third unit expires soon
+        sampleUnits[4][3] = initialTimestamp + 14 days; // Fourth unit expires very soon
+
+        // Six units, wide spread (reversed)
+        sampleUnits[5] = new uint256[](6);
+        sampleUnits[5][0] = initialTimestamp + 900 days; // First unit expires latest
+        sampleUnits[5][1] = initialTimestamp + 540 days; // Second unit expires later
+        sampleUnits[5][2] = initialTimestamp + 270 days; // Third unit expires sooner
+        sampleUnits[5][3] = initialTimestamp + 120 days; // Fourth unit expires soon
+        sampleUnits[5][4] = initialTimestamp + 60 days; // Fifth unit expires sooner
+        sampleUnits[5][5] = initialTimestamp + 7 days; // Sixth unit expires very soon
+
+        // One unit active
+        sampleUnits[6] = new uint256[](1);
+        sampleUnits[6][0] = initialTimestamp + 365 days;
+
+        // One unit active
+        sampleUnits[7] = new uint256[](1);
+        sampleUnits[7][0] = initialTimestamp + 200 days;
     }
 
     function run() external {
@@ -62,12 +97,15 @@ contract RenderersDemoScript is Script {
         pages = new SimplePage();
         // SimplePage deployed at: address(pages)
 
-        // Deploy both renderers
+        // Deploy renderers
         rendererV1 = new TokenRenderer(ISimplePage(address(pages)));
         // TokenRenderer V1 deployed at: address(rendererV1)
 
         rendererV2 = new TokenRendererV2(ISimplePage(address(pages)));
         // TokenRenderer V2 deployed at: address(rendererV2)
+
+        rendererV3 = new TokenRendererV3(ISimplePage(address(pages)));
+        // TokenRenderer V3 deployed at: address(rendererV3)
 
         // Set renderer V1 as the default renderer
         pages.setRenderer(address(rendererV1));
@@ -111,12 +149,11 @@ contract RenderersDemoScript is Script {
     function _expireSomeUnits() internal {
         console.log("=== EXPIRING SOME UNITS ===");
 
-        // Warp to 200 days in the future to expire the 90-day and 180-day units
-        // This will affect pages 2 and 3 which have units expiring at 90 and 180 days
+        // Warp to 100 days in the future to expire shorter-duration units
         uint256 futureTime = initialTimestamp + 100 days;
         vm.warp(futureTime);
         console.log("Warped to timestamp:", futureTime);
-        console.log("This will expire units on pages 2 and 3");
+        console.log("This will expire units on pages with short-duration units");
     }
 
     function _testRenderers() internal {
@@ -125,6 +162,9 @@ contract RenderersDemoScript is Script {
 
         // === Testing TokenRenderer V2 ===
         _testRenderer(address(rendererV2), "v2");
+
+        // === Testing TokenRenderer V3 ===
+        _testRenderer(address(rendererV3), "v3");
     }
 
     function _testRenderer(address rendererAddress, string memory version) internal {
@@ -144,8 +184,10 @@ contract RenderersDemoScript is Script {
             string memory tokenURI;
             if (keccak256(abi.encodePacked(version)) == keccak256(abi.encodePacked("v1"))) {
                 tokenURI = TokenRenderer(rendererAddress).renderPage(tokenId);
-            } else {
+            } else if (keccak256(abi.encodePacked(version)) == keccak256(abi.encodePacked("v2"))) {
                 tokenURI = TokenRendererV2(rendererAddress).renderPage(tokenId);
+            } else {
+                tokenURI = TokenRendererV3(rendererAddress).renderPage(tokenId);
             }
 
             // Log the tokenURI for extraction
