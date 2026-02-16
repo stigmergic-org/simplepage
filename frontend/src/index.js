@@ -1,15 +1,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app';
-import Plausible from 'plausible-tracker';
+import { init } from '@plausible-analytics/tracker';
 import '../public/styles/content.css';
 
 // Initialize Plausible analytics
-const { enableAutoPageviews } = Plausible({
+init({
   domain: 'simplepage.eth.link',
-  trackLocalhost: true,
+  captureOnLocalhost: true,
+  autoCapturePageviews: true
 })
-enableAutoPageviews()
 
 
 const rootElement = document.getElementById('root');

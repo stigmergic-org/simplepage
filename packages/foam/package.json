@@ -22,10 +22,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@noble/hashes": "^1.4.0"
+    "@noble/hashes": "^1.8.0"
   },
   "devDependencies": {
     "@simplepg/test-utils": "workspace:*",
-    "jest": "^30.0.3"
+    "jest": "^30.2.0"
   }
 }

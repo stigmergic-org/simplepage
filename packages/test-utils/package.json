@@ -13,14 +13,14 @@
   "dependencies": {
     "@simplepg/common": "workspace:*",
     "@simplepg/node": "workspace:*",
-    "ipfsd-ctl": "^15.0.2",
-    "kubo": "^0.35.0",
-    "kubo-rpc-client": "^5.2.0",
+    "ipfsd-ctl": "^16.0.0",
+    "kubo": "^0.39.0",
+    "kubo-rpc-client": "^6.1.0",
     "multiformats": "^13.4.1",
     "uint8arrays": "^5.1.0",
-    "viem": "^2.31.4"
+    "viem": "^2.46.1"
   },
   "devDependencies": {
-    "jest": "^30.0.3"
+    "jest": "^30.2.0"
   }
 }
