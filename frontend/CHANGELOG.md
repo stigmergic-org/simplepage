@@ -1,5 +1,29 @@
 # @simplepg/frontend
 
+## 1.7.0-rc.4
+
+### Minor Changes
+
+- abc8cc9: feat(frontend): add walletconnect support
+- 143a386: feat(frontend): integrate foam identicon
+- 360c10e: feat(frontend): history view for pages
+
+### Patch Changes
+
+- 850eb50: fix(repo,frontend): improve sidebar loading resilience and performance
+- c642fc4: fix(frontend): improve sidebar button visibility
+- ba4ee5a: fix(frontend): rename fork button to edit
+- 25254a5: fix(frontend): proper links on logo
+- Updated dependencies [74d031d]
+- Updated dependencies [9903d4d]
+- Updated dependencies [143a386]
+- Updated dependencies [353423c]
+- Updated dependencies [850eb50]
+- Updated dependencies [5e0dc66]
+- Updated dependencies [360c10e]
+  - @simplepg/repo@1.5.0-rc.4
+  - @simplepg/foam-identicon@1.0.0-rc.1
+
 ## 1.7.0-rc.3
 
 ### Minor Changes

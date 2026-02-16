@@ -1,5 +1,13 @@
 # @simplepg/node
 
+## 1.4.0-rc.6
+
+### Patch Changes
+
+- e2b824a: chore(node): added ratelimit on page uploads
+- 108c010: fix(node): make cors more strict
+- 82ed0ac: fix(node): more efficient resolver management
+
 ## 1.4.0-rc.5
 
 ### Patch Changes

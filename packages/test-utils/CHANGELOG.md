@@ -1,5 +1,16 @@
 # @simplepg/test-utils
 
+## 1.0.10-rc.6
+
+### Patch Changes
+
+- e2b824a: chore(node): added ratelimit on page uploads
+- 9903d4d: feat(foam): implement identicon package
+- Updated dependencies [e2b824a]
+- Updated dependencies [108c010]
+- Updated dependencies [82ed0ac]
+  - @simplepg/node@1.4.0-rc.6
+
 ## 1.0.10-rc.5
 
 ### Patch Changes

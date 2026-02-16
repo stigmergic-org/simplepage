@@ -7,21 +7,36 @@
     "@simplepg/common": "1.2.3",
     "@simplepg/node": "1.4.0-rc.0",
     "@simplepg/repo": "1.4.1-rc.0",
-    "@simplepg/test-utils": "1.0.10-rc.0"
+    "@simplepg/test-utils": "1.0.10-rc.0",
+    "@simplepg/foam-identicon": "0.1.0-rc.0"
   },
   "changesets": [
     "bumpy-suits-allow",
     "calm-chicken-travel",
     "cool-beds-count",
+    "crazy-pans-like",
     "cruel-points-attack",
+    "dry-pots-hide",
     "fifty-paws-scream",
+    "five-loops-float",
+    "four-ads-work",
+    "hot-cases-report",
+    "hungry-numbers-cover",
+    "major-chicken-film",
     "nine-kings-bow",
     "orange-pens-learn",
     "pink-moments-decide",
+    "quick-poems-yell",
+    "ready-oranges-battle",
     "rotten-shirts-glow",
+    "silly-adults-smash",
+    "sixty-worms-kiss",
+    "sour-adults-remain",
+    "stupid-mugs-matter",
     "tall-bars-shake",
     "thirty-chicken-join",
     "tiny-mice-fry",
+    "tiny-tools-camp",
     "violet-mails-admire"
   ]
 }

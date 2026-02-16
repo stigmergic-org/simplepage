@@ -1,5 +1,18 @@
 # @simplepg/repo
 
+## 1.5.0-rc.4
+
+### Minor Changes
+
+- 143a386: feat(frontend): integrate foam identicon
+- 360c10e: feat(frontend): history view for pages
+
+### Patch Changes
+
+- 74d031d: fix(repo): improve app icon handling
+- 353423c: fix(repo): use proper urls for sepolia in rss and templates
+- 850eb50: fix(repo,frontend): improve sidebar loading resilience and performance
+
 ## 1.5.0-rc.3
 
 ### Minor Changes
