@@ -611,7 +611,7 @@ Contact information.`,
       // verify favicon path
       const favicon = doc.querySelector('link[rel="icon"]')
       expect(favicon).toBeDefined()
-      expect(favicon.href).toBe('/_assets/images/favicon.ico')
+      expect(favicon.href).toBe('/_assets/images/favicon-light.png')
 
       // verify the repo root is updated
       // uses viemClient to submit the prepTx
@@ -762,7 +762,7 @@ This is a test page with custom title and description.`;
       // verify favicon path
       const favicon = doc.querySelector('link[rel="icon"]')
       expect(favicon).toBeDefined()
-      expect(favicon.href).toBe('/_assets/images/favicon.ico')
+      expect(favicon.href).toBe('/_assets/images/favicon-light.png')
 
       // verify the repo root is updated
       const hash = await walletClient.writeContract(result.prepTx)
@@ -837,7 +837,7 @@ This is a test page with custom title and description.`;
         const favicon = doc.querySelector('link[rel="icon"]');
         expect(favicon).toBeDefined();
         
-        expect(favicon.href).toBe('/_assets/images/favicon.ico');
+        expect(favicon.href).toBe('/_assets/images/favicon-light.png');
       }
     });
 
@@ -2337,7 +2337,7 @@ Thoughts and insights about technology and development.`,
         const doc = parser.parseFromString(html, 'text/html');
         const favicon = doc.querySelector('link[rel="icon"]');
         expect(favicon).toBeDefined();
-        expect(favicon.href).toBe('/_assets/images/favicon.ico');
+        expect(favicon.href).toBe('/_assets/images/favicon-light.png');
       }
 
       // Commit the initial version
@@ -2346,7 +2346,13 @@ Thoughts and insights about technology and development.`,
       // Set an avatar
       const avatarPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
       const avatarContent = Uint8Array.from(Buffer.from(avatarPngBase64, 'base64'));
-      await repo.files.setAvatar(avatarContent, 'png');
+      await repo.files.setArtifacts({
+        ensAvatar: avatarContent,
+        ensFavicon: avatarContent,
+        foamAvatar: new TextEncoder().encode('foam-avatar'),
+        foamFaviconLight: new TextEncoder().encode('foam-favicon-light'),
+        foamFaviconDark: new TextEncoder().encode('foam-favicon-dark'),
+      });
 
       // Make a small edit to one page to trigger staging
       await repo.setPageEdit('/', '# Updated Home Page\n\nWelcome to the updated home page.', '<h1>Updated Home Page</h1><p>Welcome to the updated home page.</p>');
@@ -2357,7 +2363,7 @@ Thoughts and insights about technology and development.`,
       expect(avatarResult.cid instanceof CID).toBe(true);
 
       // Verify avatar file is stored in the _files directory
-      const storedAvatarContent = await catBytes(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/.avatar.png`);
+      const storedAvatarContent = await catBytes(testEnv.kubo.kuboApi, `/ipfs/${avatarResult.cid.toString()}/_files/.artifacts/ensAvatar.png`);
       expect(storedAvatarContent).toEqual(avatarContent);
 
       // Verify that ALL pages now have the avatar as favicon, Open Graph image, and Twitter image
@@ -2370,17 +2376,17 @@ Thoughts and insights about technology and development.`,
         expect(favicon).toBeDefined();
         
         // The favicon should now point to the avatar
-        expect(favicon.href).toBe('/_files/.avatar.png');
+        expect(favicon.href).toBe('/_files/.artifacts/ensFavicon.png');
         
         // Check Open Graph image meta tag
         const ogImage = doc.querySelector('meta[property="og:image"]');
         expect(ogImage).toBeDefined();
-        expect(ogImage.content).toBe(`https://test.eth.link/_files/.avatar.png`);
+        expect(ogImage.content).toBe(`https://test.eth.link/_files/.artifacts/ensAvatar.png`);
         
         // Check Twitter image meta tag
         const twitterImage = doc.querySelector('meta[name="twitter:image"]');
         expect(twitterImage).toBeDefined();
-        expect(twitterImage.content).toBe(`https://test.eth.link/_files/.avatar.png`);
+        expect(twitterImage.content).toBe(`https://test.eth.link/_files/.artifacts/ensAvatar.png`);
         
         // Check Twitter card type (should be 'summary' when using avatar)
         const twitterCard = doc.querySelector('meta[name="twitter:card"]');
@@ -2404,7 +2410,7 @@ Thoughts and insights about technology and development.`,
       const manifestData = JSON.parse(manifest);
       expect(manifestData.icons).toBeDefined();
       expect(manifestData.icons.length).toBe(1);
-      expect(manifestData.icons[0].src).toBe('/_files/.avatar.png');
+      expect(manifestData.icons[0].src).toBe('/_files/.artifacts/ensAvatar.png');
       expect(manifestData.icons[0].type).toBe('image/png');
       expect(manifestData.icons[0].sizes).toBe('1x1');
     });
@@ -2454,13 +2460,19 @@ Thoughts and insights about technology and development.`,
       // Check that favicon still uses default (no avatar set)
       const favicon = doc.querySelector('link[rel="icon"]');
       expect(favicon).toBeDefined();
-      expect(favicon.href).toBe('/_assets/images/favicon.ico');
+      expect(favicon.href).toBe('/_assets/images/favicon-light.png');
     });
 
     it('should prioritize page images over avatar for social media previews', async () => {
       // First set an avatar
       const avatarContent = new TextEncoder().encode('fake-avatar-png-data');
-      await repo.files.setAvatar(avatarContent, 'png');
+      await repo.files.setArtifacts({
+        ensAvatar: avatarContent,
+        ensFavicon: avatarContent,
+        foamAvatar: new TextEncoder().encode('foam-avatar'),
+        foamFaviconLight: new TextEncoder().encode('foam-favicon-light'),
+        foamFaviconDark: new TextEncoder().encode('foam-favicon-dark'),
+      });
 
       // Create a page with an image
       const pageWithImage = {
@@ -2506,7 +2518,7 @@ Thoughts and insights about technology and development.`,
       // Check that favicon still uses avatar (since avatar was set)
       const favicon = doc.querySelector('link[rel="icon"]');
       expect(favicon).toBeDefined();
-      expect(favicon.href).toBe('/_files/.avatar.png');
+      expect(favicon.href).toBe('/_files/.artifacts/ensFavicon.png');
     });
 
     it('should handle case with no avatar and no images in page content', async () => {
@@ -2536,12 +2548,12 @@ Thoughts and insights about technology and development.`,
       // Check Open Graph image meta tag - should be null when no avatar and no images
       const ogImage = doc.querySelector('meta[property="og:image"]');
       expect(ogImage).toBeDefined();
-      expect(ogImage.content).toBe('https://test.eth.link/_assets/images/favicon.ico');
+      expect(ogImage.content).toBe('https://test.eth.link/_assets/images/logo.png');
       
       // Check Twitter image meta tag - should be null when no avatar and no images
       const twitterImage = doc.querySelector('meta[name="twitter:image"]');
       expect(twitterImage).toBeDefined();
-      expect(twitterImage.content).toBe('https://test.eth.link/_assets/images/favicon.ico');
+      expect(twitterImage.content).toBe('https://test.eth.link/_assets/images/logo.png');
       
       // Check Twitter card type - should be 'summary' when no images
       const twitterCard = doc.querySelector('meta[name="twitter:card"]');
@@ -2551,7 +2563,7 @@ Thoughts and insights about technology and development.`,
       // Check that favicon uses default
       const favicon = doc.querySelector('link[rel="icon"]');
       expect(favicon).toBeDefined();
-      expect(favicon.href).toBe('/_assets/images/favicon.ico');
+      expect(favicon.href).toBe('/_assets/images/favicon-light.png');
     });
   });
 

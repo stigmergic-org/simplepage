@@ -1,6 +1,6 @@
 import { mimeType } from '@simplepg/common'
 
-export function populateTemplate(templateHtml, body, targetDomain, path, { title, description, 'sidebar-toc': sidebarToc } = {}, avatarPath = null, domainSuffix = '.link') {
+export function populateTemplate(templateHtml, body, targetDomain, path, { title, description, 'sidebar-toc': sidebarToc } = {}, avatarPath = null, domainSuffix = '.link', faviconPaths = null) {
     const parser = new DOMParser()
     const templateDoc = parser.parseFromString(templateHtml, 'text/html')
     const rootElem = templateDoc.getElementById('content-container')
@@ -32,12 +32,58 @@ export function populateTemplate(templateHtml, body, targetDomain, path, { title
     setMeta('ens-domain', targetDomain)
     setMeta('sidebar-toc', sidebarToc ? 'true' : 'false')
 
-    // set favicon
-    const faviconElement = templateDoc.querySelector('link[rel="icon"]')
-    let imageUrl = populateUrl(faviconElement.href)
-    if (avatarPath) {
-      faviconElement.setAttribute('href', avatarPath)
+    // set favicon(s)
+    const faviconLinks = Array.from(templateDoc.querySelectorAll('link[rel="icon"]'))
+    const addFavicon = (href, media = null) => {
+      const link = templateDoc.createElement('link')
+      link.setAttribute('rel', 'icon')
+      link.setAttribute('href', href)
+      if (media) link.setAttribute('media', media)
+      const type = mimeType(href)
+      if (type) link.setAttribute('type', type)
+      head.appendChild(link)
+      return link
+    }
+    const clearFavicons = () => {
+      faviconLinks.forEach(link => link.parentNode?.removeChild(link))
+    }
+
+    let imageUrl = null
+    const avatarImageUrl = avatarPath ? populateUrl(avatarPath) : null
+    if (faviconPaths?.light || faviconPaths?.dark) {
+      clearFavicons()
+      const fallbackIcon = faviconPaths.light || faviconPaths.dark
+      if (fallbackIcon) {
+        addFavicon(fallbackIcon)
+      }
+      if (faviconPaths.light) {
+        addFavicon(faviconPaths.light, '(prefers-color-scheme: light)')
+      }
+      if (faviconPaths.dark) {
+        addFavicon(faviconPaths.dark, '(prefers-color-scheme: dark)')
+      }
+      imageUrl = populateUrl(fallbackIcon)
+    } else if (avatarPath) {
+      clearFavicons()
+      addFavicon(avatarPath)
       imageUrl = populateUrl(avatarPath)
+    } else if (faviconLinks.length > 0) {
+      const href = faviconLinks[0].getAttribute('href')
+      if (href) {
+        imageUrl = populateUrl(href)
+      }
+    } else {
+      clearFavicons()
+      addFavicon('/_assets/images/favicon-light.png')
+      addFavicon('/_assets/images/favicon-light.png', '(prefers-color-scheme: light)')
+      addFavicon('/_assets/images/favicon-dark.png', '(prefers-color-scheme: dark)')
+      imageUrl = populateUrl('/_assets/images/logo.png')
+    }
+
+    if (avatarImageUrl) {
+      imageUrl = avatarImageUrl
+    } else {
+      imageUrl = populateUrl('/_assets/images/logo.png')
     }
 
     // set apple touch icon (iOS homescreen)

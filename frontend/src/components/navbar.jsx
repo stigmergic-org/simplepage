@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useEnsAvatar } from 'wagmi';
 import { Link } from 'react-router';
-import { useEnsAvatar } from 'wagmi'
 import { useNavigation } from '../hooks/useNavigation';
 import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
@@ -10,8 +10,18 @@ import Icon from './Icon';
 import Notice from './Notice';
 import SubscriptionNotice from './SubscriptionNotice';
 import SearchModal from './SearchModal';
+import { buildFoamSvg } from '../utils/foam-icons';
 
-const defaultLogo = "/_assets/images/logo.svg";
+const defaultLogo = "/_assets/images/logo.png";
+const inferIconType = (href) => {
+  if (!href) return null;
+  if (href.startsWith('data:image/svg+xml')) return 'image/svg+xml';
+  if (href.startsWith('data:image/png')) return 'image/png';
+  if (href.endsWith('.svg')) return 'image/svg+xml';
+  if (href.endsWith('.png')) return 'image/png';
+  if (href.endsWith('.ico')) return 'image/x-icon';
+  return null;
+};
 
 const Navbar = ({
   activePage,
@@ -30,12 +40,14 @@ const Navbar = ({
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [avatarPath, setAvatarPath] = useState(document.querySelector('link[rel="icon"]')?.href || defaultLogo);
+  const logoSvg = useMemo(() => (domain ? buildFoamSvg(domain, 36) : null), [domain]);
   const [forkStyle, setForkStyle] = useState(null);
   const [searchEnabled, setSearchEnabled] = useState(false);
   // const [searchFocused, setSearchFocused] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const searchInputRef = useRef(null);
+  const showEnsAvatar = Boolean(ensAvatar);
+  const defaultFaviconsRef = useRef(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -126,18 +138,41 @@ const Navbar = ({
 
 
   useEffect(() => {
-    // Only update favicon if ensAvatar is available
-    if (ensAvatar) {
-      setAvatarPath(ensAvatar);
-      const favicon = document.querySelector('link[rel="icon"]');
-      if (!favicon) {
-        const newFavicon = document.createElement('link');
-        newFavicon.rel = 'icon';
-        document.head.appendChild(newFavicon);
-      }
+    if (!defaultFaviconsRef.current) {
+      defaultFaviconsRef.current = Array.from(document.querySelectorAll('link[rel="icon"]')).map(link => ({
+        href: link.href,
+        type: link.getAttribute('type') || null,
+        media: link.getAttribute('media') || null,
+      }))
+    }
+  }, [])
 
-      const faviconElement = favicon || document.querySelector('link[rel="icon"]');
-      faviconElement.href = ensAvatar;
+  useEffect(() => {
+    const clearFavicons = () => {
+      document.querySelectorAll('link[rel="icon"]').forEach(link => link.remove());
+    };
+    const addFavicon = (href, media = null, type = null) => {
+      if (!href) return;
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = href;
+      if (media) link.media = media;
+      const inferredType = type || inferIconType(href);
+      if (inferredType) link.type = inferredType;
+      document.head.appendChild(link);
+    };
+
+    if (ensAvatar) {
+      clearFavicons();
+      addFavicon(ensAvatar);
+      return;
+    }
+
+    if (defaultFaviconsRef.current) {
+      clearFavicons();
+      defaultFaviconsRef.current.forEach(({ href, media, type }) => {
+        addFavicon(href, media, type);
+      });
     }
   }, [ensAvatar]);
 
@@ -294,11 +329,25 @@ const Navbar = ({
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
           <a href={rootHref} className="inline-flex">
-            <img
-              src={avatarPath}
-              alt="Logo"
-              className={`h-9 w-9 ${avatarPath.includes(defaultLogo) ? '' : 'mask mask-squircle'}`}
-            />
+            {showEnsAvatar ? (
+              <img
+                src={ensAvatar}
+                alt="Logo"
+                className="h-9 w-9 mask mask-squircle"
+              />
+            ) : logoSvg ? (
+              <span
+                className="h-9 w-9 mask mask-squircle inline-flex"
+                aria-hidden="true"
+                dangerouslySetInnerHTML={{ __html: logoSvg }}
+              />
+            ) : (
+              <img
+                src={defaultLogo}
+                alt="Logo"
+                className="h-9 w-9"
+              />
+            )}
           </a>
         </div>
         <div className="navbar-center flex items-center justify-center h-full">

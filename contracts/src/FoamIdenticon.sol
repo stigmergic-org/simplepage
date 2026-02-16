@@ -39,14 +39,14 @@ contract FoamIdenticon {
 
     uint256 private constant DIR_COUNT = 8;
 
-    string private constant STROKE_COLOR = "var(--color-base-content, oklch(21% 0.006 285.885))";
-    string private constant COLOR_PRIMARY = "var(--color-primary, oklch(45% 0.24 277.023))";
-    string private constant COLOR_SECONDARY = "var(--color-secondary, oklch(65% 0.241 354.308))";
-    string private constant COLOR_ACCENT = "var(--color-accent, oklch(77% 0.152 181.912))";
-    string private constant COLOR_INFO = "var(--color-info, oklch(74% 0.16 232.661))";
-    string private constant COLOR_SUCCESS = "var(--color-success, oklch(76% 0.177 163.223))";
-    string private constant COLOR_WARNING = "var(--color-warning, oklch(82% 0.189 84.429))";
-    string private constant COLOR_ERROR = "var(--color-error, oklch(71% 0.194 13.428))";
+    string private constant STROKE_COLOR = "oklch(21% 0.006 285.885)";
+    string private constant COLOR_PRIMARY = "oklch(45% 0.24 277.023)";
+    string private constant COLOR_SECONDARY = "oklch(65% 0.241 354.308)";
+    string private constant COLOR_ACCENT = "oklch(77% 0.152 181.912)";
+    string private constant COLOR_INFO = "oklch(74% 0.16 232.661)";
+    string private constant COLOR_SUCCESS = "oklch(76% 0.177 163.223)";
+    string private constant COLOR_WARNING = "oklch(82% 0.189 84.429)";
+    string private constant COLOR_ERROR = "oklch(71% 0.194 13.428)";
 
     struct Point {
         int256 x;

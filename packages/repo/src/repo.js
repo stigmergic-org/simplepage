@@ -522,12 +522,12 @@ export class Repo {
     return this.chainId === 11155111 ? '.sepoliaens.eth.link' : '.link'
   }
 
-  async #renderHtml({ body, markdown }, targetDomain, path, root, avatarPath, domainSuffix) {
+  async #renderHtml({ body, markdown }, targetDomain, path, root, avatarPath, domainSuffix, faviconPaths) {
     const templateHtml = await cat(this.unixfs, root, '/_template.html')
     
     // Extract title and description from markdown frontmatter
     const frontmatter = parseFrontmatter(markdown)
-    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath, domainSuffix)
+    return populateTemplate(templateHtml, body, targetDomain, path, frontmatter, avatarPath, domainSuffix, faviconPaths)
   }
 
 
@@ -595,7 +595,16 @@ export class Repo {
         })
       }
     }
-    const avatarPath = await this.files.getAvatarPath()
+    const artifacts = await this.files.getArtifactPaths()
+    const avatarPath = artifacts.ensAvatar || artifacts.foamAvatar
+    const faviconPaths = artifacts.ensFavicon
+      ? { light: artifacts.ensFavicon, dark: artifacts.ensFavicon }
+      : {
+        light: artifacts.foamFaviconLight,
+        dark: artifacts.foamFaviconDark,
+      }
+    const hasFavicon = faviconPaths?.light || faviconPaths?.dark
+    const resolvedFaviconPaths = hasFavicon ? faviconPaths : null
     const avatarFilePath = avatarPath ? avatarPath.replace(`/${FILES_FOLDER}/`, '') : null
     let avatarIconSizes = null
     if (avatarFilePath && avatarFilePath.toLowerCase().endsWith('.png')) {
@@ -626,7 +635,7 @@ export class Repo {
         case CHANGE_TYPE.NEW:
         case CHANGE_TYPE.UPGRADE: {
           rootPointer = await addFile(this.unixfs, rootPointer, mdPath, edit.markdown)
-          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath, domainSuffix)
+          const html = await this.#renderHtml(edit, targetDomain, edit.path, rootPointer, avatarPath, domainSuffix, resolvedFaviconPaths)
           rootPointer = await addFile(this.unixfs, rootPointer, htmlPath, html)
           
           // Generate RSS item if applicable

@@ -13,7 +13,7 @@ import WalletInfo from '../components/WalletInfo';
 import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
 import { useChainId } from '../hooks/useChainId';
 import { CHANGE_TYPE } from '@simplepg/repo';
-import { avatarUrlToFile } from '../utils/file-tools';
+import { generateArtifactAssets, readThemePreferences } from '../utils/avatar-utils';
 
 const formatSettingsChange = ({ path, from, to }) => {
   if (!from) return `${path}: ${JSON.stringify(to)} (added)`;
@@ -185,12 +185,29 @@ const Publish = () => {
     setIsPreparing(true);
     
     try {
-      if (ensAvatar) {
-        const data = await avatarUrlToFile(ensAvatar);
-        await repo.files.setAvatar(data.data, data.fileExt)
-      }
+      const { light: lightTheme, dark: darkTheme } = await readThemePreferences(repo)
+      const {
+        ensAvatarBytes,
+        ensFaviconBytes,
+        foamAvatarBytes,
+        foamFaviconLightBytes,
+        foamFaviconDarkBytes,
+      } = await generateArtifactAssets({
+        domain: selectedDomain,
+        ensAvatar,
+        lightTheme,
+        darkTheme,
+      })
+
+      await repo.files.setArtifacts({
+        ensAvatar: ensAvatarBytes,
+        ensFavicon: ensFaviconBytes,
+        foamAvatar: foamAvatarBytes,
+        foamFaviconLight: foamFaviconLightBytes,
+        foamFaviconDark: foamFaviconDarkBytes,
+      })
     } catch (error) {
-      console.error('Error adding avatar:', error);
+      console.error('Error adding generated artifacts:', error);
     }
 
     try {

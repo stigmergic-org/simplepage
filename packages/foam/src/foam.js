@@ -44,14 +44,14 @@ const DIRS = [
   [-1n, -1n],
 ]
 
-const COLOR_PRIMARY = 'var(--color-primary, oklch(45% 0.24 277.023))'
-const COLOR_SECONDARY = 'var(--color-secondary, oklch(65% 0.241 354.308))'
-const COLOR_ACCENT = 'var(--color-accent, oklch(77% 0.152 181.912))'
-const COLOR_INFO = 'var(--color-info, oklch(74% 0.16 232.661))'
-const COLOR_SUCCESS = 'var(--color-success, oklch(76% 0.177 163.223))'
-const COLOR_WARNING = 'var(--color-warning, oklch(82% 0.189 84.429))'
-const COLOR_ERROR = 'var(--color-error, oklch(71% 0.194 13.428))'
-const STROKE_COLOR = 'var(--color-base-content, oklch(21% 0.006 285.885))'
+const COLOR_PRIMARY = 'var(--color-primary)'
+const COLOR_SECONDARY = 'var(--color-secondary)'
+const COLOR_ACCENT = 'var(--color-accent)'
+const COLOR_INFO = 'var(--color-info)'
+const COLOR_SUCCESS = 'var(--color-success)'
+const COLOR_WARNING = 'var(--color-warning)'
+const COLOR_ERROR = 'var(--color-error)'
+const STROKE_COLOR = 'var(--color-base-content)'
 
 const PALETTE_OCEAN = [
   COLOR_INFO,
@@ -73,7 +73,7 @@ const PALETTE_SUNSET = [
   COLOR_SUCCESS,
 ]
 
-export function generateFoamSvg(seed, size = DEFAULT_SIZE) {
+export function generateFoamSvg(seed, size = DEFAULT_SIZE, options = {}) {
   const seedText = String(seed ?? '')
   const pixelSize = resolveSize(size)
   const rng = createRng(seedText)
@@ -101,12 +101,28 @@ export function generateFoamSvg(seed, size = DEFAULT_SIZE) {
   const frameInset = strokeWidth / 2n
   const cells = buildCells(points, sizeFp, rng, palette, gradient, cellInset, frameInset)
 
-  return buildSvg(pixelSize, strokeWidth, cells)
+  const svg = buildSvg(pixelSize, strokeWidth, cells)
+  return applyPaletteOverrides(svg, options.paletteOverrides)
 }
 
-export function generateFoamDataUrl(seed, size = DEFAULT_SIZE) {
-  const svg = generateFoamSvg(seed, size)
+export function generateFoamDataUrl(seed, size = DEFAULT_SIZE, options = {}) {
+  const svg = generateFoamSvg(seed, size, options)
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+function applyPaletteOverrides(svg, paletteOverrides) {
+  if (!paletteOverrides) {
+    return svg
+  }
+  let output = svg
+  for (const [key, value] of Object.entries(paletteOverrides)) {
+    if (!value) {
+      continue
+    }
+    const token = `var(${key})`
+    output = output.split(token).join(value)
+  }
+  return output
 }
 
 function resolveSize(value) {

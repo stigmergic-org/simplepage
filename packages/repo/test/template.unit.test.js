@@ -1161,7 +1161,8 @@ describe('populateTemplate', () => {
   <html lang="en">
     <head>
       <title>Template</title>
-      <link rel="icon" href="/_assets/images/logo.png">
+      <link rel="icon" href="/_assets/images/favicon-light.png" media="(prefers-color-scheme: light)">
+      <link rel="icon" href="/_assets/images/favicon-dark.png" media="(prefers-color-scheme: dark)">
     </head>
     <body>
       <div id="content-container"></div>
@@ -1169,19 +1170,42 @@ describe('populateTemplate', () => {
   </html>`
   const bodyHtml = '<p>Body</p>'
 
-  test('should add apple-touch-icon for raster avatars', () => {
-    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.avatar.png')
-    const doc = new DOMParser().parseFromString(html, 'text/html')
-    const appleTouchIcon = doc.querySelector('link[rel="apple-touch-icon"]')
-    expect(appleTouchIcon).not.toBeNull()
-    expect(appleTouchIcon.getAttribute('href')).toBe('/_files/.avatar.png')
-  })
+    test('should add apple-touch-icon for raster avatars', () => {
+      const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.artifacts/ensAvatar.png')
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      const appleTouchIcon = doc.querySelector('link[rel="apple-touch-icon"]')
+      expect(appleTouchIcon).not.toBeNull()
+      expect(appleTouchIcon.getAttribute('href')).toBe('/_files/.artifacts/ensAvatar.png')
+    })
 
   test('should fall back to default apple-touch-icon for svg avatars', () => {
-    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.avatar.svg')
+    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, '/_files/.artifacts/ensAvatar.svg')
     const doc = new DOMParser().parseFromString(html, 'text/html')
     const appleTouchIcon = doc.querySelector('link[rel="apple-touch-icon"]')
     expect(appleTouchIcon).not.toBeNull()
     expect(appleTouchIcon.getAttribute('href')).toBe('/_assets/images/logo.png')
+  })
+
+  test('should prefer provided favicons but keep avatar for social meta', () => {
+    const faviconPaths = {
+      light: '/_files/.artifacts/foamFavicon-light.png',
+      dark: '/_files/.artifacts/foamFavicon-dark.png'
+    }
+    const avatarPath = '/_files/.artifacts/ensAvatar.png'
+    const html = populateTemplate(templateHtml, bodyHtml, 'test.eth', '/', {}, avatarPath, '.link', faviconPaths)
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+
+    const icons = Array.from(doc.querySelectorAll('link[rel="icon"]'))
+    const iconHrefs = icons.map(icon => icon.getAttribute('href'))
+    expect(iconHrefs).toContain('/_files/.artifacts/foamFavicon-light.png')
+    expect(iconHrefs).toContain('/_files/.artifacts/foamFavicon-dark.png')
+
+    const ogImage = doc.querySelector('meta[property="og:image"]')
+    expect(ogImage).toBeDefined()
+    expect(ogImage.content).toBe('https://test.eth.link/_files/.artifacts/ensAvatar.png')
+
+    const twitterImage = doc.querySelector('meta[name="twitter:image"]')
+    expect(twitterImage).toBeDefined()
+    expect(twitterImage.content).toBe('https://test.eth.link/_files/.artifacts/ensAvatar.png')
   })
 })

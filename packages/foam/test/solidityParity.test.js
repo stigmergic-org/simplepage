@@ -15,6 +15,18 @@ const contractsDir = path.resolve(__dirname, '..', '..', '..', 'contracts')
 const seeds = ['simplepage', 'foam', 'ocean', 'sunset', 'simplepage.eth']
 const sizes = [32, 128, 256, 512]
 
+// Colors from Solidity - used as palette overrides for parity comparison
+const SOLIDITY_COLORS = {
+  '--color-base-content': 'oklch(21% 0.006 285.885)',
+  '--color-primary': 'oklch(45% 0.24 277.023)',
+  '--color-secondary': 'oklch(65% 0.241 354.308)',
+  '--color-accent': 'oklch(77% 0.152 181.912)',
+  '--color-info': 'oklch(74% 0.16 232.661)',
+  '--color-success': 'oklch(76% 0.177 163.223)',
+  '--color-warning': 'oklch(82% 0.189 84.429)',
+  '--color-error': 'oklch(71% 0.194 13.428)',
+}
+
 describe('FoamIdenticon Solidity parity', () => {
   const env = new TestEnvironmentEvm()
   let address
@@ -33,7 +45,7 @@ describe('FoamIdenticon Solidity parity', () => {
 
     for (const seed of seeds) {
       for (const size of sizes) {
-        const jsSvg = generateFoamSvg(seed, size)
+        const jsSvg = generateFoamSvg(seed, size, { paletteOverrides: SOLIDITY_COLORS })
         const solSvg = callFoamSvg(env, address, seed, size)
 
         if (jsSvg !== solSvg) {

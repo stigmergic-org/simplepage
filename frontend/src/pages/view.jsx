@@ -9,6 +9,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
+import { buildFoamSvg } from '../utils/foam-icons';
 import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
@@ -184,12 +185,15 @@ const addHeadingLinks = (parsedContent) => {
     const container = parsedContent.createElement('div');
     container.className = 'heading-container align-middle';
 
-    // Create link icon using FontAwesome
+    const iconSvg = buildFoamSvg(text || anchorId, 18);
+
+    // Create link icon using foam identicon
     const linkIcon = parsedContent.createElement('a');
     linkIcon.href = `#${anchorId}`;
-    linkIcon.className = 'heading-link-icon';
-    linkIcon.innerHTML = '<i class="fa fa-link text-gray-500"></i>';
-    linkIcon.title = 'Link to this section';
+    linkIcon.className = 'heading-link-icon tooltip tooltip-left';
+    linkIcon.innerHTML = `<span class="heading-link-mask mask mask-squircle">${iconSvg}</span>`;
+    linkIcon.dataset.tip = 'Link to this section';
+    linkIcon.setAttribute('aria-label', 'Link to this section');
 
     // Wrap heading in container and add link icon
     heading.parentNode.insertBefore(container, heading);

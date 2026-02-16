@@ -7,6 +7,7 @@ import { addFile, rm, ls, lsFull, assert, CidSet, cp } from '@simplepg/common'
 import { CHANGE_TYPE } from './constants.js'
 
 export const FILES_FOLDER = '_files'
+export const ARTIFACTS_FOLDER = '.artifacts'
 
 const CHANGE_ROOT_KEY = 'spg_files_change_root'
 
@@ -125,11 +126,10 @@ export class Files {
   async ls(path) {
     await this.#isReady()
 
-    const refsByPath = async (pathSplit, refs, inChangeRoot = false) => {
+    const refsByPath = async (pathSplit, refs) => {
       for (const path of pathSplit) {
         const loc = refs.find(({ Name }) => Name === path)
-        assert(!inChangeRoot || loc, `Folder not found: ${path}`)
-        if (!loc) continue // we are calling ls in a folder that hasn't been created in fs yet
+        if (!loc) return []
         await this.#ensureContent(loc.Hash)
         refs = await lsFull(this.#blockstore, loc.Hash)
       }
@@ -142,7 +142,7 @@ export class Files {
     
     // Get entries from change filesystem
     let changeRefs = await lsFull(this.#blockstore, this.#changeRoot)
-    changeRefs = await refsByPath(pathSplit, changeRefs, true)
+    changeRefs = await refsByPath(pathSplit, changeRefs)
     
     // Combine entries from both filesystems
     const allEntries = new Map()
@@ -212,31 +212,72 @@ export class Files {
   }
 
   /**
-   * Sets the avatar for the website.
-   * @param {Uint8Array} content - The avatar content as a Uint8Array.
-   * @param {string} fileExt - The file extension of the avatar.
-   * @returns {Promise<void>} Resolves when the avatar is set.
+   * Sets the generated site artifacts for the website.
+   * @param {object} assets - The generated assets to store.
+   * @param {Uint8Array | null} assets.ensAvatar
+   * @param {Uint8Array | null} assets.ensFavicon
+   * @param {Uint8Array | null} assets.foamAvatar
+   * @param {Uint8Array | null} assets.foamFaviconLight
+   * @param {Uint8Array | null} assets.foamFaviconDark
+   * @returns {Promise<void>} Resolves when the artifacts are set.
    */
-  async setAvatar(content, fileExt) {
+  async setArtifacts({
+    ensAvatar,
+    ensFavicon,
+    foamAvatar,
+    foamFaviconLight,
+    foamFaviconDark,
+  }) {
     await this.#isReady()
-    const avatarPath = await this.getAvatarPath(true)
-    if (avatarPath) {
-      try {
-        await this.rm(avatarPath)
-      } catch (_e) { /* Ignore errors, avatar may not exist */ }
+    const base = `/${ARTIFACTS_FOLDER}`
+    const updates = [
+      { name: 'ensAvatar.png', content: ensAvatar },
+      { name: 'ensFavicon.png', content: ensFavicon },
+      { name: 'foamAvatar.png', content: foamAvatar },
+      { name: 'foamFavicon-light.png', content: foamFaviconLight },
+      { name: 'foamFavicon-dark.png', content: foamFaviconDark },
+    ]
+
+    for (const { name, content } of updates) {
+      const path = `${base}/${name}`
+      if (content) {
+        await this.add(path, content)
+      } else if (await this.#fileExists(path, true)) {
+        try {
+          await this.rm(path)
+        } catch (_e) { /* Ignore errors, file may not exist */ }
+      }
     }
-    await this.add('/.avatar.' + fileExt, content, { forceAvatar: true })
   }
 
   /**
-   * Gets the avatar for the website.
-   * @returns {Promise<Uint8Array | null>} The avatar content as a Uint8Array, or null if no avatar is set.
+   * Gets the generated artifact paths for the website.
+   * @returns {Promise<{ ensAvatar: string | null, ensFavicon: string | null, foamAvatar: string | null, foamFaviconLight: string | null, foamFaviconDark: string | null }>} The artifact paths.
    */
-  async getAvatarPath(noPrefix = false) {
+  async getArtifactPaths(noPrefix = false) {
     await this.#isReady()
-    const files = await this.ls('/')
-    const avatarPath = files.find(f => f.name.startsWith('.avatar.'))?.path
-    return !noPrefix && avatarPath ? `/${FILES_FOLDER}/${avatarPath}` : avatarPath
+    const artifactsRoot = await this.#fileExists(`/${ARTIFACTS_FOLDER}`, true)
+    if (!artifactsRoot) {
+      return {
+        ensAvatar: null,
+        ensFavicon: null,
+        foamAvatar: null,
+        foamFaviconLight: null,
+        foamFaviconDark: null,
+      }
+    }
+
+    const files = await this.ls(ARTIFACTS_FOLDER)
+    const resolve = (name) => files.find(f => f.name === name)?.path || null
+    const prefix = (path) => (!noPrefix && path ? `/${FILES_FOLDER}/${path}` : path)
+
+    return {
+      ensAvatar: prefix(resolve('ensAvatar.png')),
+      ensFavicon: prefix(resolve('ensFavicon.png')),
+      foamAvatar: prefix(resolve('foamAvatar.png')),
+      foamFaviconLight: prefix(resolve('foamFavicon-light.png')),
+      foamFaviconDark: prefix(resolve('foamFavicon-dark.png')),
+    }
   }
 
   /**
