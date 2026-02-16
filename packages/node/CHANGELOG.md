@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.4.0-rc.7
+
+### Patch Changes
+
+- 37766fe: chore(node): relax rate limits
+
 ## 1.4.0-rc.6
 
 ### Patch Changes
