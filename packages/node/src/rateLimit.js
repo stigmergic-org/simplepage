@@ -68,13 +68,13 @@ export const resolveUploadRateLimits = ({ rateLimits, maxStagedAgeSeconds }) => 
   }
   return {
     enabled: true,
-    requestPerIpDomain: toNumber(upload.requestsPerIpDomain, 3),
-    requestPerIp: toNumber(upload.requestsPerIp, 8),
+    requestPerIpDomain: toNumber(upload.requestsPerIpDomain, 15),
+    requestPerIp: toNumber(upload.requestsPerIp, 30),
     requestWindowSeconds: toNumber(upload.requestWindowSeconds, 5 * 60),
     bytesPerIpDomain: toNumber(upload.bytesPerIpDomain, 1024 * 1024 * 1024),
     bytesPerIp: toNumber(upload.bytesPerIp, 2 * 1024 * 1024 * 1024),
     byteWindowSeconds: toNumber(upload.byteWindowSeconds, maxStagedAgeSeconds),
-    concurrentPerIp: toNumber(upload.concurrentPerIp, 1)
+    concurrentPerIp: toNumber(upload.concurrentPerIp, 2)
   }
 }
 
