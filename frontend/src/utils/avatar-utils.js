@@ -11,6 +11,24 @@ export const readThemePreferences = async (repo) => {
   }
 }
 
+const sanitizeEnsAvatar = (url) => {
+  if (!url) return url
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'euc.li') {
+      // euc.li structure: /<network>/<name>
+      // metadata structure: /<network>/avatar/<name>
+      const parts = u.pathname.split('/').filter(Boolean)
+      if (parts.length === 2) {
+        return `https://metadata.ens.domains/${parts[0]}/avatar/${parts[1]}`
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return url
+}
+
 export const generateArtifactAssets = async ({
   domain,
   ensAvatar,
@@ -24,7 +42,8 @@ export const generateArtifactAssets = async ({
 
   if (ensAvatar) {
     try {
-      ensAvatarBytes = await imageUrlToPngBytes(ensAvatar, avatarSize)
+      const sanitizedAvatar = sanitizeEnsAvatar(ensAvatar)
+      ensAvatarBytes = await imageUrlToPngBytes(sanitizedAvatar, avatarSize)
       if (ensAvatarBytes) {
         ensFaviconBytes = await maskPngBytes(ensAvatarBytes, faviconSize)
         if (!ensFaviconBytes) {
