@@ -85,6 +85,7 @@ case "$TARGET" in
     confirm_versions
     commit_release
     pnpm run build
+    npm login
     pnpm changeset publish
     pnpm --filter @simplepg/frontend run stage-sepolia
     ;;
@@ -98,6 +99,7 @@ case "$TARGET" in
     confirm_versions
     commit_release
     pnpm run build
+    npm login
     pnpm changeset publish
     pnpm --filter @simplepg/frontend run stage
     ;;
