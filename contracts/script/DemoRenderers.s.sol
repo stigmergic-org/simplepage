@@ -87,9 +87,7 @@ contract RenderersDemoScript is Script {
     }
 
     function run() external {
-        address deployer = msg.sender;
-
-        // Deploying contracts with address: deployer
+        // Deploying contracts
 
         vm.startBroadcast();
 
@@ -156,7 +154,7 @@ contract RenderersDemoScript is Script {
         console.log("This will expire units on pages with short-duration units");
     }
 
-    function _testRenderers() internal {
+    function _testRenderers() internal view {
         // === Testing TokenRenderer V1 ===
         _testRenderer(address(rendererV1), "v1");
 
@@ -167,7 +165,7 @@ contract RenderersDemoScript is Script {
         _testRenderer(address(rendererV3), "v3");
     }
 
-    function _testRenderer(address rendererAddress, string memory version) internal {
+    function _testRenderer(address rendererAddress, string memory version) internal view {
         // Test each page
         for (uint256 i = 0; i < sampleDomains.length; i++) {
             string memory domain = sampleDomains[i];
@@ -175,10 +173,8 @@ contract RenderersDemoScript is Script {
 
             // Testing domain: domain token ID: tokenId
 
-            // Get page data
-            PageData memory pageData = pages.getPageData(tokenId);
-            // Domain: pageData.domain
-            // Units count: pageData.units.length
+            // Get page data for domain and units count info
+            pages.getPageData(tokenId);
 
             // Test rendering and log results
             string memory tokenURI;

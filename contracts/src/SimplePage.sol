@@ -156,12 +156,7 @@ contract SimplePage is ERC721, AccessControl, ISimplePage {
     }
 
     // Override supportsInterface function
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, AccessControl, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl, IERC165) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

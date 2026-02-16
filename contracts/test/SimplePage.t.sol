@@ -450,7 +450,7 @@ contract SimplePageTest is Test {
         uint256 expiresAt = block.timestamp + 365 days;
 
         // Create page with many units
-        uint256 id = pages.updateUnits(domain, expiresAt, 50, user1);
+        pages.updateUnits(domain, expiresAt, 50, user1);
 
         // Update all units at once
         uint256 gasBefore = gasleft();

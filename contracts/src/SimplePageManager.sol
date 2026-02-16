@@ -81,6 +81,7 @@ contract SimplePageManager is ReentrancyGuardTransient {
         require(price > 0, "Invalid price");
         // Calculate the fee in USD (12 USD per year)
         uint256 nominator = PRICE_PER_YEAR * duration * ETH_DECIMALS;
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 denominator = uint256(price) * SECONDS_PER_YEAR;
         return nominator / denominator;
     }

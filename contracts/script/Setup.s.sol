@@ -27,7 +27,7 @@ forge script script/Setup.s.sol:SetupScript \
     -vvvv \
     --sig "run(address,address)" 0x1234... 0x5678...
 
-Note: 
+Note:
 - Replace <your_rpc_url> with your RPC endpoint
 - Replace <your_private_key> with deployer private key
 - Replace <beneficiary_address> with address to receive fees

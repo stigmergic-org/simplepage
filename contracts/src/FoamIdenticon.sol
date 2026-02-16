@@ -72,7 +72,6 @@ contract FoamIdenticon {
         int256 simplifyThreshold;
     }
 
-
     struct Grid {
         uint256 cols;
         uint256 rows;
@@ -95,29 +94,24 @@ contract FoamIdenticon {
         int256 cInset;
     }
 
-
     function generateFoamSvg(string memory seed, uint256 size) public pure returns (string memory) {
         (Context memory ctx, uint64 state, uint256 targetCount) = prepareContext(seed, size);
-        (Point[] memory points, uint256 pointsLen, uint64 nextState) = generatePoints(
-            state,
-            ctx.pixelSize,
-            targetCount,
-            ctx.margin,
-            ctx.marginFp
-        );
+        (Point[] memory points, uint256 pointsLen, uint64 nextState) =
+            generatePoints(state, ctx.pixelSize, targetCount, ctx.margin, ctx.marginFp);
 
         int256 spacing = computeSpacing(ctx.sizeFp, pointsLen);
         ctx.simplifyThreshold = (spacing * SIMPLIFY_NUM) / SIMPLIFY_DEN;
 
         string memory svg = buildSvgHeader(ctx.pixelSize, ctx.strokeWidth);
         (svg, state) = appendCells(svg, points, pointsLen, ctx, nextState);
-        return string(abi.encodePacked(svg, '</g></svg>'));
+        return string(abi.encodePacked(svg, "</g></svg>"));
     }
 
-    function prepareContext(
-        string memory seed,
-        uint256 size
-    ) internal pure returns (Context memory ctx, uint64 state, uint256 cellCount) {
+    function prepareContext(string memory seed, uint256 size)
+        internal
+        pure
+        returns (Context memory ctx, uint64 state, uint256 cellCount)
+    {
         ctx.pixelSize = size < MIN_SIZE ? MIN_SIZE : size;
         state = initRng(seed);
 
@@ -133,6 +127,7 @@ contract FoamIdenticon {
         ctx.gradient = createGradient(ctx.pixelSize, dirX(dirIndex), dirY(dirIndex));
 
         ctx.sizeFp = int256(ctx.pixelSize) * FP;
+        // forge-lint: disable-next-line(unsafe-typecast)
         ctx.strokeWidth = (STROKE_BASE * int256(ctx.pixelSize) * FP) / int256(DEFAULT_SIZE);
         int256 spacing = computeSpacing(ctx.sizeFp, cellCount);
         int256 insetFromSpacing = (spacing * INSET_RATIO_NUM) / INSET_RATIO_DEN;
@@ -175,40 +170,29 @@ contract FoamIdenticon {
         return svg;
     }
 
-    function appendCells(
-        string memory svg,
-        Point[] memory points,
-        uint256 pointsLen,
-        Context memory ctx,
-        uint64 state
-    ) internal pure returns (string memory, uint64) {
+    function appendCells(string memory svg, Point[] memory points, uint256 pointsLen, Context memory ctx, uint64 state)
+        internal
+        pure
+        returns (string memory, uint64)
+    {
         for (uint256 i = 0; i < pointsLen; i++) {
-            (string memory cellPath, string memory fill, uint64 updatedState) = buildCell(
-                points,
-                pointsLen,
-                i,
-                ctx,
-                state
-            );
+            (string memory cellPath, string memory fill, uint64 updatedState) =
+                buildCell(points, pointsLen, i, ctx, state);
             state = updatedState;
 
             if (bytes(cellPath).length == 0) {
                 continue;
             }
-            svg = string(
-                abi.encodePacked(svg, '<path d="', cellPath, '" fill="', fill, '"/>')
-            );
+            svg = string(abi.encodePacked(svg, '<path d="', cellPath, '" fill="', fill, '"/>'));
         }
         return (svg, state);
     }
 
-    function buildCell(
-        Point[] memory points,
-        uint256 pointsLen,
-        uint256 index,
-        Context memory ctx,
-        uint64 state
-    ) internal pure returns (string memory, string memory, uint64) {
+    function buildCell(Point[] memory points, uint256 pointsLen, uint256 index, Context memory ctx, uint64 state)
+        internal
+        pure
+        returns (string memory, string memory, uint64)
+    {
         Point[] memory poly = new Point[](MAX_VERTICES);
         uint256 polyLen = 4;
         poly[0] = Point(0, 0);
@@ -259,19 +243,19 @@ contract FoamIdenticon {
         if (count == 0) {
             return 0;
         }
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 size = uint256(sizeFp);
         uint256 area = size * size;
         uint256 spacing = sqrt(area / count);
+        // forge-lint: disable-next-line(unsafe-typecast)
         return int256(spacing);
     }
 
-    function buildInsetPolygon(
-        Point[] memory points,
-        uint256 pointsLen,
-        uint256 index,
-        int256 sizeFp,
-        int256 cellInset
-    ) internal pure returns (Point[] memory, uint256) {
+    function buildInsetPolygon(Point[] memory points, uint256 pointsLen, uint256 index, int256 sizeFp, int256 cellInset)
+        internal
+        pure
+        returns (Point[] memory, uint256)
+    {
         Point[] memory poly = new Point[](MAX_VERTICES);
         uint256 polyLen = 4;
         poly[0] = Point(0, 0);
@@ -302,19 +286,19 @@ contract FoamIdenticon {
         return (poly, polyLen);
     }
 
-    function createGradient(uint256 size, int256 dirX, int256 dirY) internal pure returns (Gradient memory) {
+    function createGradient(uint256 size, int256 gradientDirX, int256 gradientDirY)
+        internal
+        pure
+        returns (Gradient memory)
+    {
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 sizeFp = int256(size) * FP;
-        Point[4] memory corners = [
-            Point(0, 0),
-            Point(sizeFp, 0),
-            Point(sizeFp, sizeFp),
-            Point(0, sizeFp)
-        ];
+        Point[4] memory corners = [Point(0, 0), Point(sizeFp, 0), Point(sizeFp, sizeFp), Point(0, sizeFp)];
 
-        int256 minProj = dirX * corners[0].x + dirY * corners[0].y;
+        int256 minProj = gradientDirX * corners[0].x + gradientDirY * corners[0].y;
         int256 maxProj = minProj;
         for (uint256 i = 1; i < 4; i++) {
-            int256 proj = dirX * corners[i].x + dirY * corners[i].y;
+            int256 proj = gradientDirX * corners[i].x + gradientDirY * corners[i].y;
             if (proj < minProj) {
                 minProj = proj;
             }
@@ -322,16 +306,14 @@ contract FoamIdenticon {
                 maxProj = proj;
             }
         }
-        return Gradient(dirX, dirY, minProj, maxProj);
+        return Gradient(gradientDirX, gradientDirY, minProj, maxProj);
     }
 
-    function generatePoints(
-        uint64 state,
-        uint256 size,
-        uint256 count,
-        uint256 margin,
-        int256 marginFp
-    ) internal pure returns (Point[] memory, uint256, uint64) {
+    function generatePoints(uint64 state, uint256 size, uint256 count, uint256 margin, int256 marginFp)
+        internal
+        pure
+        returns (Point[] memory, uint256, uint64)
+    {
         Grid memory grid = buildGrid(size, count, margin, marginFp);
 
         Point[] memory points = new Point[](MAX_POINTS);
@@ -367,12 +349,11 @@ contract FoamIdenticon {
         return (points, len, state);
     }
 
-    function buildGrid(
-        uint256 size,
-        uint256 count,
-        uint256 margin,
-        int256 marginFp
-    ) internal pure returns (Grid memory grid) {
+    function buildGrid(uint256 size, uint256 count, uint256 margin, int256 marginFp)
+        internal
+        pure
+        returns (Grid memory grid)
+    {
         uint256 usable = size > margin * 2 ? size - margin * 2 : 1;
         uint256 area = usable * usable;
         uint256 spacing = sqrt(area / count);
@@ -400,27 +381,31 @@ contract FoamIdenticon {
 
         grid.cols = cols;
         grid.rows = rows;
+        // forge-lint: disable-next-line(unsafe-typecast)
         grid.cellWidthFp = int256(cellWidth) * FP;
+        // forge-lint: disable-next-line(unsafe-typecast)
         grid.cellHeightFp = int256(cellHeight) * FP;
         grid.jitterX = (grid.cellWidthFp * JITTER_FP) / FP;
         grid.jitterY = (grid.cellHeightFp * JITTER_FP) / FP;
         grid.marginFp = marginFp;
+        // forge-lint: disable-next-line(unsafe-typecast)
         grid.maxCoord = int256(size) * FP - marginFp;
         grid.size = size;
     }
 
-    function jitterPoint(
-        uint64 state,
-        Grid memory grid,
-        uint256 row,
-        uint256 col
-    ) internal pure returns (uint64, Point memory) {
+    function jitterPoint(uint64 state, Grid memory grid, uint256 row, uint256 col)
+        internal
+        pure
+        returns (uint64, Point memory)
+    {
         int256 jitterXVal;
         int256 jitterYVal;
         (state, jitterXVal) = randSigned(state, grid.jitterX);
         (state, jitterYVal) = randSigned(state, grid.jitterY);
 
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 x = grid.marginFp + int256(col) * grid.cellWidthFp + grid.cellWidthFp / 2 + jitterXVal;
+        // forge-lint: disable-next-line(unsafe-typecast)
         int256 y = grid.marginFp + int256(row) * grid.cellHeightFp + grid.cellHeightFp / 2 + jitterYVal;
 
         x = clampInt(x, grid.marginFp, grid.maxCoord);
@@ -437,13 +422,11 @@ contract FoamIdenticon {
         return (state, Point(randX, randY));
     }
 
-    function clipPolygon(
-        Point[] memory polygon,
-        uint256 len,
-        int256 nx,
-        int256 ny,
-        int256 c
-    ) internal pure returns (Point[] memory, uint256) {
+    function clipPolygon(Point[] memory polygon, uint256 len, int256 nx, int256 ny, int256 c)
+        internal
+        pure
+        returns (Point[] memory, uint256)
+    {
         Point[] memory output = new Point[](MAX_VERTICES);
         uint256 outLen = 0;
         if (len < 3) {
@@ -485,7 +468,11 @@ contract FoamIdenticon {
         return (output, outLen);
     }
 
-    function intersect(Point memory a, Point memory b, int256 nx, int256 ny, int256 c) internal pure returns (Point memory) {
+    function intersect(Point memory a, Point memory b, int256 nx, int256 ny, int256 c)
+        internal
+        pure
+        returns (Point memory)
+    {
         int256 dx = b.x - a.x;
         int256 dy = b.y - a.y;
         int256 denom = nx * dx + ny * dy;
@@ -493,10 +480,7 @@ contract FoamIdenticon {
             return a;
         }
         int256 t = c - (nx * a.x + ny * a.y);
-        return Point(
-            a.x + mulDivSigned(dx, t, denom),
-            a.y + mulDivSigned(dy, t, denom)
-        );
+        return Point(a.x + mulDivSigned(dx, t, denom), a.y + mulDivSigned(dy, t, denom));
     }
 
     function polygonCentroid(Point[] memory points, uint256 len) internal pure returns (Point memory) {
@@ -520,11 +504,11 @@ contract FoamIdenticon {
         return Point(cx / denom, cy / denom);
     }
 
-    function insetPolygonByEdges(
-        Point[] memory points,
-        uint256 len,
-        int256 inset
-    ) internal pure returns (Point[] memory, uint256) {
+    function insetPolygonByEdges(Point[] memory points, uint256 len, int256 inset)
+        internal
+        pure
+        returns (Point[] memory, uint256)
+    {
         if (len < 3 || inset <= 0) {
             return (points, len);
         }
@@ -559,12 +543,11 @@ contract FoamIdenticon {
         return minEdge;
     }
 
-    function clipInset(
-        Point[] memory points,
-        uint256 len,
-        int256 inset,
-        bool isCcw
-    ) internal pure returns (Point[] memory, uint256) {
+    function clipInset(Point[] memory points, uint256 len, int256 inset, bool isCcw)
+        internal
+        pure
+        returns (Point[] memory, uint256)
+    {
         Point[] memory poly = points;
         uint256 polyLen = len;
         EdgeWork memory edge;
@@ -580,9 +563,7 @@ contract FoamIdenticon {
 
             edge.nx = isCcw ? edge.dy : -edge.dy;
             edge.ny = isCcw ? -edge.dx : edge.dx;
-            edge.edgeLen = int256(
-                sqrt(uint256(absInt(edge.dx) * absInt(edge.dx) + absInt(edge.dy) * absInt(edge.dy)))
-            );
+            edge.edgeLen = int256(sqrt(uint256(absInt(edge.dx) * absInt(edge.dx) + absInt(edge.dy) * absInt(edge.dy))));
             if (edge.edgeLen == 0) {
                 continue;
             }
@@ -649,11 +630,11 @@ contract FoamIdenticon {
         return (points, len);
     }
 
-    function simplifyPolygon(
-        Point[] memory points,
-        uint256 len,
-        int256 threshold
-    ) internal pure returns (Point[] memory, uint256) {
+    function simplifyPolygon(Point[] memory points, uint256 len, int256 threshold)
+        internal
+        pure
+        returns (Point[] memory, uint256)
+    {
         if (len < 3 || threshold <= 0) {
             return (points, len);
         }
@@ -709,7 +690,7 @@ contract FoamIdenticon {
             Point memory prev = points[(i + len - 1) % len];
             Point memory curr = points[i];
             Point memory next = points[(i + 1) % len];
-            int256 cornerNum = cornerRatioNum(prev, curr, next, num, denom);
+            int256 cornerNum = cornerRatioNum(prev, curr, next, num);
             entries[i] = Point(
                 curr.x + mulDivSigned(prev.x - curr.x, cornerNum, denom),
                 curr.y + mulDivSigned(prev.y - curr.y, cornerNum, denom)
@@ -725,21 +706,17 @@ contract FoamIdenticon {
             if (i > 0) {
                 path = string(abi.encodePacked(path, " L ", formatPoint(entries[i])));
             }
-            path = string(
-                abi.encodePacked(path, " Q ", formatPoint(points[i]), " ", formatPoint(exits[i]))
-            );
+            path = string(abi.encodePacked(path, " Q ", formatPoint(points[i]), " ", formatPoint(exits[i])));
         }
         path = string(abi.encodePacked(path, " Z"));
         return path;
     }
 
-    function cornerRatioNum(
-        Point memory prev,
-        Point memory curr,
-        Point memory next,
-        int256 num,
-        int256 denom
-    ) internal pure returns (int256) {
+    function cornerRatioNum(Point memory prev, Point memory curr, Point memory next, int256 num)
+        internal
+        pure
+        returns (int256)
+    {
         int256 vx1 = prev.x - curr.x;
         int256 vy1 = prev.y - curr.y;
         int256 vx2 = next.x - curr.x;
@@ -755,11 +732,16 @@ contract FoamIdenticon {
         if (oneMinusCos < 0) {
             oneMinusCos = 0;
         }
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 value = (uint256(oneMinusCos) * uint256(FP)) / uint256(2 * cosDen);
+        // forge-lint: disable-next-line(unsafe-typecast)
         if (value > uint256(FP)) {
+            // forge-lint: disable-next-line(unsafe-typecast)
             value = uint256(FP);
         }
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 scaleFp = sqrt(value * uint256(FP));
+        // forge-lint: disable-next-line(unsafe-typecast)
         return int256((uint256(num) * scaleFp) / uint256(FP));
     }
 
@@ -769,12 +751,11 @@ contract FoamIdenticon {
         return int256(sqrt(uint256(absInt(dx) * absInt(dx) + absInt(dy) * absInt(dy))));
     }
 
-    function colorForCell(
-        Point memory centroid,
-        Gradient memory gradient,
-        bool useOcean,
-        uint64 state
-    ) internal pure returns (string memory, uint64) {
+    function colorForCell(Point memory centroid, Gradient memory gradient, bool useOcean, uint64 state)
+        internal
+        pure
+        returns (string memory, uint64)
+    {
         int256 proj = gradient.dirX * centroid.x + gradient.dirY * centroid.y;
         int256 span = gradient.max - gradient.min;
         if (span == 0) {
@@ -789,6 +770,7 @@ contract FoamIdenticon {
         int256 jitter2;
         (state, jitter2) = randSigned(state, PALETTE_JITTER_FP);
         int256 adjusted = clampInt(t + jitter2, 0, FP - 1);
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 index = uint256((adjusted * int256(7)) / FP);
         return (paletteColor(index, useOcean), state);
     }
@@ -842,6 +824,7 @@ contract FoamIdenticon {
     function formatFixed(int256 value) internal pure returns (string memory) {
         bool neg = value < 0;
         uint256 absVal = uint256(neg ? -value : value);
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 scaled = (absVal * 100 + uint256(FP_HALF)) / uint256(FP);
         uint256 intPart = scaled / 100;
         uint256 frac = scaled % 100;
@@ -884,8 +867,10 @@ contract FoamIdenticon {
         }
         uint64 rnd;
         (state, rnd) = nextUint(state);
+        // forge-lint: disable-next-line(unsafe-typecast)
         uint256 range = uint256(int256(max - min));
         uint256 scaled = (uint256(rnd) * range) >> 64;
+        // forge-lint: disable-next-line(unsafe-typecast)
         return (state, min + int256(scaled));
     }
 

@@ -35,7 +35,13 @@ contract MockPriceFeed is AggregatorV3Interface {
         return 0;
     }
 
-    function getRoundData(uint80 /* _roundId */ ) external pure returns (uint80, int256, uint256, uint256, uint80) {
+    function getRoundData(
+        uint80 /* _roundId */
+    )
+        external
+        pure
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
         return (0, 0, 0, 0, 0);
     }
 }
@@ -55,6 +61,7 @@ contract SimplePageManagerTest is Test {
     function setUp() public {
         beneficiary = address(0x12345678);
         pages = new SimplePage();
+        // forge-lint: disable-next-line(unsafe-typecast)
         mockPriceFeed = new MockPriceFeed(int256(INITIAL_ETH_PRICE));
         pageManager = new SimplePageManager(address(pages), beneficiary, address(mockPriceFeed));
         pages.grantRole(pages.MINTER_ROLE(), address(pageManager));
@@ -95,7 +102,7 @@ contract SimplePageManagerTest is Test {
     function testFuzzFeeCalculationWithPriceChange(uint256 duration, uint256 newEthPrice) public {
         vm.assume(duration > 86400 && duration <= 10 * SECONDS_PER_YEAR);
         vm.assume(newEthPrice > 0 && newEthPrice <= 10000e8);
-
+        // forge-lint: disable-next-line(unsafe-typecast)
         mockPriceFeed.setPrice(int256(newEthPrice));
 
         uint256 calculatedFee = pageManager.fee(duration);
@@ -155,7 +162,7 @@ contract SimplePageManagerTest is Test {
         uint256 duration = SECONDS_PER_YEAR;
         uint256 newEthPrice = 3000e8; // $3000 per ETH
         uint256 expectedFee = 0.004 ether; // 12 USD / 3000 USD/ETH
-
+        // forge-lint: disable-next-line(unsafe-typecast)
         mockPriceFeed.setPrice(int256(newEthPrice));
 
         uint256 calculatedFee = pageManager.fee(duration);
@@ -423,6 +430,7 @@ contract SimplePageManagerTest is Test {
 
     function testFuzzFeeCalculationWithRandomPrice(uint256 price) public {
         vm.assume(price > 0 && price <= 10000e8); // Reasonable price range
+        // forge-lint: disable-next-line(unsafe-typecast)
         mockPriceFeed.setPrice(int256(price));
 
         uint256 duration = SECONDS_PER_YEAR;
@@ -430,7 +438,7 @@ contract SimplePageManagerTest is Test {
         assertGt(fee, 0, "Fee should be greater than 0");
     }
 
-    function testFuzzFeeCalculationWithRandomDuration(uint256 duration) public {
+    function testFuzzFeeCalculationWithRandomDuration(uint256 duration) public view {
         vm.assume(duration > 0 && duration <= 50 * SECONDS_PER_YEAR);
         uint256 fee = pageManager.fee(duration);
         assertGt(fee, 0, "Fee should be greater than 0");
@@ -439,9 +447,6 @@ contract SimplePageManagerTest is Test {
     function testSubscribeWithPriceChangeDuringTransaction() public {
         string memory domain = "test.eth";
         uint256 duration = SECONDS_PER_YEAR;
-
-        // Calculate fee with initial price
-        uint256 initialFee = pageManager.fee(duration);
 
         // Change price before subscription
         mockPriceFeed.setPrice(int256(3000e8)); // $3000 per ETH
@@ -835,11 +840,7 @@ contract FailingBeneficiary {
 }
 
 contract ContractCaller {
-    function subscribe(address pageManager, string memory domain, uint256 duration)
-        external
-        payable
-        returns (uint256)
-    {
+    function subscribe(address pageManager, string memory domain, uint256 duration) external payable returns (uint256) {
         return SimplePageManager(pageManager).subscribe{value: msg.value}(domain, duration);
     }
 }

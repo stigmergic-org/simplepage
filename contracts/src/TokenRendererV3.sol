@@ -54,13 +54,7 @@ contract TokenRendererV3 is ITokenRenderer {
         string memory foamBase64 = Base64.encode(bytes(foam.generateFoamSvg(pageData.domain, 512)));
 
         // Create SVG with dynamic height
-        string memory svg = _buildSvgStart(
-            pageData.domain,
-            totalHeight,
-            unitsSectionHeight,
-            cardHeight,
-            foamBase64
-        );
+        string memory svg = _buildSvgStart(pageData.domain, totalHeight, unitsSectionHeight, cardHeight, foamBase64);
 
         // Add unit entries with refined styling
         svg = _appendUnitRows(svg, pageData.units);
@@ -175,10 +169,7 @@ contract TokenRendererV3 is ITokenRenderer {
 
         svg = string(
             abi.encodePacked(
-                svg,
-                "<!-- SimplePage Renderer V3 -->",
-                "<!-- Professional gradients and effects -->",
-                "<defs>"
+                svg, "<!-- SimplePage Renderer V3 -->", "<!-- Professional gradients and effects -->", "<defs>"
             )
         );
 
