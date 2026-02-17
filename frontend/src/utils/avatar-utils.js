@@ -26,7 +26,7 @@ const sanitizeEnsAvatarUrl = (url) => {
         return `https://metadata.ens.domains/${parts[0]}/avatar/${parts[1]}`
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // ignore
   }
   return url

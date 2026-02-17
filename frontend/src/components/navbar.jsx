@@ -37,7 +37,6 @@ const Navbar = ({
   const [avatarLogo] = useState(avatarFromDoc);
   const avatarLogoSvg = useMemo(() => (domain ? buildFoamSvg(domain, 36) : null), [domain]);
   const { data: ensAvatar } = useEnsAvatar({ name: domain, });
-  const showEnsAvatar = Boolean(ensAvatar);
   // const [searchFocused, setSearchFocused] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const searchInputRef = useRef(null);
