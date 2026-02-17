@@ -6,6 +6,8 @@ import { useDomain } from '../hooks/useDomain';
 import { usePagePath } from '../hooks/usePagePath';
 import { useScrollContext } from '../contexts/ScrollContext';
 import { useRepo } from '../hooks/useRepo';
+import { useIsSnapshot } from '../hooks/useIsSnapshot';
+import { DOMAIN_SUFFIX } from '../config/domain';
 import Icon from './Icon';
 import Notice from './Notice';
 import SubscriptionNotice from './SubscriptionNotice';
@@ -33,6 +35,7 @@ const Navbar = ({
     name: domain,
   });
   const { repo, root: repoRoot, dserviceFailed, rpcFailed } = useRepo();
+  const isSnapshot = useIsSnapshot();
 
   const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToSettings, ROUTES } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
@@ -308,7 +311,12 @@ const Navbar = ({
   const showSearch = searchEnabled && !editMode
 
   return (<>
-    {dserviceFailed && (
+    {isSnapshot && (
+      <Notice type="info" className="z-50">
+        <strong>Website Snapshot.</strong> You are looking at an old version of this website. <a className="link" href={`https://${domain}${DOMAIN_SUFFIX}`} target="_blank" rel="noopener noreferrer">View latest version.</a>
+      </Notice>
+    )}
+    {dserviceFailed && !isSnapshot && (
       <Notice type="warning" className="z-50">
         <strong>Failed to connect to DService.</strong> If you have access to a DService endpoint, you can set it in the URL as <code>?ds-new.simplepage.eth=your-dservice.com</code>
       </Notice>
