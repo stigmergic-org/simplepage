@@ -1,5 +1,12 @@
 # @simplepg/frontend
 
+## 1.7.0-rc.5
+
+### Patch Changes
+
+- 073482f: fix(frontend): resolve ens avatar withhout cors issue
+- 067637c: chore(frontend): add notice about snapshot versions
+
 ## 1.7.0-rc.4
 
 ### Minor Changes
