@@ -1,5 +1,12 @@
 # @simplepg/frontend
 
+## 1.7.0-rc.6
+
+### Patch Changes
+
+- 5858ca5: fix(frontend): fix avatar rendering
+- aa0c986: fix(frontend): complete fork -> edit rename
+
 ## 1.7.0-rc.5
 
 ### Patch Changes
