@@ -1,5 +1,8 @@
 import { generateFoamPngBytes, imageUrlToPngBytes, maskPngBytes } from './foam-icons'
 
+const DEFAULT_AVATAR_SIZE = 256
+const DEFAULT_FAVICON_SIZE = 32
+
 export const readThemePreferences = async (repo) => {
   if (!repo) {
     return { light: 'light', dark: 'dark' }
@@ -11,7 +14,7 @@ export const readThemePreferences = async (repo) => {
   }
 }
 
-const sanitizeEnsAvatar = (url) => {
+const sanitizeEnsAvatarUrl = (url) => {
   if (!url) return url
   try {
     const u = new URL(url)
@@ -29,27 +32,42 @@ const sanitizeEnsAvatar = (url) => {
   return url
 }
 
+export const generateEnsArtifacts = async (
+  url,
+  avatarSize = DEFAULT_AVATAR_SIZE,
+  faviconSize = DEFAULT_FAVICON_SIZE,
+) => {
+  const sanitizedUrl = sanitizeEnsAvatarUrl(url)
+  const ensAvatarBytes = await imageUrlToPngBytes(sanitizedUrl, avatarSize)
+  let ensFaviconBytes
+  if (ensAvatarBytes) {
+    ensFaviconBytes = await maskPngBytes(ensAvatarBytes, faviconSize)
+    if (!ensFaviconBytes) {
+      ensFaviconBytes = ensAvatarBytes
+    }
+  }
+  return {
+    ensAvatarBytes,
+    ensFaviconBytes
+  }
+}
+
 export const generateArtifactAssets = async ({
   domain,
   ensAvatar,
   lightTheme = 'light',
   darkTheme = 'dark',
-  avatarSize = 256,
-  faviconSize = 32,
+  avatarSize = DEFAULT_AVATAR_SIZE,
+  faviconSize = DEFAULT_FAVICON_SIZE,
 }) => {
   let ensAvatarBytes = null
   let ensFaviconBytes = null
 
   if (ensAvatar) {
     try {
-      const sanitizedAvatar = sanitizeEnsAvatar(ensAvatar)
-      ensAvatarBytes = await imageUrlToPngBytes(sanitizedAvatar, avatarSize)
-      if (ensAvatarBytes) {
-        ensFaviconBytes = await maskPngBytes(ensAvatarBytes, faviconSize)
-        if (!ensFaviconBytes) {
-          ensFaviconBytes = ensAvatarBytes
-        }
-      }
+      const ensArtifacts = await generateEnsArtifacts(ensAvatar, avatarSize, faviconSize)
+      ensAvatarBytes = ensArtifacts.ensAvatarBytes
+      ensFaviconBytes = ensArtifacts.ensFaviconBytes
     } catch (avatarError) {
       console.warn('Failed to rasterize ENS avatar, falling back to foam icon.', avatarError)
     }

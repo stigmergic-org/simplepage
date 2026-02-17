@@ -13,17 +13,7 @@ import Notice from './Notice';
 import SubscriptionNotice from './SubscriptionNotice';
 import SearchModal from './SearchModal';
 import { buildFoamSvg } from '../utils/foam-icons';
-
-const defaultLogo = "/_assets/images/logo.png";
-const inferIconType = (href) => {
-  if (!href) return null;
-  if (href.startsWith('data:image/svg+xml')) return 'image/svg+xml';
-  if (href.startsWith('data:image/png')) return 'image/png';
-  if (href.endsWith('.svg')) return 'image/svg+xml';
-  if (href.endsWith('.png')) return 'image/png';
-  if (href.endsWith('.ico')) return 'image/x-icon';
-  return null;
-};
+import { generateEnsArtifacts } from '../utils/avatar-utils';
 
 const Navbar = ({
   activePage,
@@ -31,9 +21,6 @@ const Navbar = ({
 }) => {
   const domain = useDomain();
   const { path } = usePagePath();
-  const { data: ensAvatar } = useEnsAvatar({
-    name: domain,
-  });
   const { repo, root: repoRoot, dserviceFailed, rpcFailed } = useRepo();
   const isSnapshot = useIsSnapshot();
 
@@ -43,14 +30,17 @@ const Navbar = ({
   const tabsContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const logoSvg = useMemo(() => (domain ? buildFoamSvg(domain, 36) : null), [domain]);
   const [forkStyle, setForkStyle] = useState(null);
   const [searchEnabled, setSearchEnabled] = useState(false);
+  const avatarFromDoc = document.querySelector('link[rel="apple-touch-icon"]')?.href
+  const defaultAvatarIsEns = avatarFromDoc?.includes('ensAvatar.png')
+  const [avatarLogo] = useState(avatarFromDoc);
+  const avatarLogoSvg = useMemo(() => (domain ? buildFoamSvg(domain, 36) : null), [domain]);
+  const { data: ensAvatar } = useEnsAvatar({ name: domain, });
+  const showEnsAvatar = Boolean(ensAvatar);
   // const [searchFocused, setSearchFocused] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const searchInputRef = useRef(null);
-  const showEnsAvatar = Boolean(ensAvatar);
-  const defaultFaviconsRef = useRef(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -139,43 +129,20 @@ const Navbar = ({
   // Check if in edit mode
   const editMode = activePage && (Object.prototype.hasOwnProperty.call(availableTabs, activePage) || availableMenuItems.find(i => i.label === activePage));
 
-
   useEffect(() => {
-    if (!defaultFaviconsRef.current) {
-      defaultFaviconsRef.current = Array.from(document.querySelectorAll('link[rel="icon"]')).map(link => ({
-        href: link.href,
-        type: link.getAttribute('type') || null,
-        media: link.getAttribute('media') || null,
-      }))
+    const setEnsAsFavicon = async (url) => {
+      if (!url) return
+      const { ensFaviconBytes } = await generateEnsArtifacts(url)
+      if (ensFaviconBytes) {
+        const blob = new Blob([ensFaviconBytes], { type: 'image/png' })
+        const iconUrl = URL.createObjectURL(blob)
+        document.querySelectorAll('link[rel="icon"]').forEach(link => {
+          link.href = iconUrl
+        })
+      }
     }
-  }, [])
-
-  useEffect(() => {
-    const clearFavicons = () => {
-      document.querySelectorAll('link[rel="icon"]').forEach(link => link.remove());
-    };
-    const addFavicon = (href, media = null, type = null) => {
-      if (!href) return;
-      const link = document.createElement('link');
-      link.rel = 'icon';
-      link.href = href;
-      if (media) link.media = media;
-      const inferredType = type || inferIconType(href);
-      if (inferredType) link.type = inferredType;
-      document.head.appendChild(link);
-    };
-
     if (ensAvatar) {
-      clearFavicons();
-      addFavicon(ensAvatar);
-      return;
-    }
-
-    if (defaultFaviconsRef.current) {
-      clearFavicons();
-      defaultFaviconsRef.current.forEach(({ href, media, type }) => {
-        addFavicon(href, media, type);
-      });
+      setEnsAsFavicon(ensAvatar)
     }
   }, [ensAvatar]);
 
@@ -337,23 +304,17 @@ const Navbar = ({
       <div className="navbar z-[100] relative">
         <div className="navbar-start ml-2">
           <a href={rootHref} className="inline-flex">
-            {showEnsAvatar ? (
+            {defaultAvatarIsEns || ensAvatar ? (
               <img
-                src={ensAvatar}
+                src={ensAvatar || avatarLogo}
                 alt="Logo"
                 className="h-9 w-9 mask mask-squircle"
               />
-            ) : logoSvg ? (
+            ) : (
               <span
                 className="h-9 w-9 mask mask-squircle inline-flex"
                 aria-hidden="true"
-                dangerouslySetInnerHTML={{ __html: logoSvg }}
-              />
-            ) : (
-              <img
-                src={defaultLogo}
-                alt="Logo"
-                className="h-9 w-9"
+                dangerouslySetInnerHTML={{ __html: avatarLogoSvg }}
               />
             )}
           </a>

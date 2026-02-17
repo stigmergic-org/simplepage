@@ -170,8 +170,6 @@ body {
 }
 
 .heading-link-icon {
-  opacity: 0.85;
-  transition: opacity 0.2s ease;
   position: absolute;
   left: -1.8rem;
   top: 50%;
@@ -181,7 +179,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
+  padding-top: 0.2em;
+  /* border-radius: 0.25rem; */
   line-height: 1;
   overflow: visible;
 }
