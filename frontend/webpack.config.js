@@ -33,6 +33,9 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: ['.js', '.jsx'],
+      alias: {
+        '@react-native-async-storage/async-storage': false,
+      },
       fallback: {
         "process": require.resolve("process/browser"),
       },
