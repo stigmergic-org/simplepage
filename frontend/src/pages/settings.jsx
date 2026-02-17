@@ -6,6 +6,7 @@ import { applyTheme } from '../hooks/useApplyTheme';
 import Navbar from '../components/navbar';
 import Icon from '../components/Icon';
 import LoadingSpinner from '../components/LoadingSpinner';
+import RainbowEditContent from '../components/RainbowEditContent';
 
 const THEMES = [
   'light','dark','cupcake','bumblebee','emerald','corporate','synthwave','retro',
@@ -41,7 +42,7 @@ const Settings = () => {
   const domain = useDomain();
   const { repo } = useRepo();
   const isDarkMode = useDarkMode();
-  const [forkStyle, setForkStyle] = useState('rainbow');
+  const [editStyle, setEditStyle] = useState('rainbow');
   const [hideDonationNotice, setHideDonationNotice] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [lightTheme, setLightTheme] = useState('light');
@@ -54,7 +55,7 @@ const Settings = () => {
   const loadSettings = async () => {
     try {
       const settings = await repo.settings.read();
-      setForkStyle(settings?.appearance?.forkStyle || forkStyle);
+      setEditStyle(settings?.appearance?.editStyle || settings?.appearance?.forkStyle || editStyle);
       setHideDonationNotice(settings?.subscription?.hideDonationNotice || hideDonationNotice);
       setLightTheme(settings?.appearance?.theme?.light || lightTheme);
       setDarkTheme(settings?.appearance?.theme?.dark || darkTheme);
@@ -70,9 +71,9 @@ const Settings = () => {
   }, [repo]);
 
   // Save edit button style to settings
-  const handleForkButtonStyleChange = async (newStyle) => {
-    await repo.settings.writeProperty('appearance.forkStyle', newStyle);
-    setForkStyle(newStyle);
+  const handleEditButtonStyleChange = async (newStyle) => {
+    await repo.settings.writeProperty('appearance.editStyle', newStyle);
+    setEditStyle(newStyle);
   };
 
   // Save donation notice setting
@@ -181,41 +182,34 @@ const Settings = () => {
                 <label className="label cursor-pointer justify-start gap-3">
                   <input
                     type="radio"
-                    name="fork-style"
+                    name="edit-style"
                     className="radio"
                     value="rainbow"
-                    checked={forkStyle === 'rainbow'}
-                    onChange={(e) => handleForkButtonStyleChange(e.target.value)}
+                    checked={editStyle === 'rainbow'}
+                    onChange={(e) => handleEditButtonStyleChange(e.target.value)}
                   />
                   <button
-                    className="btn btn-sm rainbow-fork text-lg"
-                    onClick={() => handleForkButtonStyleChange('rainbow')}
+                    className="btn btn-sm rainbow-edit text-lg"
+                    onClick={() => handleEditButtonStyleChange('rainbow')}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-                      <defs>
-                        <mask id="fork-mask">
-                          <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" fill="white" />
-                        </mask>
-                      </defs>
-                    </svg>
-                    {'edit'}
+                    <RainbowEditContent />
                   </button>
                 </label>
 
                 <label className="label cursor-pointer justify-start gap-3">
                   <input
                     type="radio"
-                    name="fork-style"
+                    name="edit-style"
                     className="radio"
                     value="plain"
-                    checked={forkStyle === 'plain'}
-                    onChange={(e) => handleForkButtonStyleChange(e.target.value)}
+                    checked={editStyle === 'plain'}
+                    onChange={(e) => handleEditButtonStyleChange(e.target.value)}
                   />
                   <button
-                    className="btn btn-sm plain-fork text-lg bg-transparent"
-                    onClick={() => handleForkButtonStyleChange('plain')}
+                    className="btn btn-sm plain-edit text-lg bg-transparent"
+                    onClick={() => handleEditButtonStyleChange('plain')}
                   >
-                    <Icon name="fork" size={4} />
+                    <Icon name="edit" size={4} />
                   </button>
                 </label>
               </div>
