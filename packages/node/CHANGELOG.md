@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.4.0-rc.8
+
+### Patch Changes
+
+- fe87c7e: fix(node): limit max resolvers in single request
+
 ## 1.4.0-rc.7
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @simplepg/test-utils
 
+## 1.0.10-rc.8
+
+### Patch Changes
+
+- Updated dependencies [fe87c7e]
+  - @simplepg/node@1.4.0-rc.8
+
 ## 1.0.10-rc.7
 
 ### Patch Changes
