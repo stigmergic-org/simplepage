@@ -183,17 +183,27 @@ export class IndexerService {
     }
 
     const resolverAddresses = [...resolverSet]
+    const resolverBatchSize = 5
+    const resolverBatches = []
+    for (let i = 0; i < resolverAddresses.length; i += resolverBatchSize) {
+      resolverBatches.push(resolverAddresses.slice(i, i + resolverBatchSize))
+    }
     if (resolverAddresses.length > 0) {
-      this.logger.debug('Tracking contenthash updates for known resolvers', { resolverCount: resolverAddresses.length })
+      this.logger.debug('Tracking contenthash updates for known resolvers', {
+        resolverCount: resolverAddresses.length,
+        resolverBatchCount: resolverBatches.length,
+        resolverBatchSize
+      })
     }
     let contenthashLogs = []
     if (resolverAddresses.length > 0) {
-      contenthashLogs = await this.client.getLogs({
-        address: resolverAddresses,
+      const contenthashLogBatches = await Promise.all(resolverBatches.map(addresses => this.client.getLogs({
+        address: addresses,
         event: resolverEvent,
         fromBlock: BigInt(fromBlock),
         toBlock: BigInt(toBlock)
-      })
+      })))
+      contenthashLogs = contenthashLogBatches.flat()
     }
 
     this.logger.debug('NewResolver logs fetched', { count: newResolverLogs.length, fromBlock, toBlock })
