@@ -402,7 +402,7 @@ export class IpfsService {
   async readBlock(cid) {
     try {
       this.logger.debug('Reading raw IPFS block', { cid })
-      const blockData = await this.client.block.get(cid)
+      const blockData = await this.client.block.get(cid, { offline: true })
       this.logger.debug('Raw IPFS block read successfully', { cid, blockSize: blockData.length })
       return blockData
     } catch (error) {
