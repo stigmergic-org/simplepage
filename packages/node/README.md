@@ -105,6 +105,8 @@ simplepage-node block-list rm spam.eth
 | `--rpc` | `-r` | Ethereum RPC URL | `http://localhost:8545` |
 | `--start-block` | `-b` | Starting block number | `1` |
 | `--chain-id` | `-c` | Chain ID | `1` |
+| `--disable-provide` |  | Disable IPFS provide on finalize | `false` |
+| `--disable-peer-discovery` |  | Disable IPFS DHT peer discovery | `false` |
 
 
 ## API Reference

@@ -41,7 +41,8 @@ const startServer = () => {
     version: packageJson.version,
     ipfs: {
       api: opts.ipfsApi,
-      disableProvide: opts.disableProvide
+      disableProvide: opts.disableProvide,
+      disablePeerDiscovery: opts.disablePeerDiscovery
     },
     api: {
       port: parseInt(opts.apiPort),
@@ -67,6 +68,7 @@ const startServer = () => {
   console.log('Configuration:', {
     ipfsApi: config.ipfs.api,
     disableProvide: config.ipfs.disableProvide,
+    disablePeerDiscovery: config.ipfs.disablePeerDiscovery,
     apiPort: config.api.port,
     apiHost: config.api.host,
     rpcUrl: config.blockchain.rpcUrl,
@@ -115,6 +117,7 @@ program
   .option('--silent', 'Disable console logging')
   .option('--log-dir <path>', 'Log directory path', './logs')
   .option('--disable-provide', 'Disable IPFS provide on finalize')
+  .option('--disable-peer-discovery', 'Disable IPFS DHT peer discovery')
   .option('--tls-key <path>', 'Path to TLS private key (PEM)')
   .option('--tls-cert <path>', 'Path to TLS certificate (PEM)')
   .addOption(new Option('-u, --universal-resolver <address>', 'ENS Universal Resolver address (optional)').hideHelp())

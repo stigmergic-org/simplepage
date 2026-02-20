@@ -6,6 +6,7 @@ import * as u8a from 'uint8arrays'
 import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
 import { JSDOM } from 'jsdom'
 import { LRUCache } from 'lru-cache'
+import { PeerDiscovery } from './peerDiscovery.js'
 
 const DEFAULT_SPG_DATA_ROOT = '/spg-data'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -13,7 +14,15 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DOMParser = new JSDOM().window.DOMParser
 
 export class IpfsService {
-  constructor({ api, ipfsClient, maxStagedAge = 60 * 60, logger, namespace, disableProvide = false }) { // Default 1 hour
+  constructor({
+    api,
+    ipfsClient,
+    maxStagedAge = 60 * 60,
+    logger,
+    namespace,
+    disableProvide = false,
+    disablePeerDiscovery = false
+  }) { // Default 1 hour
     assert(api || ipfsClient, 'api or ipfsClient must be provided')
     this.client = ipfsClient || create({ url: api })
     this.maxStagedAge = maxStagedAge
@@ -36,6 +45,12 @@ export class IpfsService {
     this._lastRetryFailedPins = 0
     this._rootEnsured = false
     this.disableProvide = Boolean(disableProvide)
+    this.peerDiscovery = new PeerDiscovery({
+      client: this.client,
+      logger: this.logger,
+      namespace: this.namespace,
+      disable: disablePeerDiscovery
+    })
   }
 
   async #ensureDir(path) {
@@ -233,6 +248,18 @@ export class IpfsService {
         stack: error.stack 
       })
       return false
+    }
+  }
+
+  async startPeerDiscovery() {
+    if (this.peerDiscovery) {
+      await this.peerDiscovery.start()
+    }
+  }
+
+  async stopPeerDiscovery() {
+    if (this.peerDiscovery) {
+      await this.peerDiscovery.stop()
     }
   }
 

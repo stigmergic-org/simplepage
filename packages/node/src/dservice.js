@@ -52,6 +52,7 @@ export class DService {
         throw new Error('Cannot connect to IPFS node')
       }
       this.logger.info('IPFS service initialized successfully')
+      await this.ipfs.startPeerDiscovery()
 
       // Initialize Indexer service
       this.logger.info('Initializing Indexer service')
@@ -161,6 +162,10 @@ export class DService {
         this.logger.info('Stopping Indexer service')
         await this.indexer.stop()
         this.logger.info('Indexer service stopped')
+      }
+
+      if (this.ipfs) {
+        await this.ipfs.stopPeerDiscovery()
       }
       
       this.logger.info('DService stopped successfully')
