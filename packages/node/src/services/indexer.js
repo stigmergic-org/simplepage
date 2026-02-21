@@ -60,7 +60,7 @@ export class IndexerService {
 
   async #ensureTemplateDomain() {
     const templateDomain = 'new.simplepage.eth'
-    await this.ipfsService.ensureDomain(templateDomain)
+    await this.ipfsService.mfs.ensureDomain(templateDomain)
     const storedResolver = await this.ipfsService.getDomainResolver(templateDomain)
     if (!storedResolver) {
       try {
@@ -147,14 +147,14 @@ export class IndexerService {
 
     // Persist pages and resolvers to IPFS
     for (const page of pagesData) {
-      await this.ipfsService.ensureDomain(page.pageData.domain)
+      await this.ipfsService.mfs.ensureDomain(page.pageData.domain)
       await this.ipfsService.setDomainResolver(page.pageData.domain, page.resolver)
       if (page.resolver && page.resolver !== ZERO_ADDRESS) {
         resolverSet.add(page.resolver.toLowerCase())
       }
     }
 
-    const domains = await this.ipfsService.listDomains()
+    const domains = await this.ipfsService.mfs.listDomains()
     const domainFromNode = domains.reduce((acc, domain) => {
       acc[namehash(domain)] = domain
       return acc
@@ -320,7 +320,7 @@ export class IndexerService {
   async syncPages() {
     this.logger.debug('Starting page synchronization')
     
-    const domains = await this.ipfsService.listDomains()
+    const domains = await this.ipfsService.mfs.listDomains()
     const domainsToSync = await this.ipfsService.listFinalizableDomains()
 
     this.logger.debug('Page sync configuration', {

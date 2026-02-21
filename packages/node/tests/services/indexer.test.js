@@ -21,6 +21,11 @@ class MockIpfsService {
     this.domainResolvers = new Map();
     this.resolverCounts = new Map();
     this.zeroAddress = '0x0000000000000000000000000000000000000000';
+    this.mfs = {
+      ensureDomain: this.ensureDomain.bind(this),
+      listDomains: this.listDomains.bind(this),
+      domainExists: this.domainExists.bind(this)
+    };
   }
 
   async getList(name) {

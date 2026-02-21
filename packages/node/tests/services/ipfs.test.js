@@ -72,6 +72,28 @@ describe('IpfsService', () => {
     return { rootCid, carBuffer, pathToCid }
   }
 
+  async function readMfsJson(path) {
+    const chunks = await all(await kuboApi.files.read(path))
+    return JSON.parse(uint8ArrayToString(Buffer.concat(chunks)))
+  }
+
+  async function mfsPathExists(path) {
+    try {
+      await kuboApi.files.stat(path)
+      return true
+    } catch (_error) {
+      return false
+    }
+  }
+
+  async function removeMfsPath(path) {
+    try {
+      await kuboApi.files.rm(path)
+    } catch (_error) {
+      return
+    }
+  }
+
   beforeAll(async () => {
     testEnvKubo = new TestEnvironmentKubo()
     kuboApi = await testEnvKubo.start()
@@ -255,6 +277,57 @@ describe('IpfsService', () => {
     expect(historyCar.get(mainV2.pathToCid.get('index.html'))).toBeTruthy()
     expect(historyCar.get(mainV2.pathToCid.get('_prev/0/index.html'))).toBeTruthy()
     expect(historyCar.get(auxV1.rootCid)).toBeTruthy()
+  })
+
+  it('getHistory: should create history index when missing', async () => {
+    const domain = 'history-index-create.eth'
+    const txHash = txHashFor(100)
+    const pageV1 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${domain}" /><meta name="version" content="v1" /></head><body>v1</body></html>`
+    })
+
+    await ipfsService.finalizePage(pageV1.rootCid, domain, 100, txHash)
+
+    const historyPath = `/spg-data/${namespace}/domains/${domain}/history.json`
+    await removeMfsPath(historyPath)
+    expect(await mfsPathExists(historyPath)).toBe(false)
+
+    await ipfsService.getHistory(domain)
+
+    expect(await mfsPathExists(historyPath)).toBe(true)
+    const historyIndex = await readMfsJson(historyPath)
+    expect(historyIndex.schemaVersion).toBe(1)
+    expect(historyIndex.entries).toHaveLength(1)
+    expect(historyIndex.entries[0].cid).toBe(pageV1.rootCid.toString())
+    expect(historyIndex.entries[0].tx).toBe(txHash)
+  })
+
+  it('finalizePage: should update history index entries', async () => {
+    const domain = 'history-index-update.eth'
+    const txHash1 = txHashFor(101)
+    const txHash2 = txHashFor(202)
+    const pageV1 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${domain}" /><meta name="version" content="v1" /></head><body>v1</body></html>`
+    })
+    const pageV2 = await createUnixFsCar({
+      'index.html': `<html><head><meta name="ens-domain" content="${domain}" /><meta name="version" content="v2" /></head><body>v2</body></html>`
+    })
+
+    await ipfsService.finalizePage(pageV1.rootCid, domain, 101, txHash1)
+
+    const historyPath = `/spg-data/${namespace}/domains/${domain}/history.json`
+    const afterFirst = await readMfsJson(historyPath)
+    expect(afterFirst.entries).toHaveLength(1)
+    expect(afterFirst.entries[0].tx).toBe(txHash1)
+
+    await ipfsService.finalizePage(pageV2.rootCid, domain, 202, txHash2)
+
+    const afterSecond = await readMfsJson(historyPath)
+    expect(afterSecond.entries).toHaveLength(2)
+    expect(afterSecond.entries[0].blockNumber).toBe(202)
+    const txs = afterSecond.entries.map(entry => entry.tx)
+    expect(txs).toContain(txHash1)
+    expect(txs).toContain(txHash2)
   })
 
   it('finalizePage: should create and preserve finalizations for each block number', async () => {
@@ -759,8 +832,8 @@ describe('IpfsService', () => {
       const domain1 = 'resolver-rebuild-1.eth'
       const domain2 = 'resolver-rebuild-2.eth'
 
-      await ipfsService.ensureDomain(domain1)
-      await ipfsService.ensureDomain(domain2)
+      await ipfsService.mfs.ensureDomain(domain1)
+      await ipfsService.mfs.ensureDomain(domain2)
       const resolverPath1 = `/spg-data/${namespace}/domains/${domain1}/resolver`
       const resolverPath2 = `/spg-data/${namespace}/domains/${domain2}/resolver`
       await kuboApi.files.write(resolverPath1, new TextEncoder().encode(resolver1), {
@@ -786,9 +859,9 @@ describe('IpfsService', () => {
       const domain2 = 'resolver-legacy-2.eth'
       const domain3 = 'resolver-legacy-3.eth'
 
-      await ipfsService.ensureDomain(domain1)
-      await ipfsService.ensureDomain(domain2)
-      await ipfsService.ensureDomain(domain3)
+      await ipfsService.mfs.ensureDomain(domain1)
+      await ipfsService.mfs.ensureDomain(domain2)
+      await ipfsService.mfs.ensureDomain(domain3)
       const resolverPath1 = `/spg-data/${namespace}/domains/${domain1}/resolver`
       const resolverPath2 = `/spg-data/${namespace}/domains/${domain2}/resolver`
       const resolverPath3 = `/spg-data/${namespace}/domains/${domain3}/resolver`

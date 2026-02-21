@@ -289,7 +289,7 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
         logger.warn('Missing domain parameter in POST /page request')
         return res.status(400).json({ detail: 'Missing domain parameter' })
       }
-      const hasSubscription = await ipfs.domainExists(domain)
+      const hasSubscription = await ipfs.mfs.domainExists(domain)
       if (!hasSubscription) {
         logger.warn('Domain does not have a subscription', { domain })
         res.status(401).json({ detail: `Domain ${domain} does not have a subscription` })

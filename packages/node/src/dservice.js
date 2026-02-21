@@ -53,6 +53,12 @@ export class DService {
       }
       this.logger.info('IPFS service initialized successfully')
       await this.ipfs.startPeerDiscovery()
+      this.ipfs.ensureHistoryIndexes().catch(error => {
+        this.logger.warn('Error ensuring history indexes', {
+          error: error.message,
+          stack: error.stack
+        })
+      })
 
       // Initialize Indexer service
       this.logger.info('Initializing Indexer service')

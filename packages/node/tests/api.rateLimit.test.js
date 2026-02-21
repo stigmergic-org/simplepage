@@ -11,6 +11,9 @@ const mockLogger = {
 
 const createTestIpfs = () => ({
   maxStagedAge: 60 * 60,
+  mfs: {
+    domainExists: async () => true
+  },
   domainExists: async () => true,
   stageCar: async () => ({
     toString: () => 'bafytestcid'
