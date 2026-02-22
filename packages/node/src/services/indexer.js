@@ -1,4 +1,4 @@
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, encodePacked, http, keccak256 } from 'viem'
 import { ensContentHashToCID, contracts } from '@simplepg/common'
 import { getBlockNumber } from 'viem/actions'
 import { namehash } from 'viem/ens'
@@ -25,6 +25,9 @@ export class IndexerService {
     this.blockInterval = config.blockInterval || 500
     this.progressEveryBlocks = this.blockInterval * 10
     this._lastCheckpointBlock = null
+    this.subscriptionRefreshIntervalMs = config.subscriptionRefreshIntervalMs || 60 * 60 * 1000
+    this.subscriptionRefreshThresholdSeconds = config.subscriptionRefreshThresholdSeconds || 24 * 60 * 60
+    this._lastSubscriptionRefresh = 0
   }
 
   async start() {
@@ -44,6 +47,7 @@ export class IndexerService {
 
     await this.#ensureTemplateDomain()
     await this.ipfsService.rebuildResolverIndex()
+    await this.#ensureSubscriptionFiles()
 
     // Start polling loop
     this.pollLoop()
@@ -75,6 +79,73 @@ export class IndexerService {
       } catch (_error) {
         // ignore resolver lookup failures
       }
+    }
+  }
+
+  async #ensureSubscriptionFiles() {
+    try {
+      const domains = await this.ipfsService.mfs.listDomains()
+      for (const domain of domains) {
+        const existing = await this.ipfsService.subscriptionIndex.readSubscription(domain)
+        if (existing.exists) continue
+        await this.#updateSubscriptionForDomain(domain, 'startup')
+      }
+    } catch (error) {
+      this.logger.warn('Error ensuring subscription index', {
+        error: error.message,
+        stack: error.stack
+      })
+    }
+  }
+
+  async #maybeRefreshSubscriptions() {
+    const now = Date.now()
+    if (this._lastSubscriptionRefresh && now - this._lastSubscriptionRefresh < this.subscriptionRefreshIntervalMs) {
+      return
+    }
+    this._lastSubscriptionRefresh = now
+    try {
+      const expiringDomains = await this.ipfsService.subscriptionIndex.listExpiringDomains({
+        withinSeconds: this.subscriptionRefreshThresholdSeconds
+      })
+      for (const domain of expiringDomains) {
+        await this.#updateSubscriptionForDomain(domain, 'expiring')
+      }
+    } catch (error) {
+      this.logger.warn('Error refreshing subscriptions', {
+        error: error.message,
+        stack: error.stack
+      })
+    }
+  }
+
+  async #updateSubscriptionForDomain(domain, reason, { units } = {}) {
+    units = units || await this.#fetchSubscriptionUnits(domain)
+    const normalizedUnits = await this.ipfsService.subscriptionIndex.writeSubscription(domain, units)
+    const expiresAt = normalizedUnits?.[0] ?? null
+    this.logger.debug('Subscription index updated', {
+      domain,
+      reason,
+      expiresAt
+    })
+  }
+
+  async #fetchSubscriptionUnits(domain) {
+    try {
+      const tokenId = BigInt(keccak256(encodePacked(['string'], [domain])))
+      const pageData = await this.client.readContract({
+        address: this.simplePageContract,
+        abi: contracts.abis.SimplePage,
+        functionName: 'getPageData',
+        args: [tokenId]
+      })
+      return Array.isArray(pageData?.units) ? pageData.units : []
+    } catch (error) {
+      this.logger.debug('Unable to fetch subscription data', {
+        domain,
+        error: error.message
+      })
+      return []
     }
   }
 
@@ -113,6 +184,7 @@ export class IndexerService {
       // Prune old staged pins
       await this.ipfsService.pruneStaged()
       await this.ipfsService.retryFailedPins()
+      await this.#maybeRefreshSubscriptions()
     } catch (error) {
       this.logger.error('Error in poll loop', {
         error: error.message,
@@ -149,6 +221,7 @@ export class IndexerService {
     for (const page of pagesData) {
       await this.ipfsService.mfs.ensureDomain(page.pageData.domain)
       await this.ipfsService.setDomainResolver(page.pageData.domain, page.resolver)
+      await this.#updateSubscriptionForDomain(page.pageData.domain, 'subscribed', { units: page.pageData.units })
       if (page.resolver && page.resolver !== ZERO_ADDRESS) {
         resolverSet.add(page.resolver.toLowerCase())
       }

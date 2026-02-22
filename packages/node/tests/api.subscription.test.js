@@ -9,26 +9,26 @@ const mockLogger = {
   warn: () => {}
 }
 
-const createTestIpfs = () => ({
+const createTestIpfs = (status) => ({
   maxStagedAge: 60 * 60,
-  mfs: {
-    domainExists: async () => true
-  },
-  domainExists: async () => true,
   subscriptionIndex: {
-    getStatus: async () => ({ status: 'active', expiresAt: Math.floor(Date.now() / 1000) + 3600, units: [Math.floor(Date.now() / 1000) + 3600] })
+    getStatus: async () => status
   },
   stageCar: async () => ({
     toString: () => 'bafytestcid'
   })
 })
 
-const startServer = async (rateLimits) => {
+const startServer = async (status) => {
   const app = createApi({
-    ipfs: createTestIpfs(),
+    ipfs: createTestIpfs(status),
     version: 'test',
     logger: mockLogger,
-    rateLimits,
+    rateLimits: {
+      upload: {
+        enabled: false
+      }
+    },
     trustProxy: false
   })
 
@@ -56,47 +56,41 @@ const upload = async (baseUrl, domain = 'example.eth', content = 'test') => {
   })
 }
 
-describe('upload rate limits', () => {
-  it('enforces request limits per ip+domain', async () => {
+describe('subscription enforcement', () => {
+  it('rejects uploads when subscription is expired', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) - 10
     const { server, baseUrl } = await startServer({
-      upload: {
-        requestsPerIpDomain: 1,
-        requestsPerIp: 5,
-        requestWindowSeconds: 300,
-        bytesPerIpDomain: 1024 * 1024 * 1024,
-        bytesPerIp: 2 * 1024 * 1024 * 1024,
-        byteWindowSeconds: 3600,
-        concurrentPerIp: 1
-      }
+      status: 'expired',
+      expiresAt,
+      units: [expiresAt]
     })
 
     try {
-      const first = await upload(baseUrl)
-      expect(first.status).toBe(200)
-
-      const second = await upload(baseUrl)
-      expect(second.status).toBe(429)
+      const response = await upload(baseUrl)
+      expect(response.status).toBe(401)
+      const payload = await response.json()
+      expect(payload.reason).toBe('expired')
+      expect(payload.detail).toBe('Subscription expired')
+      expect(payload.expiresAt).toBe(expiresAt)
     } finally {
       await stopServer(server)
     }
   })
 
-  it('enforces byte budgets per ip', async () => {
+  it('rejects uploads when subscription is missing', async () => {
     const { server, baseUrl } = await startServer({
-      upload: {
-        requestsPerIpDomain: 10,
-        requestsPerIp: 10,
-        requestWindowSeconds: 300,
-        bytesPerIpDomain: 1,
-        bytesPerIp: 1,
-        byteWindowSeconds: 3600,
-        concurrentPerIp: 1
-      }
+      status: 'missing',
+      expiresAt: null,
+      units: []
     })
 
     try {
-      const response = await upload(baseUrl, 'example.eth', 'content-that-exceeds')
-      expect(response.status).toBe(429)
+      const response = await upload(baseUrl)
+      expect(response.status).toBe(401)
+      const payload = await response.json()
+      expect(payload.reason).toBe('missing')
+      expect(payload.detail).toBe('Subscription not found')
+      expect(payload.expiresAt).toBeUndefined()
     } finally {
       await stopServer(server)
     }

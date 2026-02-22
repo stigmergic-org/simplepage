@@ -305,6 +305,9 @@ describe('Repo Integration Tests', () => {
       // Create initial pages
       await repo.setPageEdit('/about/', '# About\n\nAbout content.', '<h1>About</h1><p>About content.</p>');
       await repo.setPageEdit('/blog/', '# Blog\n\nBlog content.', '<h1>Blog</h1><p>Blog content.</p>');
+
+      const currentBlock = Number(testEnv.evm.getBlockNumber());
+      await testEnv.waitUntilBlockIsIndexed(currentBlock);
       
       // Stage and commit initial pages
       const firstResult = await repo.stage('test.eth', false);
@@ -2762,6 +2765,38 @@ Thoughts and insights about technology and development.`,
       await expect(repo.stage('test.eth', true)).rejects.toThrow('Template root not found');
 
       await repo.close()
+    });
+
+    it('should reject staging when subscription is expired', async () => {
+      const expiredDomain = 'expired.eth'
+      const expiredStorage = new MockStorage();
+      resetIDB();
+
+      const shortDurationSeconds = 2
+      testEnv.evm.mintPage(expiredDomain, shortDurationSeconds, '0x0000000000000000000000000000000000000001');
+      testEnv.evm.setResolver(addresses.universalResolver, expiredDomain, addresses.resolver1);
+      testEnv.evm.setContenthash(addresses.resolver1, expiredDomain, testDataCid.toString());
+      testEnv.evm.setContenthash(addresses.resolver1, 'new.simplepage.eth', templateCid.toString());
+
+      const currentBlock = Number(testEnv.evm.getBlockNumber());
+      const expiryBlock = currentBlock + 5;
+      await testEnv.waitUntilBlockIsIndexed(expiryBlock);
+
+      const expiredRepo = new Repo(expiredDomain, expiredStorage, {
+        apiEndpoint: testEnv.dserviceUrl
+      });
+
+      await expiredRepo.init(client, {
+        chainId: parseInt(testEnv.evm.chainId),
+        universalResolver: addresses.universalResolver
+      });
+
+      await expiredRepo.setPageEdit('/', '# Expired', '<h1>Expired</h1>');
+
+      await expect(expiredRepo.stage(expiredDomain, false)).rejects.toThrow('401')
+
+      await expiredRepo.close()
+      expiredStorage.clear();
     });
   });
 

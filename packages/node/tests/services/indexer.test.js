@@ -26,6 +26,11 @@ class MockIpfsService {
       listDomains: this.listDomains.bind(this),
       domainExists: this.domainExists.bind(this)
     };
+    this.subscriptionIndex = {
+      readSubscription: async () => ({ exists: true, units: [0] }),
+      writeSubscription: async () => [],
+      listExpiringDomains: async () => []
+    };
   }
 
   async getList(name) {

@@ -289,10 +289,18 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
         logger.warn('Missing domain parameter in POST /page request')
         return res.status(400).json({ detail: 'Missing domain parameter' })
       }
-      const hasSubscription = await ipfs.mfs.domainExists(domain)
-      if (!hasSubscription) {
-        logger.warn('Domain does not have a subscription', { domain })
-        res.status(401).json({ detail: `Domain ${domain} does not have a subscription` })
+      const subscriptionStatus = await ipfs.subscriptionIndex.getStatus(domain)
+      if (subscriptionStatus.status !== 'active') {
+        const reason = subscriptionStatus.status
+        const detail = subscriptionStatus.status === 'expired'
+          ? 'Subscription expired'
+          : 'Subscription not found'
+        const response = { detail, reason }
+        if (subscriptionStatus.expiresAt) {
+          response.expiresAt = subscriptionStatus.expiresAt
+        }
+        logger.warn('Domain subscription not active', { domain, reason })
+        res.status(401).json(response)
         return
       }
 

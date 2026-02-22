@@ -7,6 +7,7 @@ import { LRUCache } from 'lru-cache'
 import { PeerDiscovery } from './peerDiscovery.js'
 import { HistoryIndex } from './historyIndex.js'
 import { MfsStore } from './mfsStore.js'
+import { SubscriptionIndex } from './subscriptionIndex.js'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export class IpfsService {
@@ -49,6 +50,10 @@ export class IpfsService {
     this.historyIndex = new HistoryIndex({
       client: this.client,
       getFinalizations: this.getFinalizations.bind(this),
+      mfs: this.mfs,
+      logger: this.logger
+    })
+    this.subscriptionIndex = new SubscriptionIndex({
       mfs: this.mfs,
       logger: this.logger
     })
