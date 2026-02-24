@@ -1,5 +1,14 @@
 # @simplepg/cli
 
+## 1.0.9
+
+### Patch Changes
+
+- 46057f3: chore(node): rename dservice to node
+- da82f8d: chore: bump all versions
+- Updated dependencies [da82f8d]
+  - @simplepg/common@1.2.4
+
 ## 1.0.9-rc.2
 
 ### Patch Changes

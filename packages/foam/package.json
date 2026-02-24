@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/foam-identicon",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0",
   "description": "Procedural foam identicon generator for SimplePage",
   "main": "src/index.js",
   "type": "module",

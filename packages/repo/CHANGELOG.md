@@ -1,5 +1,24 @@
 # @simplepg/repo
 
+## 1.5.0
+
+### Minor Changes
+
+- 143a386: feat(frontend): integrate foam identicon
+- 360c10e: feat(frontend): history view for pages
+- 9cdaa30: feat: history, partial impl
+
+### Patch Changes
+
+- 74d031d: fix(repo): improve app icon handling
+- 4b43bb4: fix(repo,frontend): disallow page creation at /feed and /rss.xml
+- 46057f3: chore(node): rename dservice to node
+- da82f8d: chore: bump all versions
+- 353423c: fix(repo): use proper urls for sepolia in rss and templates
+- 850eb50: fix(repo,frontend): improve sidebar loading resilience and performance
+- Updated dependencies [da82f8d]
+  - @simplepg/common@1.2.4
+
 ## 1.5.0-rc.4
 
 ### Minor Changes

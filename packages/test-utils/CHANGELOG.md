@@ -1,5 +1,32 @@
 # @simplepg/test-utils
 
+## 1.0.10
+
+### Patch Changes
+
+- e2b824a: chore(node): added ratelimit on page uploads
+- 9903d4d: feat(foam): implement identicon package
+- 46057f3: chore(node): rename dservice to node
+- da82f8d: chore: bump all versions
+- Updated dependencies [ba0e9a1]
+- Updated dependencies [5d168fc]
+- Updated dependencies [63a53a0]
+- Updated dependencies [e2b824a]
+- Updated dependencies [1810149]
+- Updated dependencies [108c010]
+- Updated dependencies [37766fe]
+- Updated dependencies [82ed0ac]
+- Updated dependencies [46057f3]
+- Updated dependencies [da82f8d]
+- Updated dependencies [e1ed787]
+- Updated dependencies [fe87c7e]
+- Updated dependencies [0b3f96c]
+- Updated dependencies [192e770]
+- Updated dependencies [a8b9fbd]
+- Updated dependencies [9cdaa30]
+  - @simplepg/node@1.4.0
+  - @simplepg/common@1.2.4
+
 ## 1.0.10-rc.8
 
 ### Patch Changes

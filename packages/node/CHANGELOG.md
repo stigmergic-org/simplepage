@@ -1,5 +1,31 @@
 # @simplepg/node
 
+## 1.4.0
+
+### Minor Changes
+
+- 63a53a0: feat(node): add history endpoint
+- e1ed787: feat(node): support names that change resolvers
+
+### Patch Changes
+
+- ba0e9a1: chore(node): MFS based state management
+- 5d168fc: chore(node): network specific storage
+- e2b824a: chore(node): added ratelimit on page uploads
+- 1810149: fix(node): more resilient pinning during indexing
+- 108c010: fix(node): make cors more strict
+- 37766fe: chore(node): relax rate limits
+- 82ed0ac: fix(node): more efficient resolver management
+- 46057f3: chore(node): rename dservice to node
+- da82f8d: chore: bump all versions
+- fe87c7e: fix(node): limit max resolvers in single request
+- 0b3f96c: fix(node): fetch less logs at the same time
+- 192e770: fix:(node): add flag to set block interval for indexing
+- a8b9fbd: fix(node): add option to disable DHT provide
+- 9cdaa30: feat: history, partial impl
+- Updated dependencies [da82f8d]
+  - @simplepg/common@1.2.4
+
 ## 1.4.0-rc.8
 
 ### Patch Changes

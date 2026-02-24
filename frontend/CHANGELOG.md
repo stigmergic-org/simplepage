@@ -1,5 +1,43 @@
 # @simplepg/frontend
 
+## 1.7.0
+
+### Minor Changes
+
+- abc8cc9: feat(frontend): add walletconnect support
+- 143a386: feat(frontend): integrate foam identicon
+- 360c10e: feat(frontend): history view for pages
+- 9cdaa30: feat: history, partial impl
+
+### Patch Changes
+
+- 2037b58: fix(frontend): fix anchor scrolling bug
+- 073482f: fix(frontend): resolve ens avatar withhout cors issue
+- 067637c: chore(frontend): add notice about snapshot versions
+- 4b43bb4: fix(repo,frontend): disallow page creation at /feed and /rss.xml
+- 46057f3: chore(node): rename dservice to node
+- da82f8d: chore: bump all versions
+- 5858ca5: fix(frontend): fix avatar rendering
+- 850eb50: fix(repo,frontend): improve sidebar loading resilience and performance
+- aa0c986: fix(frontend): complete fork -> edit rename
+- c642fc4: fix(frontend): improve sidebar button visibility
+- ba4ee5a: fix(frontend): rename fork button to edit
+- 25254a5: fix(frontend): proper links on logo
+- Updated dependencies [74d031d]
+- Updated dependencies [9903d4d]
+- Updated dependencies [143a386]
+- Updated dependencies [4b43bb4]
+- Updated dependencies [46057f3]
+- Updated dependencies [da82f8d]
+- Updated dependencies [353423c]
+- Updated dependencies [850eb50]
+- Updated dependencies [5e0dc66]
+- Updated dependencies [360c10e]
+- Updated dependencies [9cdaa30]
+  - @simplepg/repo@1.5.0
+  - @simplepg/foam-identicon@1.0.0
+  - @simplepg/common@1.2.4
+
 ## 1.7.0-rc.6
 
 ### Patch Changes
