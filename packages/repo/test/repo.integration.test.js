@@ -10,7 +10,7 @@ import { join } from 'path';
 import { CID } from 'multiformats/cid'
 import { JSDOM } from 'jsdom'
 import { resolveEnsDomain } from '@simplepg/common'
-import { TestEnvironmentNode } from '@simplepg/test-utils';
+import { MockStorage, TestEnvironmentNode } from '@simplepg/test-utils';
 
 import { Repo } from '../src/repo.js';
 
@@ -24,47 +24,6 @@ const checkMeta = (doc, name, content) => {
   const meta = doc.querySelector(`meta[name="${name}"]`)
   expect(meta).toBeDefined()
   expect(meta.content).toBe(content)
-}
-
-// Mock storage for testing
-class MockStorage {
-  constructor() {
-    this.store = new Map();
-    return new Proxy(this, {
-      ownKeys: () => [...this.store.keys()],
-      getOwnPropertyDescriptor: (target, prop) => {
-        return {
-          enumerable: true,
-          configurable: true,
-          value: this.store.get(prop)
-        };
-      }
-    });
-  }
-
-  getItem(key) {
-    return this.store.get(key) || null;
-  }
-
-  setItem(key, value) {
-    this.store.set(key, value);
-  }
-
-  removeItem(key) {
-    this.store.delete(key);
-  }
-
-  get length() {
-    return this.store.size;
-  }
-
-  key(index) {
-    return Array.from(this.store.keys())[index];
-  }
-
-  clear() {
-    this.store.clear();
-  }
 }
 
 const cat = async (kubo, path) => {

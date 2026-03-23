@@ -1,48 +1,8 @@
 import { jest } from '@jest/globals'
 import { CID } from 'multiformats/cid'
 import { emptyUnixfs } from '@simplepg/common'
+import { MockStorage } from '@simplepg/test-utils'
 import { Settings, SETTINGS_FILE } from '../src/settings.js'
-
-// Mock storage for testing
-class MockStorage {
-  constructor() {
-    this.store = new Map();
-    return new Proxy(this, {
-      ownKeys: () => [...this.store.keys()],
-      getOwnPropertyDescriptor: (target, prop) => {
-        return {
-          enumerable: true,
-          configurable: true,
-          value: this.store.get(prop)
-        };
-      }
-    });
-  }
-
-  getItem(key) {
-    return this.store.get(key) || null;
-  }
-
-  setItem(key, value) {
-    this.store.set(key, value);
-  }
-
-  removeItem(key) {
-    this.store.delete(key);
-  }
-
-  get length() {
-    return this.store.size;
-  }
-
-  key(index) {
-    return Array.from(this.store.keys())[index];
-  }
-
-  clear() {
-    this.store.clear();
-  }
-}
 
 describe('Settings Unit Tests', () => {
   let settings;
