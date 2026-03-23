@@ -23,7 +23,9 @@ const isCidLabel = (label) => {
   }
 }
 
-const hasEthLabel = (labels) => labels.includes('eth')
+const allowedOriginLabels = new Set(['eth', 'wei'])
+
+const hasAllowedOriginLabel = (labels) => labels.some(label => allowedOriginLabels.has(label))
 
 const isBlockedIpfsOrigin = (labels) => {
   for (let i = 1; i < labels.length; i += 1) {
@@ -51,7 +53,7 @@ const isAllowedOrigin = (origin) => {
   if (labels.length === 0) return false
   if (isBlockedIpfsOrigin(labels)) return false
 
-  return hasEthLabel(labels)
+  return hasAllowedOriginLabel(labels)
 }
 
 // Move error class into api.js
