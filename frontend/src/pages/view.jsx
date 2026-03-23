@@ -14,6 +14,15 @@ import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
 
+const HEADING_LINK_ICON_SIZES = {
+  1: { pixels: 20, rem: '1.25rem' },
+  2: { pixels: 18, rem: '1.125rem' },
+  3: { pixels: 16, rem: '1rem' },
+  4: { pixels: 14, rem: '0.875rem' },
+  5: { pixels: 12, rem: '0.75rem' },
+  6: { pixels: 11, rem: '0.6875rem' },
+};
+
 
 const View = ({ existingContent }) => {
   const basename = useBasename();
@@ -164,6 +173,9 @@ const updateVirtualLinks = (parsedContent, basename) => {
   });
 };
 
+const getHeadingLinkIconSize = (headingLevel) =>
+  HEADING_LINK_ICON_SIZES[headingLevel] || HEADING_LINK_ICON_SIZES[2];
+
 
 
 // Function to add heading links to parsed content
@@ -177,6 +189,8 @@ const addHeadingLinks = (parsedContent) => {
     // Generate anchor ID from heading text
     const text = heading.textContent || '';
     const anchorId = generateAnchorId(text);
+    const headingLevel = Number.parseInt(heading.tagName.substring(1), 10) || 2;
+    const iconSize = getHeadingLinkIconSize(headingLevel);
 
     // Set the heading's ID
     heading.id = anchorId;
@@ -185,7 +199,7 @@ const addHeadingLinks = (parsedContent) => {
     const container = parsedContent.createElement('div');
     container.className = 'heading-container align-middle';
 
-    const iconSvg = buildFoamSvg(text || anchorId, 18);
+    const iconSvg = buildFoamSvg(text || anchorId, iconSize.pixels);
 
     // Create link icon using foam identicon
     const linkIcon = parsedContent.createElement('a');
@@ -194,6 +208,7 @@ const addHeadingLinks = (parsedContent) => {
     linkIcon.innerHTML = `<span class="heading-link-mask mask mask-squircle">${iconSvg}</span>`;
     linkIcon.dataset.tip = 'Link to this section';
     linkIcon.setAttribute('aria-label', 'Link to this section');
+    linkIcon.style.setProperty('--heading-link-size', iconSize.rem);
 
     // Wrap heading in container and add link icon
     heading.parentNode.insertBefore(container, heading);
