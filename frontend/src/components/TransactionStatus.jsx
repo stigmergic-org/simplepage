@@ -21,6 +21,7 @@ const TransactionStatus = ({
   const [progress, setProgress] = useState(0);
   const [showModal, setShowModal] = useState(true);
   const navigate = useNavigate();
+  const isOverlayVisible = showModal && (status === 'pending' || status === 'success');
 
   if (error) {
     console.error(error);
@@ -46,6 +47,19 @@ const TransactionStatus = ({
     return () => clearInterval(timer);
   }, [status, hash, isConfirmed]);
 
+  useEffect(() => {
+    if (!isOverlayVisible) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOverlayVisible]);
+
   const getRedirectUrl = () => {
     if (publishedDomain) {
       return `https://${publishedDomain}${DOMAIN_SUFFIX}`;
@@ -55,8 +69,8 @@ const TransactionStatus = ({
 
   return (
     <div>
-      {showModal && (status === 'pending' || status === 'success') && (
-        <div className="absolute inset-0 bg-base-200 bg-opacity-75 dark:bg-base-300 dark:bg-opacity-75 flex flex-col items-center justify-center z-10">
+      {isOverlayVisible && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-base-200/75 p-4 backdrop-blur-sm">
           {status === 'pending' ? (
             <>
               <span className="loading loading-infinity loading-lg"></span>
@@ -103,7 +117,7 @@ const TransactionStatus = ({
           />
         </div>
       )}
-      <div className={showModal && (status === 'pending' || status === 'success') ? 'blur-sm' : ''}>
+      <div className={isOverlayVisible ? 'blur-sm' : ''}>
         {children}
       </div>
     </div>

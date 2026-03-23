@@ -22,13 +22,16 @@ export function ensContentHashToCID(contentHash) {
 
 
 export function cidToENSContentHash(cid) {
-  // Ensure the input is a CID instance
-  if (!(cid instanceof CID)) {
-    throw new Error('Input must be a CID instance')
+  const normalizedCid = typeof cid === 'string'
+    ? CID.parse(cid)
+    : CID.asCID(cid)
+
+  if (!normalizedCid) {
+    throw new Error('Input must be a valid CID')
   }
 
   // Convert CID to bytes
-  const cidBytes = cid.bytes
+  const cidBytes = normalizedCid.bytes
 
   // Prepend 'e301' for IPFS and '01' for CIDv1
   const contentHashBytes = new Uint8Array(2 + cidBytes.length)

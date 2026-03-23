@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Icon from './Icon';
+import WalletInfo from './WalletInfo';
 import { useChainId } from '../hooks/useChainId';
 import { useBlockTimestamp } from '../hooks/useBlockTimestamp';
 
@@ -22,7 +23,62 @@ const getIpfsUrl = (cid) => {
   return `https://explore.ipld.io/#/explore/${cid}`;
 };
 
-const EntryContent = ({ entry, chainId, variant = 'full', onDetails, showTitle = true }) => {
+const RestorePanel = ({ entry, restoreState }) => {
+  if (!restoreState?.isOpen) {
+    return null;
+  }
+
+  const hasOwnerWallet = Boolean(restoreState.address) && restoreState.isOwner;
+  const onExpectedChain = restoreState.accountChainId === restoreState.expectedChainId;
+  const canPublish = hasOwnerWallet
+    && onExpectedChain
+    && !restoreState.isPublishing
+    && Boolean(entry.cid);
+
+  return (
+    <div className="mt-4 space-y-4 rounded-lg border border-secondary/20 bg-base-200 p-4">
+      <div>
+        <div className="text-sm font-semibold">Restore this snapshot?</div>
+        <p className="text-sm text-base-content/70">
+          This will republish this historical version to {restoreState.targetDomain} and make it the live site again.
+        </p>
+      </div>
+
+      {!restoreState.subscriptionValid && (
+        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content/80">
+          An active subscription is required before this restore can be published.
+        </div>
+      )}
+
+      {!restoreState.isOwner && (
+        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content/80">
+          Connect the wallet that owns {restoreState.targetDomain} to restore this snapshot.
+        </div>
+      )}
+
+      <WalletInfo noBottomMargin />
+
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          onClick={restoreState.onPublish}
+          disabled={!canPublish}
+          className="btn btn-primary btn-sm"
+        >
+          Publish
+        </button>
+        <button
+          onClick={restoreState.onCancel}
+          disabled={restoreState.isPublishing}
+          className="btn btn-ghost btn-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const EntryContent = ({ entry, chainId, variant = 'full', onDetails, restoreState, showTitle = true }) => {
   const { timestamp, loading, error } = useBlockTimestamp(entry.blockNumber);
   const versionLabel = entry.version ? `v${entry.version}` : 'unknown';
   const domainLabel = entry.domain || 'unknown';
@@ -71,16 +127,16 @@ const EntryContent = ({ entry, chainId, variant = 'full', onDetails, showTitle =
 
   return (
     <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          {showTitle && (
-            <div className="text-lg font-semibold">
-              {titleLabel}
-            </div>
-          )}
-          <span className="text-sm text-base-content/60">
-            Notarized in block #{entry.blockNumber || '???'}
-          </span>
-        </div>
+      <div className="flex items-center justify-between">
+        {showTitle && (
+          <div className="text-lg font-semibold">
+            {titleLabel}
+          </div>
+        )}
+        <span className="text-sm text-base-content/60">
+          Notarized in block #{entry.blockNumber || '???'}
+        </span>
+      </div>
 
       <div className="flex flex-row flex-wrap gap-4">
         <div className="flex items-center gap-2">
@@ -142,27 +198,39 @@ const EntryContent = ({ entry, chainId, variant = 'full', onDetails, showTitle =
         </div>
       </div>
 
-      <div className="flex mt-4">
-        {hasCid ? (
-          <a
-            href={`https://${entry.cid}.ipfs.inbrowser.link`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary btn-outline btn-sm"
+      <div className="mt-4">
+        <div className="flex flex-wrap gap-2">
+          {hasCid ? (
+            <a
+              href={`https://${entry.cid}.ipfs.inbrowser.link`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary btn-outline btn-sm"
+            >
+              Visit Snapshot
+            </a>
+          ) : (
+            <button className="btn btn-primary btn-outline btn-sm" disabled>
+              Visit Snapshot
+            </button>
+          )}
+
+          <button
+            onClick={restoreState?.onStart}
+            disabled={!hasCid || restoreState?.isPublishing}
+            className="btn btn-secondary btn-outline btn-sm"
           >
-            Visit Snapshot
-          </a>
-        ) : (
-          <button className="btn btn-primary btn-outline btn-sm" disabled>
-            Visit Snapshot
+            Restore Version
           </button>
-        )}
+        </div>
+
+        <RestorePanel entry={entry} restoreState={restoreState} />
       </div>
     </div>
   );
 };
 
-const EntryModal = ({ isOpen, onClose, entry, chainId }) => {
+const EntryModal = ({ isOpen, onClose, entry, chainId, restoreState }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (event) => {
@@ -188,14 +256,14 @@ const EntryModal = ({ isOpen, onClose, entry, chainId }) => {
               <Icon name="close" size={4} />
             </button>
           </div>
-          <EntryContent entry={entry} chainId={chainId} showTitle={false} />
+          <EntryContent entry={entry} chainId={chainId} restoreState={restoreState} showTitle={false} />
         </div>
       </div>
     </div>
   );
 };
 
-const TimelineEntry = ({ entry, columnsByKey, maxColumn }) => {
+const TimelineEntry = ({ entry, columnsByKey, maxColumn, restoreState }) => {
   const column = columnsByKey[entry.entryKey] || 0;
   const chainId = useChainId();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -227,11 +295,12 @@ const TimelineEntry = ({ entry, columnsByKey, maxColumn }) => {
           chainId={chainId}
           variant="compact"
           onDetails={() => setIsModalOpen(true)}
+          restoreState={restoreState}
         />
       </div>
 
       <div className="hidden md:block flex-1 rounded-lg ml-4 p-6 border border-base-300 shadow-sm">
-        <EntryContent entry={entry} chainId={chainId} />
+        <EntryContent entry={entry} chainId={chainId} restoreState={restoreState} />
       </div>
 
       <EntryModal
@@ -239,6 +308,7 @@ const TimelineEntry = ({ entry, columnsByKey, maxColumn }) => {
         onClose={() => setIsModalOpen(false)}
         entry={entry}
         chainId={chainId}
+        restoreState={restoreState}
       />
     </div>
   );
