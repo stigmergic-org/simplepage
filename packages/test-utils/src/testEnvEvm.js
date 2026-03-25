@@ -11,6 +11,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const CONTRACTS_DIR = path.resolve(__dirname, '../../../contracts')
 
+const sleep = async (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
 export class TestEnvironmentEvm {
     constructor() {
         this.anvilProcess = null;
@@ -29,6 +31,44 @@ export class TestEnvironmentEvm {
                 server.close(() => resolve(port));
             });
         });
+    }
+
+    async waitForRpcReady(timeoutMs = 15000) {
+        const deadline = Date.now() + timeoutMs
+
+        while (Date.now() < deadline) {
+            if (this.anvilProcess?.exitCode !== null) {
+                throw new Error(`Anvil exited early with code ${this.anvilProcess.exitCode}`)
+            }
+
+            try {
+                const response = await fetch(this.url, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'eth_chainId',
+                        params: []
+                    })
+                })
+
+                if (response.ok) {
+                    const body = await response.json()
+                    if (body?.result) {
+                        return
+                    }
+                }
+            } catch (_error) {
+                // keep waiting until the deadline
+            }
+
+            await sleep(250)
+        }
+
+        throw new Error(`Timed out waiting for Anvil RPC at ${this.url}`)
     }
 
     async start(options = {}) {
@@ -76,8 +116,7 @@ export class TestEnvironmentEvm {
                 return
             });
 
-            // Wait for Anvil to start
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await this.waitForRpcReady()
         }
 
         // Deploy contracts

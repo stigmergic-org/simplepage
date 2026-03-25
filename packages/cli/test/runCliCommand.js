@@ -5,13 +5,15 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export async function runCliCommand(args) {
+export async function runCliCommand(args, options = {}) {
   return new Promise((resolve) => {
     const cli = spawn('node', [
       '--no-warnings',
       path.resolve(__dirname, '../bin/simplepage.js'),
       ...args
-    ]);
+    ], {
+      cwd: options.cwd
+    });
 
     let stdout = '';
     let stderr = '';
