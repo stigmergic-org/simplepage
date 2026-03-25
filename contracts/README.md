@@ -69,6 +69,34 @@ Where
 - `price_feed_address` is chainlink ETH/USD price feed ()
 - `private_key` is the private key used for deployment
 
+### Deploy a New TokenRenderer
+If `SimplePage` is already deployed and you only want to ship a new renderer version, deploy the renderer contract separately and then point `SimplePage` at it.
+
+1. Build the contracts:
+```bash
+make build
+```
+
+2. Deploy the new renderer, passing the existing `SimplePage` address to the constructor:
+```bash
+forge create src/TokenRendererV3.sol:TokenRendererV3 \
+  --rpc-url <your_rpc_url> \
+  --account simplepage-deploy \
+  --broadcast \
+  --verify \
+  --constructor-args <simple_page_address>
+```
+
+Replace `src/TokenRendererV3.sol:TokenRendererV3` with your renderer contract path and name if you are deploying a different version.
+
+3. Update the live `SimplePage` contract to use the new renderer. If on mainnet, do it using the simplepage multisig.
+
+4. Confirm the renderer was updated:
+```bash
+cast call <simple_page_address> "renderer()(address)" --rpc-url <your_rpc_url>
+```
+
+
 ## Contract Verification
 
 After deployment, verify your contracts on Etherscan:

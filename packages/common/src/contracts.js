@@ -5,6 +5,7 @@ export const contracts = {
       "SimplePageManager": "0x17d02345c9f5949fb1c8262c210d51e81e1d78d6",
       "TokenRenderer": "0x4b337aa91996a5af014a8a715546fa16d1dc604a",
       "TokenRendererV2": "0x4F1320c42383376A8215290df819C5a35327996d",
+      "TokenRendererV3": "0x7f1FDCC37177D0127BD94Da522d969257C7E3958",
     },
     "11155111": {
       "SimplePage": "0x4f1320c42383376a8215290df819c5a35327996d",
