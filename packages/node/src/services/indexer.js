@@ -130,9 +130,32 @@ export class IndexerService {
     })
   }
 
+  #tokenIdForDomain(domain) {
+    return BigInt(keccak256(encodePacked(['string'], [domain])))
+  }
+
+  async refreshDomainRegistration(domain, reason = 'manual') {
+    try {
+      const latestBlock = Number(await getBlockNumber(this.client))
+      const tokenId = this.#tokenIdForDomain(domain)
+      const { pageData, resolver } = await this.fetchPageData(tokenId, latestBlock)
+      await this.ipfsService.mfs.ensureDomain(pageData.domain)
+      await this.ipfsService.setDomainResolver(pageData.domain, resolver)
+      await this.#updateSubscriptionForDomain(pageData.domain, reason, { units: pageData.units })
+      return { domain: pageData.domain, resolver }
+    } catch (error) {
+      this.logger.debug('Unable to refresh domain registration', {
+        domain,
+        reason,
+        error: error.message
+      })
+      return null
+    }
+  }
+
   async #fetchSubscriptionUnits(domain) {
     try {
-      const tokenId = BigInt(keccak256(encodePacked(['string'], [domain])))
+      const tokenId = this.#tokenIdForDomain(domain)
       const pageData = await this.client.readContract({
         address: this.simplePageContract,
         abi: contracts.abis.SimplePage,

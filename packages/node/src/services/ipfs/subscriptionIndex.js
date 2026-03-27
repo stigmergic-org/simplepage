@@ -39,6 +39,9 @@ export class SubscriptionIndex {
   async readSubscription(domain) {
     const path = await this.#getSubscriptionPath(domain)
     const content = await this.#mfs.readFile(path)
+    if (content === null) {
+      return { exists: false, units: null }
+    }
     try {
       const parsed = JSON.parse(content)
       const units = normalizeUnits(parsed?.units)

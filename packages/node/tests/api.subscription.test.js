@@ -12,16 +12,17 @@ const mockLogger = {
 const createTestIpfs = (status) => ({
   maxStagedAge: 60 * 60,
   subscriptionIndex: {
-    getStatus: async () => status
+    getStatus: async () => typeof status === 'function' ? status() : status
   },
   stageCar: async () => ({
     toString: () => 'bafytestcid'
   })
 })
 
-const startServer = async (status) => {
+const startServer = async (status, { indexer } = {}) => {
   const app = createApi({
     ipfs: createTestIpfs(status),
+    _indexer: indexer,
     version: 'test',
     logger: mockLogger,
     rateLimits: {
@@ -91,6 +92,34 @@ describe('subscription enforcement', () => {
       expect(payload.reason).toBe('missing')
       expect(payload.detail).toBe('Subscription not found')
       expect(payload.expiresAt).toBeUndefined()
+    } finally {
+      await stopServer(server)
+    }
+  })
+
+  it('refreshes stale subscription state before rejecting uploads', async () => {
+    let status = {
+      status: 'missing',
+      expiresAt: null,
+      units: []
+    }
+    const indexer = {
+      refreshDomainRegistration: async () => {
+        status = {
+          status: 'active',
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
+          units: [Math.floor(Date.now() / 1000) + 3600]
+        }
+        return { domain: 'example.eth' }
+      }
+    }
+    const { server, baseUrl } = await startServer(() => status, { indexer })
+
+    try {
+      const response = await upload(baseUrl)
+      expect(response.status).toBe(200)
+      const payload = await response.json()
+      expect(payload.cid).toBe('bafytestcid')
     } finally {
       await stopServer(server)
     }

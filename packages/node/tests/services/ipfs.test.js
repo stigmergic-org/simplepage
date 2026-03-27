@@ -216,6 +216,7 @@ describe('IpfsService', () => {
     expect(car.roots.length).toBe(1)
     let blockCount = 0
     for (const block of car.blocks) {
+      void block
       blockCount++
     }
     expect(blockCount).toBe(5)
@@ -655,7 +656,7 @@ describe('IpfsService', () => {
       const stagedOnlyDomain = 'staged-only.eth'
       
       const carData = await createUnixFsCar({ 'file.txt': 'staged content' })
-      const stagedCid = await ipfsService.stageCar(carData.carBuffer, stagedOnlyDomain)
+      await ipfsService.stageCar(carData.carBuffer, stagedOnlyDomain)
       
       const stagedEntries = await ipfsService.listStaged(stagedOnlyDomain)
       expect(stagedEntries.length).toBeGreaterThan(0)

@@ -1,6 +1,5 @@
 import { TestEnvironmentEvm } from '@simplepg/test-utils';
 import { IndexerService } from '../../src/services/indexer.js';
-import { namehash } from 'viem/ens';
 import { jest } from '@jest/globals';
 import { createPublicClient, http } from 'viem';
 import { getBlockNumber } from 'viem/actions';
@@ -233,7 +232,7 @@ describe('Pages Indexer', () => {
     it('should index new pages and their contenthash', async () => {
       await indexer.start()
       // mint a page
-      for (const { name, cid, resolver } of TEST_DATA) {
+      for (const { name, resolver } of TEST_DATA) {
         testEnv.setResolver(deployments.universalResolver, name, deployments[resolver])
         testEnv.mintPage(name, 1000, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8')
       }
@@ -536,5 +535,29 @@ describe('Pages Indexer', () => {
       const finalizedPages = await ipfsMock.listFinalizedPages();
       expect(finalizedPages).toContain('new.eth');
       expect(finalizedPages).not.toContain('old.eth');
+    });
+
+    it('should backfill missing subscription files for known domains on startup', async () => {
+      const domain = 'existing.eth';
+      testEnv.mintPage(domain, 1000, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+
+      await ipfsMock.ensureDomain(domain);
+      ipfsMock.subscriptionIndex.readSubscription = jest.fn(async (name) => {
+        if (name === domain) {
+          return { exists: false, units: null };
+        }
+        return { exists: true, units: [0] };
+      });
+      ipfsMock.subscriptionIndex.writeSubscription = jest.fn(async (_domain, units) => units.map(unit => Number(unit)));
+
+      const client = createPublicClient({ transport: http(testEnv.url) });
+      const currentBlock = Number(await getBlockNumber(client));
+      await ipfsMock.setLatestBlockNumber(currentBlock + 1);
+
+      await indexer.start();
+      await new Promise(resolve => setTimeout(resolve, 250));
+      await indexer.stop();
+
+      expect(ipfsMock.subscriptionIndex.writeSubscription).toHaveBeenCalledWith(domain, expect.any(Array));
     });
 }); 

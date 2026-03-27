@@ -192,6 +192,28 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
     ...uploadRateLimits
   })
 
+  const getUploadSubscriptionStatus = async (domain) => {
+    let subscriptionStatus = await ipfs.subscriptionIndex.getStatus(domain)
+    if (subscriptionStatus.status === 'active') {
+      return subscriptionStatus
+    }
+    if (typeof _indexer?.refreshDomainRegistration !== 'function') {
+      return subscriptionStatus
+    }
+    try {
+      const refreshed = await _indexer.refreshDomainRegistration(domain, 'upload')
+      if (refreshed) {
+        subscriptionStatus = await ipfs.subscriptionIndex.getStatus(domain)
+      }
+    } catch (error) {
+      logger.warn('Error refreshing domain subscription status', {
+        domain,
+        error: error.message
+      })
+    }
+    return subscriptionStatus
+  }
+
   /**
    * GET /page
    * @tags Page Operations
@@ -291,7 +313,7 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
         logger.warn('Missing domain parameter in POST /page request')
         return res.status(400).json({ detail: 'Missing domain parameter' })
       }
-      const subscriptionStatus = await ipfs.subscriptionIndex.getStatus(domain)
+      const subscriptionStatus = await getUploadSubscriptionStatus(domain)
       if (subscriptionStatus.status !== 'active') {
         const reason = subscriptionStatus.status
         const detail = subscriptionStatus.status === 'expired'
