@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.5.0-rc.3
+
+### Patch Changes
+
+- db0d90c: fix(node): potential patch to history endpoint
+
 ## 1.5.0-rc.2
 
 ### Patch Changes
