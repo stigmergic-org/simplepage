@@ -37,6 +37,7 @@ export class HistoryIndex {
   #getFinalizations
   #mfs
   #logger
+  #cacheWritePromises
 
   constructor({
     client,
@@ -48,6 +49,7 @@ export class HistoryIndex {
     this.#getFinalizations = getFinalizations
     this.#mfs = mfs
     this.#logger = logger || { info: () => {}, debug: () => {}, warn: () => {} }
+    this.#cacheWritePromises = new Map()
   }
 
   async getHistory(domain) {
@@ -70,8 +72,7 @@ export class HistoryIndex {
       const existing = await this.#readHistoryIndex(domain)
       if (existing) continue
       const entries = await this.#buildHistoryIndex(domain)
-      await this.#mfs.ensureDomain(domain)
-      await this.#writeHistoryIndex(domain, entries)
+      await this.#persistHistoryIndex(domain, entries)
     }
   }
 
@@ -103,7 +104,7 @@ export class HistoryIndex {
             version: baseEntry.version || null,
             parents: Array.isArray(baseEntry.parents) ? [...baseEntry.parents] : []
           })
-        await this.#writeHistoryIndex(otherDomain, sortEntries(nextEntries))
+        await this.#writeHistoryIndex(otherDomain, sortEntries(nextEntries), { updateRootPin: false })
       }))
     } catch (error) {
       this.#logger.warn('Error updating history index', {
@@ -118,7 +119,9 @@ export class HistoryIndex {
   }
 
   async #buildHistoryIndex(domain) {
-    const mainHistory = await this.#getFinalizations(domain)
+    const mainHistory = await this.#withSlowLog('History finalizations read still running', {
+      domain
+    }, async () => this.#getFinalizations(domain))
     this.#logger.debug('Building history index from finalizations', {
       domain,
       finalizations: mainHistory.length
@@ -187,7 +190,10 @@ export class HistoryIndex {
     }
 
     for (const auxDomain of auxDomains) {
-      const auxHistory = await this.#getFinalizations(auxDomain)
+      const auxHistory = await this.#withSlowLog('Auxiliary history finalizations read still running', {
+        domain,
+        auxDomain
+      }, async () => this.#getFinalizations(auxDomain))
       for (const entry of auxHistory) {
         if (!chainCids.has(entry.cid.toString())) continue
         addHistoryEntry(entry)
@@ -245,7 +251,15 @@ export class HistoryIndex {
   async #buildHistoryCarBytes(entries, domain) {
     const historyCar = emptyCar()
     const entriesForCar = entries.map(entry => this.#normalizeEntryForCar(entry))
+    this.#logger.debug('Encoding history response root', {
+      domain,
+      entries: entriesForCar.length
+    })
     historyCar.put({ entries: entriesForCar }, { isRoot: true })
+    this.#logger.debug('History response root encoded', {
+      domain,
+      entries: entriesForCar.length
+    })
     await this.#addHistoryBlocksFromEntries(entriesForCar, historyCar, domain)
     return historyCar.bytes
   }
@@ -314,17 +328,19 @@ export class HistoryIndex {
     }
   }
 
-  async #writeHistoryIndex(domain, entries) {
+  async #writeHistoryIndex(domain, entries, { updateRootPin = false } = {}) {
     const path = await this.#getHistoryPath(domain)
     const payload = {
       schemaVersion: HISTORY_SCHEMA_VERSION,
       entries
     }
-    await this.#mfs.writeFile(path, JSON.stringify(payload), { updateRootPin: true })
+    await this.#mfs.writeFile(path, JSON.stringify(payload), { updateRootPin })
   }
 
   async #ensureHistoryIndex(domain) {
-    const existing = await this.#readHistoryIndex(domain)
+    const existing = await this.#withSlowLog('History index read still running', {
+      domain
+    }, async () => this.#readHistoryIndex(domain))
     if (existing) {
       this.#logger.debug('Using cached history index', {
         domain,
@@ -336,19 +352,58 @@ export class HistoryIndex {
     const entries = await this.#withSlowLog('History index rebuild still running', {
       domain
     }, async () => this.#buildHistoryIndex(domain))
-    const exists = await this.#mfs.domainExists(domain)
+    const exists = await this.#withSlowLog('History domain existence check still running', {
+      domain
+    }, async () => this.#mfs.domainExists(domain))
     if (entries.length > 0 || exists) {
-      await this.#mfs.ensureDomain(domain)
-      await this.#writeHistoryIndex(domain, entries)
+      this.#scheduleHistoryIndexWrite(domain, entries)
     }
     return entries
   }
 
   async #refreshHistoryIndex(domain) {
     const entries = await this.#buildHistoryIndex(domain)
-    await this.#mfs.ensureDomain(domain)
-    await this.#writeHistoryIndex(domain, entries)
+    await this.#persistHistoryIndex(domain, entries)
     return entries
+  }
+
+  #scheduleHistoryIndexWrite(domain, entries) {
+    if (this.#cacheWritePromises.has(domain)) {
+      this.#logger.debug('History index cache write already running', { domain })
+      return
+    }
+    const promise = this.#persistHistoryIndex(domain, entries)
+      .catch((error) => {
+        this.#logger.warn('Failed to persist history index cache', {
+          domain,
+          error: error.message,
+          stack: error.stack
+        })
+      })
+      .finally(() => {
+        if (this.#cacheWritePromises.get(domain) === promise) {
+          this.#cacheWritePromises.delete(domain)
+        }
+      })
+    this.#cacheWritePromises.set(domain, promise)
+  }
+
+  async #persistHistoryIndex(domain, entries) {
+    this.#logger.debug('Persisting history index cache', {
+      domain,
+      entries: entries.length
+    })
+    await this.#withSlowLog('History cache directory ensure still running', {
+      domain
+    }, async () => this.#mfs.ensureDir(await this.#mfs.getDomainDir(domain)))
+    await this.#withSlowLog('History cache write still running', {
+      domain,
+      entries: entries.length
+    }, async () => this.#writeHistoryIndex(domain, entries, { updateRootPin: false }))
+    this.#logger.debug('History index cache persisted', {
+      domain,
+      entries: entries.length
+    })
   }
 
   async #withSlowLog(message, meta, fn) {
