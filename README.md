@@ -118,13 +118,13 @@ We have two release flows: Sepolia prereleases (`-rc.N`) and mainnet releases.
 ```bash
 ./release.sh sepolia
 ```
-Make sure `.env` is configured for Sepolia before running the script. This keeps prerelease mode active so subsequent Sepolia releases increment `-rc.N`. The script prepares the release and may generate a content hash to publish on ENS (Sepolia/test domain if applicable).
+The script automatically updates `frontend/.env` to set `CHAIN_ID=11155111` (and creates the file if it does not exist). This keeps prerelease mode active so subsequent Sepolia releases increment `-rc.N`. The script prepares the release and may generate a content hash to publish on ENS (Sepolia/test domain if applicable).
 
 #### Mainnet Release
 ```bash
 ./release.sh mainnet
 ```
-Make sure `.env` is configured for mainnet before running the script. This exits prerelease mode (if active). After publishing, update your ENS domain's contenthash record with the new hash (e.g., via the ENS Manager or CLI).
+The script automatically updates `frontend/.env` to set `CHAIN_ID=1` (and creates the file if it does not exist). This exits prerelease mode (if active). After publishing, update your ENS domain's contenthash record with the new hash (e.g., via the ENS Manager or CLI).
 - https://app.ens.domains/new.simplepage.eth?tab=records
 
 - See [Changesets documentation](https://github.com/changesets/changesets) for more details.
