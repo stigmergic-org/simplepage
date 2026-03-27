@@ -1,0 +1,25 @@
+{
+  "mode": "pre",
+  "tag": "rc",
+  "initialVersions": {
+    "@simplepg/frontend": "1.7.0",
+    "@simplepg/cli": "1.0.9",
+    "@simplepg/common": "1.2.4",
+    "@simplepg/foam-identicon": "1.0.0",
+    "@simplepg/node": "1.4.0",
+    "@simplepg/repo": "1.5.0",
+    "@simplepg/test-utils": "1.0.10"
+  },
+  "changesets": [
+    "afraid-otters-lose",
+    "brown-memes-wear",
+    "fifty-boxes-spend",
+    "fifty-sides-exist",
+    "happy-geese-appear",
+    "heavy-eggs-wash",
+    "mean-spies-go",
+    "nasty-pianos-smile",
+    "shaky-radios-relax",
+    "thirty-steaks-create"
+  ]
+}

@@ -1,5 +1,19 @@
 # @simplepg/frontend
 
+## 1.7.1-rc.0
+
+### Patch Changes
+
+- 7ac8e9e: fix(frontend): make it possible to revert to a previous version
+- 8fdd9db: fix(frontend): improve anchor styling
+- Updated dependencies [7ac8e9e]
+- Updated dependencies [86eb9eb]
+- Updated dependencies [44ae283]
+- Updated dependencies [251288a]
+  - @simplepg/common@1.2.5-rc.0
+  - @simplepg/repo@1.5.1-rc.0
+  - @simplepg/foam-identicon@1.0.0
+
 ## 1.7.0
 
 ### Minor Changes

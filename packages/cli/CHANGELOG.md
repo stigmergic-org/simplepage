@@ -1,5 +1,17 @@
 # @simplepg/cli
 
+## 1.1.0-rc.0
+
+### Minor Changes
+
+- 73f2951: feat(cli): gitlike interface for local editing of repo markdown files
+
+### Patch Changes
+
+- Updated dependencies [7ac8e9e]
+- Updated dependencies [251288a]
+  - @simplepg/common@1.2.5-rc.0
+
 ## 1.0.9
 
 ### Patch Changes

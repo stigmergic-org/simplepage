@@ -1,5 +1,21 @@
 # @simplepg/node
 
+## 1.5.0-rc.0
+
+### Minor Changes
+
+- b0b75be: feat(node): add peer discovery
+- 44ae283: feat(node): Disallow uploads after subscription expiry
+
+### Patch Changes
+
+- 01f5361: fix(node): only allow fetching local blocks on /file endpoint
+- e31a028: fix(node): improve history endpoint performance
+- 0077765: fix(node): support .wei domains
+- Updated dependencies [7ac8e9e]
+- Updated dependencies [251288a]
+  - @simplepg/common@1.2.5-rc.0
+
 ## 1.4.0
 
 ### Minor Changes

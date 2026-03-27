@@ -1,5 +1,21 @@
 # @simplepg/test-utils
 
+## 1.0.11-rc.0
+
+### Patch Changes
+
+- 86eb9eb: chore(node): add tests for multiple node communication
+- 73f2951: feat(cli): gitlike interface for local editing of repo markdown files
+- Updated dependencies [7ac8e9e]
+- Updated dependencies [01f5361]
+- Updated dependencies [e31a028]
+- Updated dependencies [b0b75be]
+- Updated dependencies [44ae283]
+- Updated dependencies [0077765]
+- Updated dependencies [251288a]
+  - @simplepg/common@1.2.5-rc.0
+  - @simplepg/node@1.5.0-rc.0
+
 ## 1.0.10
 
 ### Patch Changes

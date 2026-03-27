@@ -1,5 +1,15 @@
 # @simplepg/repo
 
+## 1.5.1-rc.0
+
+### Patch Changes
+
+- 86eb9eb: chore(node): add tests for multiple node communication
+- 44ae283: feat(node): Disallow uploads after subscription expiry
+- Updated dependencies [7ac8e9e]
+- Updated dependencies [251288a]
+  - @simplepg/common@1.2.5-rc.0
+
 ## 1.5.0
 
 ### Minor Changes

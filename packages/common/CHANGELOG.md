@@ -1,5 +1,12 @@
 # @simplepg/common
 
+## 1.2.5-rc.0
+
+### Patch Changes
+
+- 7ac8e9e: fix(frontend): make it possible to revert to a previous version
+- 251288a: chore(contracts): deploy TokenRendererV3
+
 ## 1.2.4
 
 ### Patch Changes
