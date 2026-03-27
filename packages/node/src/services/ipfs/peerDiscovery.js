@@ -54,21 +54,9 @@ export class PeerDiscovery {
       cid: this.cid.toString(),
       intervalMs: this.intervalMs
     })
-    try {
-      await this.#announceAndDiscover('startup')
-    } catch (error) {
-      this.logger.warn('Peer discovery startup failed', {
-        error: error.message,
-        stack: error.stack
-      })
-    }
+    this.#runDiscovery('startup', 'Peer discovery startup failed')
     this.intervalId = setInterval(() => {
-      this.#announceAndDiscover('interval').catch((error) => {
-        this.logger.warn('Peer discovery tick failed', {
-          error: error.message,
-          stack: error.stack
-        })
-      })
+      this.#runDiscovery('interval', 'Peer discovery tick failed')
     }, this.intervalMs)
   }
 
@@ -95,6 +83,15 @@ export class PeerDiscovery {
     } finally {
       this.inFlight = false
     }
+  }
+
+  #runDiscovery(reason, message) {
+    void this.#announceAndDiscover(reason).catch((error) => {
+      this.logger.warn(message, {
+        error: error.message,
+        stack: error.stack
+      })
+    })
   }
 
   async #providePeerDiscoveryCid(reason) {
