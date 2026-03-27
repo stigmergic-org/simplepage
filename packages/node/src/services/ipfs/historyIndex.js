@@ -5,6 +5,7 @@ import { JSDOM } from 'jsdom'
 import { emptyCar } from '@simplepg/common'
 
 const HISTORY_SCHEMA_VERSION = 1
+const HISTORY_SLOW_LOG_MS = 10 * 1000
 const DOMParser = new JSDOM().window.DOMParser
 
 const sortEntries = (entries) => {
@@ -46,12 +47,21 @@ export class HistoryIndex {
     this.#client = client
     this.#getFinalizations = getFinalizations
     this.#mfs = mfs
-    this.#logger = logger || { warn: () => {} }
+    this.#logger = logger || { info: () => {}, debug: () => {}, warn: () => {} }
   }
 
   async getHistory(domain) {
+    const startedAt = Date.now()
+    this.#logger.info('Building history response', { domain })
     const entries = await this.#ensureHistoryIndex(domain)
-    return this.#buildHistoryCarBytes(entries)
+    const carBytes = await this.#buildHistoryCarBytes(entries, domain)
+    this.#logger.info('History response ready', {
+      domain,
+      entries: entries.length,
+      bytes: carBytes.length,
+      durationMs: Date.now() - startedAt
+    })
+    return carBytes
   }
 
   async ensureHistoryIndexes() {
@@ -109,6 +119,10 @@ export class HistoryIndex {
 
   async #buildHistoryIndex(domain) {
     const mainHistory = await this.#getFinalizations(domain)
+    this.#logger.debug('Building history index from finalizations', {
+      domain,
+      finalizations: mainHistory.length
+    })
     const historyEntriesByCid = new Map()
     const knownTxs = new Set()
     const auxDomains = new Set()
@@ -120,31 +134,36 @@ export class HistoryIndex {
       const cidKey = rootCid.toString()
       if (chainCids.has(cidKey)) return
       chainCids.add(cidKey)
-      const parents = []
-      for await (const entry of this.#client.ls(rootCid)) {
-        switch (entry.name) {
-          case 'index.html': {
-            const meta = await parseIndexMeta(this.#client, entry.cid)
-            metaByCid.set(cidKey, meta)
-            if (meta.domain && meta.domain !== domain) {
-              auxDomains.add(meta.domain)
+      await this.#withSlowLog('History root traversal still running', {
+        domain,
+        cid: cidKey
+      }, async () => {
+        const parents = []
+        for await (const entry of this.#client.ls(rootCid)) {
+          switch (entry.name) {
+            case 'index.html': {
+              const meta = await parseIndexMeta(this.#client, entry.cid)
+              metaByCid.set(cidKey, meta)
+              if (meta.domain && meta.domain !== domain) {
+                auxDomains.add(meta.domain)
+              }
+              break
             }
-            break
-          }
-          case '_prev': {
-            for await (const prevEntry of this.#client.ls(entry.cid)) {
-              parents.push(prevEntry.cid)
-              await collectRoot(prevEntry.cid)
+            case '_prev': {
+              for await (const prevEntry of this.#client.ls(entry.cid)) {
+                parents.push(prevEntry.cid)
+                await collectRoot(prevEntry.cid)
+              }
+              break
             }
-            break
+            default:
+              break
           }
-          default:
-            break
         }
-      }
-      if (parents.length > 0) {
-        parentsByCid.set(cidKey, parents)
-      }
+        if (parents.length > 0) {
+          parentsByCid.set(cidKey, parents)
+        }
+      })
     }
 
     const addHistoryEntry = (entry) => {
@@ -203,7 +222,14 @@ export class HistoryIndex {
       }
     }
 
-    return sortEntries(entries)
+    const sortedEntries = sortEntries(entries)
+    this.#logger.debug('History index built', {
+      domain,
+      entries: sortedEntries.length,
+      roots: chainCids.size,
+      auxDomains: auxDomains.size
+    })
+    return sortedEntries
   }
 
   #normalizeEntryForCar(entry) {
@@ -216,15 +242,15 @@ export class HistoryIndex {
     }
   }
 
-  async #buildHistoryCarBytes(entries) {
+  async #buildHistoryCarBytes(entries, domain) {
     const historyCar = emptyCar()
     const entriesForCar = entries.map(entry => this.#normalizeEntryForCar(entry))
     historyCar.put({ entries: entriesForCar }, { isRoot: true })
-    await this.#addHistoryBlocksFromEntries(entriesForCar, historyCar)
+    await this.#addHistoryBlocksFromEntries(entriesForCar, historyCar, domain)
     return historyCar.bytes
   }
 
-  async #addHistoryBlocksFromEntries(entries, historyCar) {
+  async #addHistoryBlocksFromEntries(entries, historyCar, domain) {
     const visitedBlocks = new Set()
     const addBlock = async cid => {
       const cidKey = cid.toString()
@@ -242,18 +268,29 @@ export class HistoryIndex {
       }
     }
 
+    this.#logger.debug('Collecting history response blocks', {
+      domain,
+      roots: uniqueCids.size
+    })
+
     const collectRootBlocks = async rootCid => {
-      await addBlock(rootCid)
-      for await (const entry of this.#client.ls(rootCid)) {
-        switch (entry.name) {
-          case 'index.html':
-          case '_prev':
-            await addBlock(entry.cid)
-            break
-          default:
-            break
+      const cidKey = rootCid.toString()
+      await this.#withSlowLog('History CAR root collection still running', {
+        domain,
+        cid: cidKey
+      }, async () => {
+        await addBlock(rootCid)
+        for await (const entry of this.#client.ls(rootCid)) {
+          switch (entry.name) {
+            case 'index.html':
+            case '_prev':
+              await addBlock(entry.cid)
+              break
+            default:
+              break
+          }
         }
-      }
+      })
     }
 
     await Promise.all([...uniqueCids.values()].map(rootCid => collectRootBlocks(rootCid)))
@@ -288,8 +325,17 @@ export class HistoryIndex {
 
   async #ensureHistoryIndex(domain) {
     const existing = await this.#readHistoryIndex(domain)
-    if (existing) return existing
-    const entries = await this.#buildHistoryIndex(domain)
+    if (existing) {
+      this.#logger.debug('Using cached history index', {
+        domain,
+        entries: existing.length
+      })
+      return existing
+    }
+    this.#logger.info('History index cache miss, rebuilding', { domain })
+    const entries = await this.#withSlowLog('History index rebuild still running', {
+      domain
+    }, async () => this.#buildHistoryIndex(domain))
     const exists = await this.#mfs.domainExists(domain)
     if (entries.length > 0 || exists) {
       await this.#mfs.ensureDomain(domain)
@@ -303,5 +349,29 @@ export class HistoryIndex {
     await this.#mfs.ensureDomain(domain)
     await this.#writeHistoryIndex(domain, entries)
     return entries
+  }
+
+  async #withSlowLog(message, meta, fn) {
+    const startedAt = Date.now()
+    let warned = false
+    const timeoutId = setTimeout(() => {
+      warned = true
+      this.#logger.warn(message, {
+        ...meta,
+        thresholdMs: HISTORY_SLOW_LOG_MS,
+        durationMs: Date.now() - startedAt
+      })
+    }, HISTORY_SLOW_LOG_MS)
+    try {
+      return await fn()
+    } finally {
+      clearTimeout(timeoutId)
+      if (warned) {
+        this.#logger.info('Slow history operation finished', {
+          ...meta,
+          durationMs: Date.now() - startedAt
+        })
+      }
+    }
   }
 }

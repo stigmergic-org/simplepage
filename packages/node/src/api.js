@@ -351,6 +351,7 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
   })
 
   app.get('/history', async (req, res) => {
+    const startedAt = Date.now()
     try {
       const { domain } = req.query
       if (!domain) {
@@ -358,9 +359,15 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
         return res.status(400).json({ detail: 'Missing domain parameter' })
       }
 
+      logger.info('History request received', { domain })
       const car = await ipfs.getHistory(domain)
       res.setHeader('Content-Type', 'application/vnd.ipld.car')
       res.send(car)
+      logger.info('History request completed', {
+        domain,
+        bytes: car.length,
+        durationMs: Date.now() - startedAt
+      })
     } catch (error) {
       logger.error('Error retrieving history', { domain: req.query.domain, error: error.message, stack: error.stack })
       res.status(500).json({ detail: error.message })
