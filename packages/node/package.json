@@ -1,6 +1,6 @@
 {
   "name": "@simplepg/node",
-  "version": "1.5.0-rc.0",
+  "version": "1.5.0-rc.1",
   "description": "JavaScript implementation of the SimplePage backend service",
   "main": "src/index.js",
   "type": "module",

@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.5.0-rc.1
+
+### Patch Changes
+
+- f5bd90a: fix(node): make peer discover not block node startup
+
 ## 1.5.0-rc.0
 
 ### Minor Changes
