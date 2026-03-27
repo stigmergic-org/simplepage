@@ -1,5 +1,11 @@
 # @simplepg/node
 
+## 1.5.0-rc.2
+
+### Patch Changes
+
+- 36f2149: chore(node): add logs for history endpoint
+
 ## 1.5.0-rc.1
 
 ### Patch Changes
