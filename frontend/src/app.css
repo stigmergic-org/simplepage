@@ -65,6 +65,12 @@
   line-height: 1.6;
 }
 
+.EasyMDEContainer .editor-preview,
+.EasyMDEContainer .editor-preview-side {
+  background: var(--color-base-100);
+  color: var(--color-base-content);
+}
+
 .EasyMDEContainer .cm-s-easymde .cm-header-1 {
   font-size: 1.875rem;
 }
@@ -168,10 +174,6 @@
   }
 
   .editor-toolbar.fullscreen {
-      background: #000;
-  }
-
-  .editor-preview {
       background: #000;
   }
 
