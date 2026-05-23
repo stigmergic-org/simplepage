@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.8.0
+
+### Minor Changes
+
+- 11000fd: Add a side-by-side markdown preview toggle in the editor and remember its state between visits. Improve the editing layout by expanding the editor in preview mode and aligning editor sizing with the rendered preview for better scroll sync.
+
 ## 1.7.1
 
 ### Patch Changes
