@@ -58,6 +58,37 @@
 
 /* Content styles moved to content.css */
 
+.EasyMDEContainer .CodeMirror,
+.EasyMDEContainer .CodeMirror pre {
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-1 {
+  font-size: 1.875rem;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-2 {
+  font-size: 1.5rem;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-3 {
+  font-size: 1.25rem;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-4 {
+  font-size: 1.125rem;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-5 {
+  font-size: 1rem;
+}
+
+.EasyMDEContainer .cm-s-easymde .cm-header-6 {
+  font-size: 0.875rem;
+}
+
 /* Rainbow edit styles */
 .rainbow-edit {
   background: linear-gradient(90deg, #ff005a, #ffbe00, #00ff94, #00cfff, #a259ff, #ff005a 100%);
@@ -142,5 +173,9 @@
 
   .editor-preview {
       background: #000;
+  }
+
+  .editor-preview-side {
+      border-color: #333;
   }
 }

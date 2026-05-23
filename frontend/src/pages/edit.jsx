@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Renderer } from 'marked';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
@@ -10,6 +10,9 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
 import { mediaType } from '../utils/file-tools';
 import { web3FormIframe, isWeb3Uri } from '../utils/web3Form';
+
+const SIDE_BY_SIDE_PREVIEW_STORAGE_KEY = 'simplepage-edit-side-by-side-preview';
+const FRONTMATTER_REGEX = /^---\s*\n[\s\S]*?\n---\s*\n?/;
 
 const renderer = new Renderer();
 renderer.image = (href, title, text) => {
@@ -87,10 +90,60 @@ const frontmatterOverlay = {
   }
 };
 
+const renderMarkdown = (markdownEngine, markdownContent) => {
+  return markdownEngine
+    .markdown(markdownContent.replace(FRONTMATTER_REGEX, ''))
+    .replace('<head></head><body>', '')
+    .replace('</body>', '');
+};
+
+const updateSideBySideHeight = (editor) => {
+  const container = editor.codemirror.getWrapperElement().parentNode;
+  const wrapper = editor.codemirror.getWrapperElement();
+  const scroller = editor.codemirror.getScrollerElement();
+  const toolbar = container.querySelector('.editor-toolbar');
+  const statusBar = container.querySelector('.editor-statusbar');
+  const wrapperStyles = window.getComputedStyle(wrapper);
+  const wrapperVerticalChrome = [
+    'paddingTop',
+    'paddingBottom',
+    'borderTopWidth',
+    'borderBottomWidth',
+  ].reduce((total, key) => total + parseFloat(wrapperStyles[key] || '0'), 0);
+  const availableHeight = Math.max(
+    320,
+    Math.floor(
+      window.innerHeight
+      - container.getBoundingClientRect().top
+      - (toolbar?.offsetHeight ?? 0)
+      - (statusBar?.offsetHeight ?? 0)
+      - wrapperVerticalChrome
+      - 8
+    )
+  );
+
+  editor.options.maxHeight = `${availableHeight}px`;
+  scroller.style.height = editor.options.maxHeight;
+  editor.setPreviewMaxHeight();
+};
+
+const resetSideBySideHeight = (editor) => {
+  const wrapper = editor.codemirror.getWrapperElement();
+  const scroller = editor.codemirror.getScrollerElement();
+  const previewPane = wrapper.nextSibling;
+
+  editor.options.maxHeight = undefined;
+  scroller.style.removeProperty('height');
+  previewPane?.style.removeProperty('height');
+  previewPane?.style.removeProperty('max-height');
+};
+
 const Edit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [originalContent, setOriginalContent] = useState('');
   const [isOutdatedEdit, setIsOutdatedEdit] = useState(false);
+  const [isSideBySideActive, setIsSideBySideActive] = useState(false);
+  const editorRef = useRef(null);
   const { path } = usePagePath();
   const { repo } = useRepo();
   const { goToNotFound } = useNavigation();
@@ -100,6 +153,38 @@ const Edit = () => {
       loadContent();
     }
   }, [repo]);
+
+  useEffect(() => {
+    const syncEditorLayout = () => {
+      if (!editorRef.current) return;
+
+      if (isSideBySideActive) {
+        updateSideBySideHeight(editorRef.current);
+      } else {
+        resetSideBySideHeight(editorRef.current);
+      }
+
+      editorRef.current.codemirror.refresh();
+    };
+
+    let frameId = requestAnimationFrame(syncEditorLayout);
+
+    if (!isSideBySideActive) {
+      return () => cancelAnimationFrame(frameId);
+    }
+
+    const handleResize = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(syncEditorLayout);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isSideBySideActive, isOutdatedEdit]);
 
 
   const loadContent = async () => {
@@ -145,6 +230,7 @@ const Edit = () => {
         'bold', 'italic', 'heading', '|',
         'quote', 'unordered-list', 'ordered-list', '|',
         'link', 'image', 'code', '|',
+        'side-by-side', '|',
         'guide',
       ],
       status: ["lines", "words", "cursor", {
@@ -162,20 +248,44 @@ const Edit = () => {
       renderingConfig: {
         markedOptions: { renderer }
       },
+      previewRender: function (plainText) {
+        return renderMarkdown(this.parent, plainText);
+      },
     });
+
+    editorRef.current = editor;
 
     editor.value(originalContent);
 
+    const previewPane = editor.codemirror.getWrapperElement().nextSibling;
+    const syncSideBySideState = (persist = true) => {
+      const isActive = previewPane?.classList.contains('editor-preview-active-side') ?? false;
+
+      setIsSideBySideActive(isActive);
+      if (persist) {
+        localStorage.setItem(SIDE_BY_SIDE_PREVIEW_STORAGE_KEY, String(isActive));
+      }
+    };
+    const sideBySideObserver = previewPane
+      ? new MutationObserver(() => syncSideBySideState())
+      : null;
+
+    sideBySideObserver?.observe(previewPane, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    const shouldRestoreSideBySide = localStorage.getItem(SIDE_BY_SIDE_PREVIEW_STORAGE_KEY) === 'true';
+
+    if (shouldRestoreSideBySide && editor.toolbarElements?.['side-by-side']) {
+      editor.toggleSideBySide();
+    } else {
+      syncSideBySideState(!shouldRestoreSideBySide);
+    }
+
     editor.codemirror.on("change", () => {
       const markdownContent = editor.value();
-      const markdownSplit = markdownContent.split('---');
-
-      // remove frontmatter for the html rendering
-      let cleanedMarkdown = markdownContent;
-      if (markdownSplit.length >= 3) {
-        cleanedMarkdown = markdownSplit.slice(2).join('---');
-      }
-      const renderedHTML = editor.markdown(cleanedMarkdown).replace('<head></head><body>', '').replace('</body>', '');
+      const renderedHTML = renderMarkdown(editor, markdownContent);
       repo.setPageEdit(path, markdownContent, renderedHTML).then(() => {
         repo.getMetadata(path).then(({ title }) => {
           document.title = title
@@ -184,6 +294,8 @@ const Edit = () => {
     });
 
     return () => {
+      sideBySideObserver?.disconnect();
+      editorRef.current = null;
       editor.toTextArea();
     };
   }, [isLoading, originalContent, repo, path]);
@@ -216,8 +328,8 @@ const Edit = () => {
         </div>
       )}
       
-      <div className="min-h-70 flex items-center justify-center pt-6">
-        <div className="w-full max-w-3xl">
+      <div className={isSideBySideActive ? 'min-h-70 flex items-start justify-center pt-6' : 'min-h-70 flex items-center justify-center pt-6'}>
+        <div className={isSideBySideActive ? 'w-full px-4' : 'w-full max-w-3xl'}>
           <textarea id="markdown-editor" />
         </div>
       </div>
