@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.8.1
+
+### Patch Changes
+
+- dea6edd: Fix markdown editor side-by-side preview colors in dark mode so the preview pane follows the active theme.
+
 ## 1.8.0
 
 ### Minor Changes
