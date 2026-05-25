@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -42,12 +42,7 @@ jobs:
         run: pnpm lint
 
       - name: Ensure kubo binary is available
-        run: |
-          echo "=== Ensuring kubo binary is available ==="
-          # Run kubo postinstall to ensure binary is available
-          cd node_modules/.pnpm/kubo@0.39.0/node_modules/kubo
-          npm run postinstall
-          echo "Kubo binary should now be available"
+        run: pnpm --filter @simplepg/test-utils run ensure-kubo
 
       - name: Run package tests
         run: pnpm test

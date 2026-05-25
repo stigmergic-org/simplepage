@@ -2,7 +2,13 @@
   "name": "root",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": "24.x",
+    "pnpm": ">=10.33.2"
+  },
   "scripts": {
+    "pretest": "pnpm --filter @simplepg/test-utils run ensure-kubo",
     "setup": "pnpm install; cd contracts && forge install",
     "build": "pnpm -r build",
     "dev": "pnpm -r dev",

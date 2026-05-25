@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
+    "ensure-kubo": "node scripts/ensure-kubo.js",
     "test": "jest --passWithNoTests"
   },
   "files": [

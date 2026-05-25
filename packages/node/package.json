@@ -12,6 +12,7 @@
     "dev": "./bin/simplepage-node.js --rpc https://sepolia.drpc.org -c 11155111 --disable-indexing --log-level info --api-port 8001",
     "dev:index": "./bin/simplepage-node.js --rpc https://sepolia.drpc.org -c 11155111 --log-level info --api-port 8001",
     "dev:mainnet": "./bin/simplepage-node.js --rpc https://eth.drpc.org -c 1 --disable-indexing --log-level info --api-port 8001",
+    "pretest": "pnpm --filter @simplepg/test-utils run ensure-kubo",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint ."
   },
