@@ -4,5 +4,13 @@ packages:
 
 minimumReleaseAge: 4320
 
-onlyBuiltDependencies:
-  - kubo
+pmOnFail: error
+
+allowBuilds:
+  '@reown/appkit': false
+  '@scarf/scarf': false
+  '@tailwindcss/oxide': false
+  bufferutil: false
+  kubo: true
+  unrs-resolver: false
+  utf-8-validate: false
