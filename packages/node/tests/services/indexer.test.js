@@ -189,7 +189,7 @@ describe('Pages Indexer', () => {
 
     beforeAll(async () => {
       testEnv = new TestEnvironmentEvm();
-      deployments = await testEnv.start();
+      deployments = await testEnv.start({ blockTime: null });
     });
 
     beforeEach(async () => {
@@ -427,8 +427,6 @@ describe('Pages Indexer', () => {
     });
 
     it('should only store ipfs content of pages in allow-list when allow-list is not empty', async () => {
-      await indexer.start();
-      
       // Setup allow-list with specific domains
       const allowedDomain1 = 'allowed1.eth';
       const allowedDomain2 = 'allowed2.eth';
@@ -449,6 +447,7 @@ describe('Pages Indexer', () => {
         testEnv.setContenthash(deployments[resolver], domain, cid);
       }
 
+      await indexer.start();
       await new Promise(resolve => setTimeout(resolve, 1000));
       await indexer.stop();
 

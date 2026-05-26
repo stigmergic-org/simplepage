@@ -77,6 +77,7 @@ export class TestEnvironmentEvm {
             externalAnvil = false,
             withManager = false,
             blockGasLimit,
+            blockTime = '0.5',
             disableBlockGasLimit = false,
         } = options;
         
@@ -88,9 +89,12 @@ export class TestEnvironmentEvm {
             // Start Anvil (using chainId from StdChains.sol)
             const anvilArgs = [
                 '--chain-id', this.chainId,
-                '--block-time', '0.5',
                 '--port', this.port.toString(),
             ];
+
+            if (blockTime !== null) {
+                anvilArgs.push('--block-time', String(blockTime));
+            }
 
             if (blockGasLimit) {
                 anvilArgs.push('--gas-limit', String(blockGasLimit));

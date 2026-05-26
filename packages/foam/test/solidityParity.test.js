@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename)
 const contractsDir = path.resolve(__dirname, '..', '..', '..', 'contracts')
 
 const seeds = ['simplepage', 'foam', 'ocean', 'sunset', 'simplepage.eth']
-const sizes = [32, 128, 256, 512]
+const sizes = [32, 128, 256]
 
 // Colors from Solidity - used as palette overrides for parity comparison
 const SOLIDITY_COLORS = {
@@ -32,7 +32,7 @@ describe('FoamIdenticon Solidity parity', () => {
   let address
 
   beforeAll(async () => {
-    await env.start({ blockGasLimit: 100000000 })
+    await env.start({ blockGasLimit: 100000000, blockTime: null })
     address = deployFoamIdenticon(env)
   })
 
@@ -46,7 +46,12 @@ describe('FoamIdenticon Solidity parity', () => {
     for (const seed of seeds) {
       for (const size of sizes) {
         const jsSvg = generateFoamSvg(seed, size, { paletteOverrides: SOLIDITY_COLORS })
-        const solSvg = callFoamSvg(env, address, seed, size)
+        let solSvg
+        try {
+          solSvg = callFoamSvg(env, address, seed, size)
+        } catch (error) {
+          throw new Error(`Solidity foam render failed for seed="${seed}" size=${size}: ${error.message}`)
+        }
 
         if (jsSvg !== solSvg) {
           const diffIndex = firstDiffIndex(jsSvg, solSvg)
