@@ -143,6 +143,7 @@ const renderContentHtml = async (html, { basename, isVirtual, repo } = {}) => {
 const decorateContentHtml = (html, { basename, isVirtual } = {}) => {
   const parsedContent = parser.parseFromString(html, 'text/html');
 
+  restorePromotedCssElements(parsedContent);
   addHeadingLinks(parsedContent);
   if (isVirtual) {
     updateVirtualLinks(parsedContent, basename);
@@ -151,6 +152,18 @@ const decorateContentHtml = (html, { basename, isVirtual } = {}) => {
   highlightElement(parsedContent.body);
   return parsedContent;
 }
+
+
+const restorePromotedCssElements = (parsedContent) => {
+  const elements = Array.from(parsedContent.head.querySelectorAll(
+    'style, link[rel="stylesheet"], link[rel="preload"][as="style"]'
+  ));
+  if (elements.length === 0) return;
+
+  const fragment = parsedContent.createDocumentFragment();
+  elements.forEach(element => fragment.appendChild(element));
+  parsedContent.body.insertBefore(fragment, parsedContent.body.firstChild);
+};
 
 
 const updateVirtualMedia = async (parsedContent, repo) => {
