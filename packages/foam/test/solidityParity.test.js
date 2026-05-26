@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const contractsDir = path.resolve(__dirname, '..', '..', '..', 'contracts')
 
-const seeds = ['simplepage', 'foam', 'ocean', 'sunset', 'simplepage.eth']
+const seeds = ['simplepage', 'foam', 'ocean']
 const sizes = [32, 128, 256]
 
 // Colors from Solidity - used as palette overrides for parity comparison
