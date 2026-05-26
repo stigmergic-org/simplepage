@@ -10,6 +10,7 @@ import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
 import { mediaType } from '../utils/file-tools';
 import { updateVirtualLinks } from '../utils/virtual-links';
+import { restorePromotedCssElements } from '../utils/promoted-css-elements';
 import { web3FormIframe, isWeb3Uri } from '../utils/web3Form';
 
 const SIDE_BY_SIDE_PREVIEW_STORAGE_KEY = 'simplepage-edit-side-by-side-preview';
@@ -103,6 +104,7 @@ const renderPreviewMarkdown = (markdownEngine, markdownContent) => {
   const renderedHtml = renderMarkdown(markdownEngine, markdownContent);
   const parsedContent = parser.parseFromString(renderedHtml, 'text/html');
 
+  restorePromotedCssElements(parsedContent);
   updateVirtualLinks(parsedContent);
 
   return parsedContent.body.innerHTML;

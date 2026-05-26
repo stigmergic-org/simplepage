@@ -11,6 +11,7 @@ import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
 import { buildFoamSvg } from '../utils/foam-icons';
 import { updateVirtualLinks } from '../utils/virtual-links';
+import { restorePromotedCssElements } from '../utils/promoted-css-elements';
 import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
@@ -152,18 +153,6 @@ const decorateContentHtml = (html, { basename, isVirtual } = {}) => {
   highlightElement(parsedContent.body);
   return parsedContent;
 }
-
-
-const restorePromotedCssElements = (parsedContent) => {
-  const elements = Array.from(parsedContent.head.querySelectorAll(
-    'style, link[rel="stylesheet"], link[rel="preload"][as="style"]'
-  ));
-  if (elements.length === 0) return;
-
-  const fragment = parsedContent.createDocumentFragment();
-  elements.forEach(element => fragment.appendChild(element));
-  parsedContent.body.insertBefore(fragment, parsedContent.body.firstChild);
-};
 
 
 const updateVirtualMedia = async (parsedContent, repo) => {
