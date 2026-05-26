@@ -27,14 +27,16 @@ const HEADING_LINK_ICON_SIZES = {
 
 const View = ({ existingContent }) => {
   const basename = useBasename();
-  const [content, setContent] = useState(existingContent);
+  const { path, isVirtual } = usePagePath();
+  const { repo } = useRepo();
+  const { goToNotFound } = useNavigation();
+  const [content, setContent] = useState(() =>
+    renderInitialContentHtml(existingContent, { basename, isVirtual })
+  );
   const [navbarEffectiveTop, setNavbarEffectiveTop] = useState(64);
   const [contentWidth, setContentWidth] = useState(0);
   const hasScrolledToHash = useRef(false);
   const sidebarSemaphoreState = useState(null);
-  const { path, isVirtual } = usePagePath();
-  const { repo } = useRepo();
-  const { goToNotFound } = useNavigation();
 
   useEffect(() => {
     const loadContent = async () => {
@@ -46,21 +48,10 @@ const View = ({ existingContent }) => {
         return;
       }
       
-      let loadedContent = await repo.getHtmlBody(path, ignoreEdits);
+      const loadedContent = await repo.getHtmlBody(path, ignoreEdits);
       const loadedMetadata = await repo.getMetadata(path, ignoreEdits);
       document.title = loadedMetadata.title
-      
-      // Parse content once and apply all modifications
-      const parsedContent = parser.parseFromString(loadedContent, 'text/html');
-      
-      addHeadingLinks(parsedContent);
-      if (isVirtual) {
-        updateVirtualLinks(parsedContent, basename);
-        await updateVirtualMedia(parsedContent, repo);
-      }
-
-      highlightElement(parsedContent.body);
-      setContent(parsedContent.body.innerHTML);
+      setContent(await renderContentHtml(loadedContent, { basename, isVirtual, repo }));
       
       // Scroll to anchor if there's a hash in the URL
       const hash = window.location.hash;
@@ -126,6 +117,42 @@ const View = ({ existingContent }) => {
 export default View;
 
 
+const renderInitialContentHtml = (html, { basename, isVirtual } = {}) => {
+  if (!html) {
+    return html;
+  }
+
+  const parsedContent = decorateContentHtml(html, { basename, isVirtual });
+  return parsedContent.body.innerHTML;
+}
+
+
+const renderContentHtml = async (html, { basename, isVirtual, repo } = {}) => {
+  if (!html) {
+    return html;
+  }
+
+  const parsedContent = decorateContentHtml(html, { basename, isVirtual });
+  if (isVirtual && repo) {
+    await updateVirtualMedia(parsedContent, repo);
+  }
+
+  return parsedContent.body.innerHTML;
+}
+
+const decorateContentHtml = (html, { basename, isVirtual } = {}) => {
+  const parsedContent = parser.parseFromString(html, 'text/html');
+
+  addHeadingLinks(parsedContent);
+  if (isVirtual) {
+    updateVirtualLinks(parsedContent, basename);
+  }
+
+  highlightElement(parsedContent.body);
+  return parsedContent;
+}
+
+
 const updateVirtualMedia = async (parsedContent, repo) => {
   const media = parsedContent.querySelectorAll('img, video, audio, iframe');
   
@@ -186,6 +213,7 @@ const addHeadingLinks = (parsedContent) => {
     // Create container div
     const container = parsedContent.createElement('div');
     container.className = 'heading-container align-middle';
+    container.style.setProperty('--heading-link-size', iconSize.rem);
 
     const iconSvg = buildFoamSvg(text || anchorId, iconSize.pixels);
 

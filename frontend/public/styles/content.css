@@ -175,7 +175,7 @@ body {
   left: calc((var(--heading-link-size) + 0.6rem) * -1);
   top: 50%;
   transform: translateY(-50%);
-  z-index: 60;
+  z-index: 1;
   width: var(--heading-link-size);
   height: var(--heading-link-size);
   display: inline-flex;
@@ -212,7 +212,7 @@ body {
 }
 
 .heading-link-icon:focus-visible {
-  z-index: 60;
+  z-index: 1;
 }
 
 .heading-container h1,
@@ -222,4 +222,18 @@ body {
 .heading-container h5,
 .heading-container h6 {
   margin-left: 0;
+}
+
+/*
+ * Switch once the centered content gutter is too small to contain the
+ * left-offset heading icon without clipping against the viewport edge.
+ */
+@media (max-width: 908px) {
+  .heading-container {
+    padding-left: calc(var(--heading-link-size, 1.2rem) + 0.6rem);
+  }
+
+  .heading-link-icon {
+    left: 0;
+  }
 }
