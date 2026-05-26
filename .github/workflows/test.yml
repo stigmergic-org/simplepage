@@ -20,13 +20,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install pnpm
+        run: corepack enable
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '24'
 
-      - name: Install pnpm
-        run: corepack enable
+      - name: Activate pnpm
+        run: corepack prepare pnpm@11.3.0 --activate
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
