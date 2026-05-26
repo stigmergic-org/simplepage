@@ -313,7 +313,7 @@ const Navbar = ({
           {domainTitle}
           {repoRoot && (
             <Link
-              data-tip="Integrity"
+              data-tip="Version history"
               className="tooltip tooltip-bottom text-base cursor-pointer pl-1 flex items-center leading-none"
               to={ROUTES.HISTORY}
             >
