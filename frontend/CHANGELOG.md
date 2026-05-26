@@ -1,5 +1,13 @@
 # @simplepg/frontend
 
+## 1.8.2
+
+### Patch Changes
+
+- ff10b1d: Fix foam heading icons so they render below the sidebar, keep enough left margin before they would clip on narrower viewports, and appear immediately from the initial page content before async repo content finishes loading.
+- d916e6a: Preserve user-authored CSS elements that the preview parser promotes into the document head so markdown content can keep inline, linked, and preloaded styles when rendered.
+- 196cec0: Fix markdown editor preview links so internal navigation stays on the current route while updating the preview path, and share the virtual link rewrite helper between edit and view.
+
 ## 1.8.1
 
 ### Patch Changes
