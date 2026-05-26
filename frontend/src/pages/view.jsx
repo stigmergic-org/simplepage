@@ -10,6 +10,7 @@ import { encodeFileToDataUrl } from '../utils/file-tools';
 import { highlightElement } from '../utils/prism-config';
 import { generateAnchorId } from '../utils/anchor-utils';
 import { buildFoamSvg } from '../utils/foam-icons';
+import { updateVirtualLinks } from '../utils/virtual-links';
 import ContentArea from '../components/ContentArea';
 
 const parser = new DOMParser();
@@ -159,19 +160,6 @@ const updateVirtualMedia = async (parsedContent, repo) => {
   }
   await Promise.all(promises);
 }
-
-// Function to update links for virtual preview mode
-const updateVirtualLinks = (parsedContent, basename) => {
-  const links = parsedContent.querySelectorAll('a');
-  const params = new URLSearchParams();
-  links.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href?.startsWith('/') && !href.startsWith('/spg-')) {
-      params.set('path', href);
-      link.href = `${basename}?${params.toString()}`;
-    }
-  });
-};
 
 const getHeadingLinkIconSize = (headingLevel) =>
   HEADING_LINK_ICON_SIZES[headingLevel] || HEADING_LINK_ICON_SIZES[2];

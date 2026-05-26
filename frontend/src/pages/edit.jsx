@@ -9,10 +9,12 @@ import Notice from '../components/Notice';
 import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
 import { mediaType } from '../utils/file-tools';
+import { updateVirtualLinks } from '../utils/virtual-links';
 import { web3FormIframe, isWeb3Uri } from '../utils/web3Form';
 
 const SIDE_BY_SIDE_PREVIEW_STORAGE_KEY = 'simplepage-edit-side-by-side-preview';
 const FRONTMATTER_REGEX = /^---\s*\n[\s\S]*?\n---\s*\n?/;
+const parser = new DOMParser();
 
 const renderer = new Renderer();
 renderer.image = (href, title, text) => {
@@ -95,6 +97,15 @@ const renderMarkdown = (markdownEngine, markdownContent) => {
     .markdown(markdownContent.replace(FRONTMATTER_REGEX, ''))
     .replace('<head></head><body>', '')
     .replace('</body>', '');
+};
+
+const renderPreviewMarkdown = (markdownEngine, markdownContent) => {
+  const renderedHtml = renderMarkdown(markdownEngine, markdownContent);
+  const parsedContent = parser.parseFromString(renderedHtml, 'text/html');
+
+  updateVirtualLinks(parsedContent);
+
+  return parsedContent.body.innerHTML;
 };
 
 const updateSideBySideHeight = (editor) => {
@@ -249,7 +260,7 @@ const Edit = () => {
         markedOptions: { renderer }
       },
       previewRender: function (plainText) {
-        return renderMarkdown(this.parent, plainText);
+        return renderPreviewMarkdown(this.parent, plainText);
       },
     });
 
