@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawn } from 'node:child_process'
 import { createPrivateKey, createPublicKey, generateKeyPairSync, sign as signBytes } from 'node:crypto'
 
 import { createPublicClient, http } from 'viem'
@@ -128,6 +129,32 @@ const buildAgentsUrl = ({
   }
   return url
 }
+
+const buildDraftsUrl = ({ domain, chainId }) => {
+  const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
+  const url = new URL(`https://${FALLBACK_AGENTS_DOMAIN}${gatewaySuffix}/spg-drafts`)
+  url.searchParams.set('domain', domain)
+  return url
+}
+
+const openUrl = (url) => new Promise((resolve, reject) => {
+  const command = process.platform === 'darwin'
+    ? 'open'
+    : process.platform === 'win32'
+      ? 'cmd'
+      : 'xdg-open'
+  const args = process.platform === 'win32'
+    ? ['/c', 'start', '', url]
+    : [url]
+  const child = spawn(command, args, {
+    detached: true,
+    stdio: 'ignore',
+  })
+
+  child.on('error', reject)
+  child.unref()
+  resolve()
+})
 
 const listCapabilities = async ({ dservice, domain }) => {
   const response = await dservice.fetch(`/capabilities/${encodeURIComponent(domain)}`, {
@@ -351,4 +378,15 @@ export async function listRefsCommand(domain, options) {
     console.log(`- ${ref.refId} v${ref.sequence}${latestLabel} ipfs://${ref.contentCid}`)
   }
   console.log('')
+}
+
+export async function reviewDrafts(domain, options) {
+  const chainId = Number(options.chainId ?? CHAIN_ID)
+  const draftsUrl = buildDraftsUrl({ domain, chainId }).toString()
+
+  console.log(draftsUrl)
+
+  if (options.open) {
+    await openUrl(draftsUrl)
+  }
 }

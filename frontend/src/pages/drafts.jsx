@@ -18,6 +18,7 @@ import { useRepo } from '../hooks/useRepo';
 import { SET_CONTENTHASH_ABI } from '../utils/contenthash';
 
 const getIpfsGatewayUrl = (cid) => `https://${cid}.ipfs.inbrowser.link`;
+const DISABLED_PUBLISH_DOMAIN = 'new.simplepage.eth';
 
 const formatTimestamp = (revision) => {
   const timestamp = revision.issuedAt || (Number.isFinite(Number(revision.sequence)) ? Number(revision.sequence) : null);
@@ -51,9 +52,19 @@ const Drafts = () => {
   const [publishErrorMessage, setPublishErrorMessage] = useState(null);
   const { data: hash, status, error: transactionError, reset, writeContract } = useWriteContract();
   const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  const publishDisabledForDomain = targetDomain === DISABLED_PUBLISH_DOMAIN;
 
   const sortedDrafts = useMemo(() => {
-    return [...drafts].sort((a, b) => Number(b.sequence || 0) - Number(a.sequence || 0));
+    const latestByRefId = new Map();
+    for (const draft of drafts) {
+      const refId = draft.refId || '';
+      const current = latestByRefId.get(refId);
+      if (!current || Number(draft.sequence || 0) > Number(current.sequence || 0)) {
+        latestByRefId.set(refId, draft);
+      }
+    }
+
+    return [...latestByRefId.values()].sort((a, b) => Number(b.sequence || 0) - Number(a.sequence || 0));
   }, [drafts]);
 
   useEffect(() => {
@@ -102,6 +113,11 @@ const Drafts = () => {
 
   const handlePublish = async (draft) => {
     if (!draft?.contentCid) {
+      return;
+    }
+
+    if (publishDisabledForDomain) {
+      setPublishErrorMessage(`Publishing to ${DISABLED_PUBLISH_DOMAIN} is disabled.`);
       return;
     }
 
@@ -190,20 +206,18 @@ const Drafts = () => {
                   const isPublishingThisRevision = publishDraft?.contentCid === revision.contentCid && (status === 'pending' || status === 'success');
                   return (
                     <article key={`${revision.refId}-${revision.sequence}-${revision.contentCid}`} className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm">
-                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-xl font-semibold">{revision.refId}</h2>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-sm text-base-content/75 sm:grid-cols-2">
-                            <div><strong>Agent:</strong> {revision.agentName || 'Unknown'}</div>
-                            <div><strong>Timestamp:</strong> {formatTimestamp(revision)}</div>
-                            <div><strong>Version:</strong> {revision.sequence}</div>
-                            <div className="break-all"><strong>CID:</strong> {revision.contentCid}</div>
-                          </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl font-semibold">{revision.refId}</h2>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-sm text-base-content/75 sm:grid-cols-2">
+                          <div><strong>Agent:</strong> {revision.agentName || 'Unknown'}</div>
+                          <div><strong>Timestamp:</strong> {formatTimestamp(revision)}</div>
+                          <div><strong>Version:</strong> {revision.sequence}</div>
+                          <div className="break-all"><strong>CID:</strong> {revision.contentCid}</div>
                         </div>
 
-                        <div className="flex shrink-0 gap-2 md:flex-col">
+                        <div className="mt-4 grid grid-cols-2 gap-2">
                           <a
                             className="btn btn-outline btn-sm"
                             href={getIpfsGatewayUrl(revision.contentCid)}
@@ -215,10 +229,10 @@ const Drafts = () => {
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
-                            disabled={isPublishingThisRevision}
+                            disabled={isPublishingThisRevision || publishDisabledForDomain}
                             onClick={() => handlePublish(revision)}
                           >
-                            {isPublishingThisRevision ? 'Publishing...' : 'Publish'}
+                            {isPublishingThisRevision ? `Publishing to ${targetDomain}...` : `Publish to ${targetDomain}`}
                           </button>
                         </div>
                       </div>

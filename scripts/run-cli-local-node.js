@@ -47,7 +47,7 @@ const commandSupportsChainId = (commandArgs) => {
     return true
   }
 
-  if (command === 'drafts' && (subcommand === 'push-raw' || subcommand === 'list')) {
+  if (command === 'drafts' && (subcommand === 'push-raw' || subcommand === 'list' || subcommand === 'review')) {
     return true
   }
 

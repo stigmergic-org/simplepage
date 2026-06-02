@@ -3,7 +3,7 @@
 import { program, Option } from 'commander';
 import { info } from '../commands/info.js';
 import { cloneRepo, diffRepo, resetRepo, statusRepo, pullRepo } from '../commands/repo.js';
-import { auth, listRefsCommand, pushRawRef } from '../commands/drafts.js';
+import { auth, listRefsCommand, pushRawRef, reviewDrafts } from '../commands/drafts.js';
 import packageJson from '../package.json' with { type: 'json' }
 
 // Helper function to add global options to a command
@@ -62,6 +62,15 @@ withGlobalOptions(
     .argument('<ens-name>', 'ENS domain name')
     .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
     .action(listRefsCommand)
+)
+
+withGlobalOptions(
+  draftsCommand
+    .command('review')
+    .description('Print the draft review page URL for an ENS name')
+    .argument('<ens-name>', 'ENS domain name')
+    .option('--open', 'Open the review page in the default browser')
+    .action(reviewDrafts)
 )
 
 const repoCommand = program
