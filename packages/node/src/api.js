@@ -76,6 +76,64 @@ class HTTPError extends Error {
  */
 
 /**
+ * @typedef {object} RefRecord
+ * @property {string} domain - ENS name
+ * @property {string} refId - Ref identifier
+ * @property {number} sequence - Monotonic revision number
+ * @property {string} contentCid - CID for the referenced content
+ * @property {string} didKey - did:key signer identifier
+ * @property {string} signature - Signature for the ref payload
+ * @property {string} siweMessage - Signed SIWE message
+ * @property {string} siweSignature - Signature for the SIWE message
+ * @property {string} ownerAddress - ENS owner address that authorized the ref
+ * @property {string} issuedAt - ISO timestamp from the SIWE payload
+ * @property {string|null} agentName - Optional agent name authorized by the SIWE
+ * @property {boolean} latest - Whether this is the latest revision for the ref id
+ */
+
+/**
+ * @typedef {object} RefResponse
+ * @property {RefRecord} ref - Stored ref record
+ */
+
+/**
+ * @typedef {object} RefsResponse
+ * @property {RefRecord[]} refs - Stored ref records for the ENS name
+ */
+
+/**
+ * @typedef {object} CapabilityRecord
+ * @property {string} domain - ENS name
+ * @property {string} key - Authorized did:key
+ * @property {string} didKey - Authorized did:key
+ * @property {string} siweMessage - Signed SIWE message
+ * @property {string} siweSignature - SIWE signature
+ * @property {string} ownerAddress - ENS owner address that granted the capability
+ * @property {string} issuedAt - ISO timestamp from the SIWE payload
+ * @property {string} expiresAt - ISO expiry timestamp
+ * @property {string} nonce - SIWE nonce
+ * @property {string|null} agentName - Optional agent name authorized by the SIWE
+ */
+
+/**
+ * @typedef {object} CapabilityBody
+ * @property {string} key.required - Authorized did:key
+ * @property {string} agentName - Optional agent name to bind into the SIWE capability
+ * @property {string} siweMessage.required - Signed SIWE message
+ * @property {string} siweSignature.required - SIWE signature
+ */
+
+/**
+ * @typedef {object} CapabilityResponse
+ * @property {CapabilityRecord|null} capability - Stored capability
+ */
+
+/**
+ * @typedef {object} CapabilitiesResponse
+ * @property {CapabilityRecord[]} capabilities - Stored capabilities
+ */
+
+/**
  * @typedef {object} InfoResponse
  * @property {string} version - API version
  */
@@ -356,6 +414,167 @@ export function createApi({ ipfs, _indexer, version, logger, rateLimits = {}, tr
           res.status(500).json({ detail: err.message })
         }
       }
+    }
+  })
+
+  /**
+   * POST /refs/{ensName}
+   * @tags Ref Operations
+   * @summary Store a signed off-chain ref revision
+   * @param {string} ensName.path.required - The ENS name for the ref
+   * @param {FileUpload} request.body.required - CAR file containing content and signed ref metadata - multipart/form-data
+   * @returns {RefResponse} 200 - Successfully stored ref - application/json
+   * @returns {ErrorResponse} 400 - Bad request error - application/json
+   * @returns {ErrorResponse} 401 - Invalid signature or owner authorization - application/json
+   * @returns {ErrorResponse} 413 - File too large (max 500MB) - application/json
+   */
+  app.post('/refs/:ensName', preUploadLimiter, upload.single('file'), postUploadLimiter, async (req, res) => {
+    try {
+      const { ensName } = req.params
+      if (!ensName) {
+        logger.warn('Missing ENS name parameter in POST /refs request')
+        return res.status(400).json({ detail: 'Missing ENS name parameter' })
+      }
+
+      if (!req.file) {
+        logger.warn('Missing file upload in POST /refs request', { ensName })
+        return res.status(400).json({ detail: 'Missing file upload' })
+      }
+
+      const subscriptionStatus = await getUploadSubscriptionStatus(ensName)
+      if (subscriptionStatus.status !== 'active') {
+        const reason = subscriptionStatus.status
+        const detail = subscriptionStatus.status === 'expired'
+          ? 'Subscription expired'
+          : 'Subscription not found'
+        const response = { detail, reason }
+        if (subscriptionStatus.expiresAt) {
+          response.expiresAt = subscriptionStatus.expiresAt
+        }
+        logger.warn('Domain subscription not active for ref upload', { ensName, reason })
+        return res.status(401).json(response)
+      }
+
+      const ref = await ipfs.putRefCar(req.file.buffer, ensName)
+      res.json({ ref })
+    } catch (error) {
+      logger.error('Error storing ref', {
+        ensName: req.params.ensName,
+        error: error.message,
+        stack: error.stack
+      })
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ detail: 'File too large. Maximum size is 500MB.' })
+      }
+      if (/signature|SIWE|owner|did:key/i.test(error.message)) {
+        return res.status(401).json({ detail: error.message })
+      }
+      return res.status(400).json({ detail: error.message })
+    }
+  })
+
+  /**
+   * GET /refs/{ensName}
+   * @tags Ref Operations
+   * @summary List signed off-chain refs for an ENS name
+   * @param {string} ensName.path.required - The ENS name for the refs
+   * @returns {RefsResponse} 200 - Ref list - application/json
+   * @returns {ErrorResponse} 400 - Bad request error - application/json
+   */
+  app.get('/refs/:ensName', async (req, res) => {
+    try {
+      const { ensName } = req.params
+      if (!ensName) {
+        logger.warn('Missing ENS name parameter in GET /refs request')
+        return res.status(400).json({ detail: 'Missing ENS name parameter' })
+      }
+
+      if (!ipfs?.refIndex) {
+        return res.status(503).json({ detail: 'Ref index unavailable' })
+      }
+
+      const refs = await ipfs.refIndex.listRefs(ensName)
+      return res.json({ refs })
+    } catch (error) {
+      logger.error('Error listing refs', {
+        ensName: req.params.ensName,
+        error: error.message,
+        stack: error.stack
+      })
+      return res.status(500).json({ detail: error.message })
+    }
+  })
+
+  /**
+   * POST /capabilities/{ensName}
+   * @tags Capability Operations
+   * @summary Store a signing capability for an ENS name
+   * @param {string} ensName.path.required - ENS name
+   * @param {CapabilityBody} request.body.required - Signed SIWE capability payload - application/json
+   * @returns {CapabilityResponse} 200 - Stored capability - application/json
+   * @returns {ErrorResponse} 400 - Bad request error - application/json
+   * @returns {ErrorResponse} 401 - Unauthorized capability - application/json
+   */
+  app.post('/capabilities/:ensName', async (req, res) => {
+    try {
+      const { ensName } = req.params
+      if (!ensName) {
+        logger.warn('Missing ENS name parameter in POST /capabilities request')
+        return res.status(400).json({ detail: 'Missing ENS name parameter' })
+      }
+
+      if (!ipfs?.capabilityStore) {
+        return res.status(503).json({ detail: 'Capability store unavailable' })
+      }
+
+      const payload = {
+        ...req.body,
+        domain: ensName,
+        didKey: req.body?.didKey || req.body?.key,
+      }
+      const capability = await ipfs.capabilityStore.putCapability(payload)
+      return res.json({ capability })
+    } catch (error) {
+      logger.error('Error storing capability', {
+        ensName: req.params.ensName,
+        error: error.message,
+        stack: error.stack
+      })
+      if (/SIWE|owner|did:key/i.test(error.message)) {
+        return res.status(401).json({ detail: error.message })
+      }
+      return res.status(400).json({ detail: error.message })
+    }
+  })
+
+  /**
+   * GET /capabilities/{ensName}
+   * @tags Capability Operations
+   * @summary Read signing capabilities for an ENS name
+   * @param {string} ensName.path.required - ENS name
+   * @returns {CapabilitiesResponse} 200 - Capability list - application/json
+   * @returns {ErrorResponse} 400 - Bad request error - application/json
+   */
+  app.get('/capabilities/:ensName', async (req, res) => {
+    try {
+      const { ensName } = req.params
+      if (!ensName) {
+        logger.warn('Missing ENS name parameter in GET /capabilities request')
+        return res.status(400).json({ detail: 'Missing ENS name parameter' })
+      }
+
+      if (!ipfs?.capabilityStore) {
+        return res.status(503).json({ detail: 'Capability store unavailable' })
+      }
+
+      return res.json({ capabilities: ipfs.capabilityStore.listCapabilities(ensName) })
+    } catch (error) {
+      logger.error('Error listing capabilities', {
+        ensName: req.params.ensName,
+        error: error.message,
+        stack: error.stack
+      })
+      return res.status(500).json({ detail: error.message })
     }
   })
 

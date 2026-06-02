@@ -27,6 +27,7 @@ import { searchPage } from './search-util.js'
 import { Files, FILES_FOLDER } from './files.js'
 import { Settings, SETTINGS_FILE } from './settings.js'
 import { History } from './history.js'
+import { Refs } from './refs.js'
 import { CHANGE_TYPE, isReservedPath } from './constants.js'
 
 
@@ -148,6 +149,7 @@ export class Repo {
     this.files = new Files(this.unixfs, this.blockstore, this.dservice, () => this.#ensureRepoData(), storage);
     this.settings = new Settings(this.unixfs, this.blockstore, () => this.#ensureRepoData(), storage);
     this.history = new History(this.domain, this.dservice);
+    this.refs = new Refs(this.domain, this.dservice);
     
     this.#repoRootPromise = new Promise((resolve) => {
       this.#resolveRepoRootPromise = resolve;

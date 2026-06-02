@@ -38,3 +38,4 @@
 - Never rely on cached or previously read file contents
 - Use the Read tool to check file contents before any edit operations
 - If a file modification fails due to "file has been modified since last read", always re-read the file before attempting the change again
+- Never read `.env` files; use `.env.example` when an example environment file is needed

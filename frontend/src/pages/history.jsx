@@ -14,15 +14,7 @@ import { useGetSubscription } from '../hooks/useGetSubscription';
 import { useIsEnsOwner } from '../hooks/useIsEnsOwner';
 import { useNavigation } from '../hooks/useNavigation';
 import { useRepo } from '../hooks/useRepo';
-
-const SET_CONTENTHASH_ABI = [
-  {
-    name: 'setContenthash',
-    type: 'function',
-    inputs: [{ name: 'node', type: 'bytes32' }, { name: 'hash', type: 'bytes' }],
-    outputs: [],
-  },
-];
+import { SET_CONTENTHASH_ABI } from '../utils/contenthash';
 
 const normalizeEntry = (entry) => {
   const cid = entry.cid?.toString?.() || '';

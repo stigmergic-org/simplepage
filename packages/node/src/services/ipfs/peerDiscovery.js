@@ -112,8 +112,13 @@ export class PeerDiscovery {
     }
   }
 
+  getPeers() {
+    return Array.from(this.seenPeers || [])
+  }
+
   async #connectToDiscoveryPeers(reason) {
     const seenPeers = new Set()
+    this.seenPeers = seenPeers
     const connectedPeers = new Set()
     const attemptedAddrs = new Set()
     let connected = 0

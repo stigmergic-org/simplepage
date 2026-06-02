@@ -15,6 +15,14 @@ const isLoopbackAddr = (addr) => {
 }
 
 export class TestEnvironmentKubo {
+  static getBinaryPath() {
+    try {
+      return path()
+    } catch (_error) {
+      return null
+    }
+  }
+
   constructor(options = {}) {
     this.options = {
       offline: options.offline ?? true,
@@ -83,6 +91,11 @@ export class TestEnvironmentKubo {
   }
 
   async start() {
+    const binaryPath = TestEnvironmentKubo.getBinaryPath()
+    if (!binaryPath) {
+      throw new Error('kubo binary not found')
+    }
+
     this.apiPort = this.options.apiPort || await this.findAvailablePort()
     this.gatewayPort = this.options.gatewayPort || await this.findAvailablePort()
     this.swarmPort = this.options.swarmPort || await this.findAvailablePort()
@@ -91,7 +104,7 @@ export class TestEnvironmentKubo {
       type: 'kubo',
       test: true,
       disposable: true,
-      bin: path(),
+      bin: binaryPath,
       rpc: create,
       args: [
         '--api', `/ip4/127.0.0.1/tcp/${this.apiPort}`,

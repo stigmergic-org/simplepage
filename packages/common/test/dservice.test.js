@@ -214,6 +214,14 @@ describe('DService', () => {
         .toThrow('HTTP 404: Not Found')
     })
 
+    it('should include response detail in 4xx errors', async () => {
+      fetchMock.mockResponse(JSON.stringify({ detail: 'Ref draft is claimed by a different did:key' }), { status: 401, statusText: 'Unauthorized' })
+
+      await expect(dservice.fetch('/test', { method: 'GET' }))
+        .rejects
+        .toThrow('Ref draft is claimed by a different did:key')
+    })
+
     it('should throw error if no endpoints available', async () => {
       const emptyDservice = new DService('test.eth')
       await expect(emptyDservice.init(client, { 

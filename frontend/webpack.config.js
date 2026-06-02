@@ -12,15 +12,32 @@ module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
   const analyzeBundle = env.analyze === true;
 
-  const envConfig = dotenv.config().parsed;
+  const envConfig = dotenv.config().parsed || {};
+  const passthroughEnvKeys = [
+    'CHAIN_ID',
+    'SEPOLIA_RPC_URL',
+    'MAINNET_RPC_URL',
+    'LOCAL_RPC_URL',
+    'WALLETCONNECT_PROJECT_ID',
+    'SIMPLEPAGE_DSERVICE_URL',
+  ];
+  const mergedEnvConfig = {
+    ...envConfig,
+  };
+
+  for (const key of passthroughEnvKeys) {
+    if (typeof process.env[key] !== 'undefined') {
+      mergedEnvConfig[key] = process.env[key];
+    }
+  }
   
-  const envKeys = Object.keys(envConfig || {}).reduce((prev, next) => {
-    prev[`process.env.${next}`] = JSON.stringify(envConfig[next]);
+  const envKeys = Object.keys(mergedEnvConfig).reduce((prev, next) => {
+    prev[`process.env.${next}`] = JSON.stringify(mergedEnvConfig[next]);
     return prev;
   }, {});
   
   // Provide fallback for process
-  envKeys['process.env'] = JSON.stringify(envConfig || {});
+  envKeys['process.env'] = JSON.stringify(mergedEnvConfig);
 
   // Read version from package.json
   const packageJson = require('./package.json');

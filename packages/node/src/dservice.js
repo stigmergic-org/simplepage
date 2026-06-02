@@ -2,6 +2,8 @@ import { IpfsService } from './services/ipfs.js'
 import { IndexerService } from './services/indexer.js'
 import { createApi } from './api.js'
 import { createLogger } from './logger.js'
+import { createPublicClient, http } from 'viem'
+import { verifyCapability, verifyRefRecord } from '@simplepg/common'
 import packageJson from '../package.json' with { type: 'json' }
 import https from 'https'
 import fs from 'fs'
@@ -18,6 +20,7 @@ export class DService {
     this.app = null
     this.server = null
     this.logger = null
+    this.viemClient = null
   }
 
   async initialize() {
@@ -41,10 +44,28 @@ export class DService {
       // Initialize IPFS service
       this.logger.info('Initializing IPFS service')
       const chainId = this.config.blockchain?.chainId
+      this.viemClient = createPublicClient({
+        transport: http(this.config.blockchain?.rpcUrl)
+      })
+      const offchainValidator = {
+        verifyCapability: (record, { expectedDomain }) => verifyCapability(record, {
+          expectedDomain,
+          expectedChainId: chainId,
+          expectedAgentName: record?.agentName,
+          viemClient: this.viemClient,
+        }),
+        verifyRefRecord: (record, { expectedDomain, allowedExpiredMs } = {}) => verifyRefRecord(record, {
+          expectedDomain,
+          expectedChainId: chainId,
+          viemClient: this.viemClient,
+          allowedExpiredMs,
+        })
+      }
       this.ipfs = new IpfsService({
         ...this.config.ipfs,
         logger: this.logger,
-        namespace: chainId
+        namespace: chainId,
+        offchainValidator,
       })
       const healthy = await this.ipfs.healthCheck()
       if (!healthy) {
@@ -64,6 +85,7 @@ export class DService {
       this.logger.info('Initializing Indexer service')
       this.indexer = new IndexerService({ 
         ...this.config.blockchain, 
+        viemClient: this.viemClient,
         ipfsService: this.ipfs,
         logger: this.logger 
       })
@@ -73,7 +95,7 @@ export class DService {
       } else {
         this.logger.info('Indexer service disabled')
       }
-      
+
       // Create API app
       this.logger.info('Creating API application')
       this.app = createApi({ 
@@ -143,6 +165,12 @@ export class DService {
       throw error
     }
     await this.serverPromise
+    this.ipfs.startRefSync().catch(error => {
+      this.logger.warn('Error starting ref sync', {
+        error: error.message,
+        stack: error.stack,
+      })
+    })
   }
 
   async stop() {
@@ -171,9 +199,10 @@ export class DService {
       }
 
       if (this.ipfs) {
+        await this.ipfs.stopRefSync()
         await this.ipfs.stopPeerDiscovery()
       }
-      
+
       this.logger.info('DService stopped successfully')
     } catch (error) {
       this.logger.error('Failed to stop DService', { 

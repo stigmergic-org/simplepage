@@ -1,10 +1,9 @@
-import { globSource } from '@helia/unixfs'
 import { createPublicClient, http, keccak256, toHex } from 'viem'
 import { mainnet } from 'viem/chains'
-import all from 'it-all'
-import nodeFs from 'fs'
 
-import { contracts, emptyUnixfs, emptyCar, walkDag, DService } from '@simplepg/common'
+import { contracts, emptyCar, DService } from '@simplepg/common'
+
+import { buildContentDag } from './utils/contentCar.js'
 
 
 const SIMPLEPAGE_DSERVICE = 'new.simplepage.eth'
@@ -67,48 +66,12 @@ export async function publish(domain, path, options) {
   // Check subscription first
   await checkSubscription(domain, rpcUrl, simplepage)
   
-  // Setup blockstore and unixfs
-  const { fs, blockstore } = emptyUnixfs()
-
-  // check if path is a file
-  const isFile = nodeFs.statSync(path).isFile()
-  
-  let root
-  if (isFile) {
-    // For single file, read the file content directly
-    const fileContent = nodeFs.readFileSync(path)
-    
-    // Add the file content as raw bytes - this creates a CID that resolves directly to the content
-    const cid = await fs.addBytes(fileContent)
-    root = cid
-  } else {
-    // Multiple files - create directory structure
-    // Use globSource to add files
-    const glob = globSource(path, '**/*')
-    
-    // Collect all entries
-    const entries = await all(glob)
-
-    if (entries.length === 0) {
-      throw new Error('No files found')
-    }
-
-    // Multiple files - create directory structure
-    root = await fs.addDirectory()
-    for await (const entry of fs.addAll(entries)) {
-      entry.path = entry.path.startsWith('/') ? entry.path.slice(1) : entry.path
-      if (entry.path.split('/').length === 1) {
-        root = await fs.cp(entry.cid, root, entry.path)
-      }
-    }
-  }
+  const { root, blocks } = await buildContentDag(path)
 
   // Create CAR file
   const car = emptyCar()
   car.roots.push(root)
 
-  // Walk the DAG and add all blocks to CAR
-  const blocks = await walkDag(blockstore, root)
   for (const block of blocks) {
     car.blocks.put(block)
   }

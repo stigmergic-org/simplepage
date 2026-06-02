@@ -33,16 +33,24 @@ contract MockResolver {
 
 contract MockUniversalResolver {
     mapping(bytes32 => address) public resolvers;
+    mapping(bytes32 => address) public owners;
 
     event NewResolver(bytes32 indexed node, address resolver);
+    event NewOwner(bytes32 indexed node, address owner);
 
     function setResolver(bytes32 node, address newResolver) external {
         resolvers[node] = newResolver;
+        owners[node] = msg.sender;
         emit NewResolver(node, newResolver);
+        emit NewOwner(node, msg.sender);
     }
 
     function resolver(bytes32 node) public view returns (address) {
         return resolvers[node];
+    }
+
+    function owner(bytes32 node) external view returns (address) {
+        return owners[node];
     }
 
     // Universal Resolver specific functions

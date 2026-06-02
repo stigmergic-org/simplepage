@@ -24,6 +24,52 @@ export class DService {
     });
   }
 
+  #cloneRequestInit(requestInit = {}) {
+    const cloned = {
+      ...requestInit,
+      headers: requestInit.headers ? new Headers(requestInit.headers) : undefined,
+    }
+
+    const { body } = requestInit
+    if (body instanceof FormData) {
+      const formData = new FormData()
+      for (const [key, value] of body.entries()) {
+        formData.append(key, value)
+      }
+      cloned.body = formData
+    } else if (body instanceof URLSearchParams) {
+      cloned.body = new URLSearchParams(body)
+    } else if (body instanceof Blob) {
+      cloned.body = body.slice(0, body.size, body.type)
+    }
+
+    return cloned
+  }
+
+  async #fetchEndpoint(endpoint, path, requestInit) {
+    const url = `${endpoint}${path}`
+    return fetch(url, this.#cloneRequestInit(requestInit))
+  }
+
+  async #formatResponseError(response) {
+    let detail = ''
+    try {
+      const text = await response.clone().text()
+      if (text) {
+        try {
+          const payload = JSON.parse(text)
+          detail = payload?.detail || payload?.error || text
+        } catch (_error) {
+          detail = text
+        }
+      }
+    } catch (_error) {
+      // ignore response body read failures
+    }
+
+    return `HTTP ${response.status}: ${response.statusText}${detail ? `: ${detail}` : ''}`
+  }
+
   /**
    * Initializes the DService with viem client and chain configuration.
    * @param {ViemClient} viemClient - The viem client.
@@ -78,9 +124,11 @@ export class DService {
    * Fetches a network resource from the dservice.
    * @param {string} path - The path to fetch.
    * @param {RequestInit} requestInit - The request init object.
-   * @returns {Promise<Response>} The response.
+   * @param {object} options - Additional fetch options.
+   * @param {boolean} options.allEndpoints - Post to every discovered endpoint.
+   * @returns {Promise<Response|Array<{ endpoint: string, response?: Response, error?: Error }>>} The response.
    */
-  async fetch(path, requestInit) {
+  async fetch(path, requestInit, options = {}) {
     // Ensure we have endpoints to try
     await this.#initPromise
     
@@ -88,13 +136,36 @@ export class DService {
       throw new Error('No dservice endpoints available');
     }
 
+    if (options.allEndpoints) {
+      const results = await Promise.all(this.dserviceEndpoints.map(async (endpoint) => {
+        try {
+          const response = await this.#fetchEndpoint(endpoint, path, requestInit)
+          return { endpoint, response }
+        } catch (error) {
+          return { endpoint, error }
+        }
+      }))
+
+      if (!results.some(result => result.response?.ok)) {
+        const lastFailure = [...results].reverse().find(result => result.error || result.response)
+        if (lastFailure?.error) {
+          throw new Error(`All dservice endpoints failed. Last error: ${lastFailure.error.message}`)
+        }
+        if (lastFailure?.response) {
+          throw new Error(`All dservice endpoints failed. Last response: HTTP ${lastFailure.response.status}: ${lastFailure.response.statusText}`)
+        }
+        throw new Error('All dservice endpoints failed.')
+      }
+
+      return results
+    }
+
     // Try each endpoint sequentially until one succeeds
     const numEndpoints = this.dserviceEndpoints.length
     for (let i = 0; i < numEndpoints; i++) {
       const endpoint = this.dserviceEndpoints[i]
       try {
-        const url = `${endpoint}${path}`;
-        const response = await fetch(url, requestInit);
+        const response = await this.#fetchEndpoint(endpoint, path, requestInit)
         
         // If the response is successful, return it
         if (response.ok) {
@@ -103,7 +174,7 @@ export class DService {
         // If response is not ok but not a network error, throw it
         // This prevents retrying on 4xx errors (client errors)
         if (response.status >= 400 && response.status < 500) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(await this.#formatResponseError(response));
         }
         // For 5xx errors or other issues, continue to next endpoint
         console.warn(`Endpoint ${endpoint} failed with status ${response.status}, trying next endpoint...`);

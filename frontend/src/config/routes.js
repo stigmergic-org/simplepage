@@ -6,7 +6,9 @@ export const ROUTES = {
   SUBSCRIPTION: '/spg-subscription',
   PAGES: '/spg-pages',
   FILES: '/spg-files',
+  AGENTS: '/spg-agents',
+  DRAFTS: '/spg-drafts',
   SETTINGS: '/spg-settings',
   HISTORY: '/spg-history',
   NOT_FOUND: '/spg-notfound',
-}; 
+};

@@ -49,6 +49,10 @@ export const ICONS = {
     src: `${PREFIX}restore.svg`,
     alt: '↩️',
   },
+  'robot': {
+    src: `${PREFIX}robot.svg`,
+    alt: '🤖',
+  },
   'settings': {
     src: `${PREFIX}settings.svg`,
     alt: '⚙️',

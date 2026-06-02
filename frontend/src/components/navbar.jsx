@@ -25,7 +25,7 @@ const Navbar = ({
   const { repo, root: repoRoot, dserviceFailed, rpcFailed } = useRepo();
   const isSnapshot = useIsSnapshot();
 
-  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToViewWithPreview, goToSettings, ROUTES } = useNavigation();
+  const { goToView, goToEdit, goToPublish, goToSubscription, goToPages, goToFiles, goToAgents, goToDrafts, goToViewWithPreview, goToSettings, ROUTES } = useNavigation();
   const { saveScrollPosition, getScrollPosition, clearScrollPosition } = useScrollContext();
 
   const tabsContainerRef = useRef(null);
@@ -121,6 +121,14 @@ const Navbar = ({
     'Files': {
       onClick: () => goToFiles(path),
       icon: 'folder',
+    },
+    'Agents': {
+      onClick: () => goToAgents(),
+      icon: 'robot',
+    },
+    'Drafts': {
+      onClick: () => goToDrafts(),
+      icon: 'fork',
     },
     'Publish': {
       onClick: () => goToPublish(),

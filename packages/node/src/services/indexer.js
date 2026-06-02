@@ -11,7 +11,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export class IndexerService {
   constructor(config) {
-    this.client = createPublicClient({
+    this.client = config.viemClient || createPublicClient({
       transport: http(config.rpcUrl)
     })
     this.chainId = config.chainId

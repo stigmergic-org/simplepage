@@ -2,11 +2,14 @@ import { create } from 'kubo-rpc-client'
 import { CarBlock } from 'cartonne'
 import { CID } from 'multiformats/cid'
 import all from 'it-all'
-import { assert, carFromBytes, emptyCar, CidSet } from '@simplepg/common'
+import { assert, carFromBytes, emptyCar, CidSet, parseRefCar } from '@simplepg/common'
 import { LRUCache } from 'lru-cache'
 import { PeerDiscovery } from './peerDiscovery.js'
+import { CapabilityStore } from '../capabilityStore.js'
 import { HistoryIndex } from './historyIndex.js'
 import { MfsStore } from './mfsStore.js'
+import { RemoteHeadSync } from './remoteHeadSync.js'
+import { RefIndex } from './refIndex.js'
 import { SubscriptionIndex } from './subscriptionIndex.js'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -17,6 +20,8 @@ export class IpfsService {
     maxStagedAge = 60 * 60,
     logger,
     namespace,
+    offchainValidator = null,
+    refSyncIntervalMs,
     disableProvide = false,
     disablePeerDiscovery = false
   }) { // Default 1 hour
@@ -35,6 +40,7 @@ export class IpfsService {
     this._resolverCache = new Map()
     this._resolverCountsCache = null
     this._lastRetryFailedPins = 0
+    this.refSyncIntervalMs = refSyncIntervalMs || 5 * 60 * 1000
     this.disableProvide = Boolean(disableProvide)
     this.mfs = new MfsStore({
       client: this.client,
@@ -57,6 +63,31 @@ export class IpfsService {
       mfs: this.mfs,
       logger: this.logger
     })
+    this.refIndex = new RefIndex({
+      client: this.client,
+      mfs: this.mfs,
+      logger: this.logger,
+      chainId: this.namespace,
+      verifyRecord: offchainValidator?.verifyRefRecord,
+    })
+    this.capabilityStore = new CapabilityStore({
+      logger: this.logger,
+      chainId: this.namespace,
+      mfs: this.mfs,
+      client: this.client,
+      publishRoot: this.refIndex.publishRoot.bind(this.refIndex),
+      verifyCapabilityRecord: offchainValidator?.verifyCapability,
+    })
+    this.remoteHeadSync = new RemoteHeadSync({
+      client: this.client,
+      peerDiscovery: this.peerDiscovery,
+      logger: this.logger,
+      refIndex: this.refIndex,
+      capabilityStore: this.capabilityStore,
+      subscriptionIndex: this.subscriptionIndex,
+      publishRoot: this.refIndex.publishRoot.bind(this.refIndex),
+      syncIntervalMs: this.refSyncIntervalMs,
+    })
   }
 
   #sanitizeKey(value) {
@@ -73,17 +104,7 @@ export class IpfsService {
     try {
       this.logger.info('Writing CAR file', { stageDomain, bufferSize: fileBuffer.length })
       
-      let rootCid
-      
-      // Create an AsyncIterable that yields CAR files as Uint8Arrays
-      const sources = (async function* () {
-        yield new Uint8Array(fileBuffer)
-      })()
-      
-      // Import with abort signal
-      for await (const result of this.client.dag.import(sources, { signal: abortController.signal })) {
-        rootCid = result.root.cid
-      }
+      const rootCid = await this.#importCarBytes(fileBuffer, abortController.signal)
 
       if (rootCid.code !== 0x70 && rootCid.code !== 0x55) {
         throw new Error('CAR root must be UnixFS (dag-pb or raw)')
@@ -147,10 +168,34 @@ export class IpfsService {
     }
   }
 
+  async startRefSync() {
+    if (this.refIndex) {
+      await this.refIndex.start()
+    }
+    if (this.capabilityStore) {
+      await this.capabilityStore.start()
+    }
+    await this.remoteHeadSync.start()
+  }
+
   async stopPeerDiscovery() {
     if (this.peerDiscovery) {
       await this.peerDiscovery.stop()
     }
+  }
+
+  async stopRefSync() {
+    this.remoteHeadSync.stop()
+    if (this.refIndex) {
+      await this.refIndex.stop()
+    }
+    if (this.capabilityStore) {
+      this.capabilityStore.stop()
+    }
+  }
+
+  async syncRefsFromPeers(discoveredPeers = null) {
+    return this.remoteHeadSync.sync(discoveredPeers)
   }
 
   async readCarLite(cid) {
@@ -188,6 +233,14 @@ export class IpfsService {
     return this.historyIndex.getHistory(domain)
   }
 
+  async putRefCar(fileBuffer, domain) {
+    const { envelopeCid, record } = await parseRefCar(fileBuffer)
+    const verifiedRecord = await this.refIndex.validateRecord(record, domain)
+    await this.#importCarBytes(fileBuffer)
+    const result = await this.refIndex.storeVerifiedRef(verifiedRecord, envelopeCid)
+    return result.record
+  }
+
   async ensureHistoryIndexes() {
     return this.historyIndex.ensureHistoryIndexes()
   }
@@ -210,6 +263,17 @@ export class IpfsService {
 
   async #readCar(cid) {
     return carFromBytes(Buffer.concat(await all(this.client.dag.export(cid))), { verify: false })
+  }
+
+  async #importCarBytes(fileBuffer, signal) {
+    let rootCid
+    const sources = (async function* () {
+      yield new Uint8Array(fileBuffer)
+    })()
+    for await (const result of this.client.dag.import(sources, signal ? { signal } : undefined)) {
+      rootCid = result.root.cid
+    }
+    return rootCid
   }
 
   async #collectChildCids(rootCid) {

@@ -2,12 +2,29 @@ import all from 'it-all'
 import * as u8a from 'uint8arrays'
 
 const DEFAULT_SPG_DATA_ROOT = '/spg-data'
+const DOMAIN_OCAPS_DIR_NAME = '_ocaps'
+
+export const encodeDomainPathSegment = (domain) => {
+  if (typeof domain !== 'string' || domain.trim().length === 0) {
+    throw new Error('Missing domain')
+  }
+
+  const normalized = domain.trim()
+  if (normalized.includes('/') || normalized === '.' || normalized === '..') {
+    throw new Error('Invalid domain')
+  }
+
+  return encodeURIComponent(normalized)
+}
+
+export const decodeDomainPathSegment = (domainSegment) => decodeURIComponent(domainSegment)
 
 export class MfsStore {
   #client
   #rootPinName
   #dataRoot
   #domainsDir
+  #refsDir
   #pinFailuresDir
   #rootEnsured
   #rootPinCid
@@ -19,6 +36,7 @@ export class MfsStore {
     const normalizedNamespace = String(namespace)
     this.#dataRoot = `${DEFAULT_SPG_DATA_ROOT}/${normalizedNamespace}`
     this.#domainsDir = `${this.#dataRoot}/domains`
+    this.#refsDir = `${this.#dataRoot}/refs`
     this.#pinFailuresDir = `${this.#dataRoot}/pin-failures`
     this.#rootEnsured = false
     this.#rootPinCid = null
@@ -31,6 +49,10 @@ export class MfsStore {
 
   get domainsDir() {
     return this.#domainsDir
+  }
+
+  get refsDir() {
+    return this.#refsDir
   }
 
   get pinFailuresDir() {
@@ -55,6 +77,7 @@ export class MfsStore {
     }
     await this.ensureDir(this.#dataRoot)
     await this.ensureDir(this.#domainsDir)
+    await this.ensureDir(this.#refsDir)
     await this.ensureDir(this.#pinFailuresDir)
     this.#rootEnsured = true
   }
@@ -158,7 +181,15 @@ export class MfsStore {
   }
 
   async getDomainDir(domain) {
-    return `${this.#domainsDir}/${domain}`
+    return `${this.#domainsDir}/${encodeDomainPathSegment(domain)}`
+  }
+
+  async getDomainRefsDir(domain) {
+    return `${this.#refsDir}/${encodeDomainPathSegment(domain)}`
+  }
+
+  async getDomainOcapsDir(domain) {
+    return `${await this.getDomainRefsDir(domain)}/${DOMAIN_OCAPS_DIR_NAME}`
   }
 
   async getStagedDir(domain) {
@@ -192,7 +223,7 @@ export class MfsStore {
       return this.#domainsCache
     }
     const entries = await this.listDir(this.#domainsDir)
-    const domains = entries.map(entry => entry.name)
+    const domains = entries.map(entry => decodeDomainPathSegment(entry.name))
     this.#domainsCache = domains
     return domains
   }

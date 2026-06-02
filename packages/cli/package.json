@@ -8,6 +8,7 @@
     "simplepage": "./bin/simplepage.js"
   },
   "scripts": {
+    "cli": "node ./bin/simplepage.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint ."
   },
@@ -31,6 +32,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@simplepg/test-utils": "workspace:*",
     "jest": "^30.2.0"
   }
 }

@@ -41,6 +41,10 @@ export const useNavigation = () => {
 
   const goToFiles = (path = null) => navigate(createUrlWithParams(ROUTES.FILES, { path }));
 
+  const goToAgents = (params = {}) => navigate(createUrlWithParams(ROUTES.AGENTS, params));
+
+  const goToDrafts = () => navigate(ROUTES.DRAFTS);
+
   const goToSettings = () => navigate(ROUTES.SETTINGS);
 
   const goToHistory = () => navigate(ROUTES.HISTORY);
@@ -65,6 +69,8 @@ export const useNavigation = () => {
     goToSubscription,
     goToPages,
     goToFiles,
+    goToAgents,
+    goToDrafts,
     goToSettings,
     goToHistory,
     goToNotFound,

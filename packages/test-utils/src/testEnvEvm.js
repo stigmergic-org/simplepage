@@ -1,4 +1,4 @@
-import { spawn, execSync } from 'child_process';
+import { spawn, spawnSync, execSync } from 'child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CID } from 'multiformats/cid'
@@ -86,6 +86,11 @@ export class TestEnvironmentEvm {
         this.url = `http://127.0.0.1:${this.port}`;
 
         if (!externalAnvil) {
+            const result = spawnSync('anvil', ['--version'], { stdio: 'ignore' });
+            if (result.error || result.status !== 0) {
+                throw new Error('anvil is not available');
+            }
+
             // Start Anvil (using chainId from StdChains.sol)
             const anvilArgs = [
                 '--chain-id', this.chainId,

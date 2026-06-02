@@ -208,7 +208,7 @@ export async function resolveEnsOwner(viemClient, ensName, chainId) {
         });
         if (owner && owner !== '0x0000000000000000000000000000000000000000') {
             const nameWrapperAddress = contracts.ensNameWrapper[String(chainId)];
-            if (owner.toLowerCase() === nameWrapperAddress.toLowerCase()) {
+            if (nameWrapperAddress && owner.toLowerCase() === nameWrapperAddress.toLowerCase()) {
                 const nameWrapperAbi = contracts.abis.EnsNameWrapper;
                 const nameHashAsUint256 = BigInt(nameHash);
                 const actualOwner = await viemClient.readContract({

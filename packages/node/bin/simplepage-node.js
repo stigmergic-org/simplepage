@@ -42,7 +42,7 @@ const startServer = () => {
     ipfs: {
       api: opts.ipfsApi,
       disableProvide: opts.disableProvide,
-      disablePeerDiscovery: opts.disablePeerDiscovery
+      disablePeerDiscovery: opts.disablePeerDiscovery,
     },
     api: {
       port: parseInt(opts.apiPort),
