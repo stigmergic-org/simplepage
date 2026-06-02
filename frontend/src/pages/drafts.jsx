@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { cidToENSContentHash } from '@simplepg/common';
+import { cidToENSContentHash, isSimplePageSiteCid } from '@simplepg/common';
 import { namehash } from 'viem/ens';
 import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
@@ -48,6 +48,7 @@ const Drafts = () => {
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [publishTypes, setPublishTypes] = useState({});
   const [publishDraft, setPublishDraft] = useState(null);
   const [publishErrorMessage, setPublishErrorMessage] = useState(null);
   const { data: hash, status, error: transactionError, reset, writeContract } = useWriteContract();
@@ -110,6 +111,38 @@ const Drafts = () => {
       cancelled = true;
     };
   }, [targetDomain, repo]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPublishTypes = async () => {
+      if (!repo?.dservice || sortedDrafts.length === 0) {
+        setPublishTypes({});
+        return;
+      }
+
+      const entries = await Promise.all(sortedDrafts.map(async (draft) => {
+        const contentCid = draft.contentCid;
+        if (!contentCid) {
+          return null;
+        }
+        const isSimplePageSite = await isSimplePageSiteCid({
+          dservice: repo.dservice,
+          cid: contentCid,
+        });
+        return [contentCid, isSimplePageSite ? 'simplepage' : 'raw'];
+      }));
+
+      if (!cancelled) {
+        setPublishTypes(Object.fromEntries(entries.filter(Boolean)));
+      }
+    };
+
+    loadPublishTypes();
+    return () => {
+      cancelled = true;
+    };
+  }, [repo, sortedDrafts]);
 
   const handlePublish = async (draft) => {
     if (!draft?.contentCid) {
@@ -204,11 +237,15 @@ const Drafts = () => {
               <div className="space-y-4">
                 {sortedDrafts.map((revision) => {
                   const isPublishingThisRevision = publishDraft?.contentCid === revision.contentCid && (status === 'pending' || status === 'success');
+                  const publishType = publishTypes[revision.contentCid];
                   return (
                     <article key={`${revision.refId}-${revision.sequence}-${revision.contentCid}`} className="rounded-lg border border-base-300 bg-base-100 p-5 shadow-sm">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-xl font-semibold">{revision.refId}</h2>
+                          <span className="badge badge-outline">
+                            {publishType === 'simplepage' ? 'SimplePage' : publishType === 'raw' ? 'Raw' : 'Checking...'}
+                          </span>
                         </div>
                         <div className="mt-3 grid gap-2 text-sm text-base-content/75 sm:grid-cols-2">
                           <div><strong>Agent:</strong> {revision.agentName || 'Unknown'}</div>

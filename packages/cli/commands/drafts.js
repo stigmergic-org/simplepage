@@ -14,6 +14,7 @@ import {
   REF_SCHEMA_VERSION,
   didKeyFromEd25519PublicKey,
   encodeRefPayload,
+  isSimplePageSiteEns,
 } from '@simplepg/common'
 
 import { buildContentDag } from './utils/contentCar.js'
@@ -114,14 +115,13 @@ const createDservice = async (options) => {
 
 const buildAgentsUrl = ({
   domain,
+  appDomain,
   didKey,
   agentName,
   chainId,
-  fallback = false,
 }) => {
-  const agentsDomain = fallback ? FALLBACK_AGENTS_DOMAIN : domain
   const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
-  const url = new URL(`https://${agentsDomain}${gatewaySuffix}/spg-agents`)
+  const url = new URL(`https://${appDomain}${gatewaySuffix}/spg-agents`)
   url.searchParams.set('domain', domain)
   url.searchParams.set('key', didKey)
   if (agentName) {
@@ -130,12 +130,28 @@ const buildAgentsUrl = ({
   return url
 }
 
-const buildDraftsUrl = ({ domain, chainId }) => {
+const buildDraftsUrl = ({ domain, appDomain, chainId }) => {
   const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
-  const url = new URL(`https://${FALLBACK_AGENTS_DOMAIN}${gatewaySuffix}/spg-drafts`)
+  const url = new URL(`https://${appDomain}${gatewaySuffix}/spg-drafts`)
   url.searchParams.set('domain', domain)
   return url
 }
+
+const getAppDomain = async ({ client, dservice, domain, universalResolver, fallback = false }) => {
+  if (fallback) {
+    return FALLBACK_AGENTS_DOMAIN
+  }
+
+  const isSimplePageSite = await isSimplePageSiteEns({
+    viemClient: client,
+    dservice,
+    domain,
+    universalResolver,
+  })
+  return isSimplePageSite ? domain : FALLBACK_AGENTS_DOMAIN
+}
+
+const shouldUseFallback = (options) => Boolean(options.fallback)
 
 const openUrl = (url) => new Promise((resolve, reject) => {
   const command = process.platform === 'darwin'
@@ -218,7 +234,7 @@ const getExistingCapability = async ({
 })
 
 export async function auth(domain, options) {
-  const { dservice, chainId } = await createDservice(options)
+  const { client, dservice, chainId, universalResolver } = await createDservice(options)
   const { didKey, agentName, statePath } = resolveAgentIdentity({ agentName: options.name })
   const existingCapability = await getExistingCapability({
     dservice,
@@ -236,10 +252,10 @@ export async function auth(domain, options) {
 
   const agentsUrl = buildAgentsUrl({
     domain,
+    appDomain: await getAppDomain({ client, dservice, domain, universalResolver, fallback: shouldUseFallback(options) }),
     didKey,
     agentName,
     chainId,
-    fallback: options.fallback,
   })
 
   console.log(`Authorize agent ${agentName} for ${domain}:`)
@@ -247,37 +263,8 @@ export async function auth(domain, options) {
   console.log(`Identity: ${statePath}`)
 }
 
-const requireCapability = async ({
-  options,
-  dservice,
-  chainId,
-  domain,
-  didKey,
-  agentName,
-}) => {
-  const existingCapability = await getExistingCapability({
-    dservice,
-    domain,
-    didKey,
-    agentName,
-  })
-  if (existingCapability) {
-    return existingCapability
-  }
-
-  const agentsUrl = buildAgentsUrl({
-    domain,
-    didKey,
-    agentName,
-    chainId,
-    fallback: options.fallback,
-  })
-
-  throw new Error(`No capability found for ${agentName} on ${domain}. Run:\n  simplepage auth ${domain} --name ${agentName}\nThen open ${agentsUrl.toString()}`)
-}
-
 export async function pushRawRef(domain, refId, path, options) {
-  const { dservice, chainId } = await createDservice(options)
+  const { dservice } = await createDservice(options)
   const { privateKey, didKey, agentName, statePath } = resolveAgentIdentity({})
   const refs = await listRefs({ dservice, domain })
   const latestRef = refs.find(entry => entry.refId === refId && entry.latest)
@@ -286,15 +273,17 @@ export async function pushRawRef(domain, refId, path, options) {
   }
 
   const sequence = Number(latestRef?.sequence || 0) + 1
-  const { root, blocks } = await buildContentDag(path)
-  const capability = await requireCapability({
-    options,
+  const capability = await getExistingCapability({
     dservice,
-    chainId,
     domain,
     didKey,
     agentName,
   })
+  if (!capability) {
+    throw new Error(`No capability found for ${agentName} on ${domain}. Run:\n  simplepage auth ${domain}`)
+  }
+
+  const { root, blocks } = await buildContentDag(path)
 
   const payload = {
     kind: REF_PAYLOAD_KIND,
@@ -381,8 +370,9 @@ export async function listRefsCommand(domain, options) {
 }
 
 export async function reviewDrafts(domain, options) {
-  const chainId = Number(options.chainId ?? CHAIN_ID)
-  const draftsUrl = buildDraftsUrl({ domain, chainId }).toString()
+  const { client, dservice, chainId, universalResolver } = await createDservice(options)
+  const appDomain = await getAppDomain({ client, dservice, domain, universalResolver, fallback: shouldUseFallback(options) })
+  const draftsUrl = buildDraftsUrl({ domain, appDomain, chainId }).toString()
 
   console.log(draftsUrl)
 

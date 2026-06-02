@@ -7,9 +7,10 @@ import { fileURLToPath } from 'url'
 
 import { privateKeyToAccount } from 'viem/accounts'
 
-import { buildCapabilitySiweMessage } from '@simplepg/common'
+import { buildCapabilitySiweMessage, emptyCar } from '@simplepg/common'
 import { TestEnvironmentNode } from '@simplepg/test-utils'
 
+import { buildContentDag } from '../commands/utils/contentCar.js'
 import { runCliCommand } from './runCliCommand.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -136,6 +137,41 @@ const runCliWithAuth = async ({ args, cwd, ownerPrivateKey, dserviceUrl, chainId
   })
 }
 
+const writeSimplePageSite = (siteDir, body = 'SimplePage site') => {
+  fs.mkdirSync(siteDir, { recursive: true })
+  fs.writeFileSync(path.join(siteDir, 'index.md'), `# ${body}\n`)
+  fs.writeFileSync(path.join(siteDir, 'index.html'), `<html><body>${body}</body></html>`)
+  fs.writeFileSync(path.join(siteDir, '_template.html'), '<html><body>{{content}}</body></html>')
+  fs.writeFileSync(path.join(siteDir, '_redirects'), '')
+}
+
+const uploadSite = async ({ domain, siteDir, testEnv, resolver }) => {
+  const { root, blocks } = await buildContentDag(siteDir)
+  const car = emptyCar()
+  car.roots.push(root)
+  for (const block of blocks) {
+    car.blocks.put(block)
+  }
+
+  const formData = new FormData()
+  formData.append('file', new Blob([car.bytes], {
+    type: 'application/vnd.ipld.car',
+  }), 'site.car')
+
+  const response = await fetch(`${testEnv.dserviceUrl}/page?domain=${encodeURIComponent(domain)}`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Site upload failed: ${await response.text()}`)
+  }
+
+  const { cid } = await response.json()
+  testEnv.evm.setContenthash(resolver, domain, cid)
+  return cid
+}
+
 describe('simplepage drafts CLI', () => {
   let testEnv
   let addresses
@@ -168,7 +204,7 @@ describe('simplepage drafts CLI', () => {
     }
   })
 
-  it('creates signed draft revisions and lists them', async () => {
+  it('creates raw signed draft revisions and lists them', async () => {
     const ensName = 'draft-ref.eth'
     const agentName = 'integration-agent'
     testEnv.evm.mintPage(ensName, YEAR_SECONDS, '0x0000000000000000000000000000000000000001')
@@ -188,7 +224,7 @@ describe('simplepage drafts CLI', () => {
     expect(firstAuth.stderr).toBe('')
     expect(firstAuth.stdout).toMatch(/Authorize agent integration-agent for draft-ref\.eth:/)
     const authorizationUrl = new URL(firstAuth.authorizationUrl)
-    expect(authorizationUrl.origin).toBe('https://draft-ref.eth.link')
+    expect(authorizationUrl.origin).toBe('https://new.simplepage.eth.link')
     expect(authorizationUrl.pathname).toBe('/spg-agents')
     expect(authorizationUrl.searchParams.has('chainId')).toBe(false)
     expect(authorizationUrl.searchParams.has('rpc')).toBe(false)
@@ -219,8 +255,8 @@ describe('simplepage drafts CLI', () => {
     expect(payload.refs[0].sequence).toBe(1)
     expect(payload.refs[0].agentName).toBe(agentName)
 
-    const pageResponse = await fetch(`${testEnv.dserviceUrl}/page?cid=${encodeURIComponent(payload.refs[0].contentCid)}`)
-    expect(pageResponse.ok).toBe(true)
+    const fileResponse = await fetch(`${testEnv.dserviceUrl}/file?cid=${encodeURIComponent(payload.refs[0].contentCid)}`)
+    expect(fileResponse.ok).toBe(true)
 
     await new Promise(resolve => setTimeout(resolve, 10))
     fs.writeFileSync(path.join(tempDir, 'index.html'), '<html><body>draft v2</body></html>')
@@ -265,5 +301,76 @@ describe('simplepage drafts CLI', () => {
     expect(listOutput.stdout).toMatch(/Drafts for draft-ref\.eth:/)
     expect(listOutput.stdout).toMatch(/draft v2 latest/)
     expect(listOutput.stdout).toMatch(/draft v1/)
+  })
+
+  it('uses the actual SimplePage site for draft auth and review URLs', async () => {
+    const ensName = 'draft-site.eth'
+    const agentName = 'site-agent'
+    testEnv.evm.mintPage(ensName, YEAR_SECONDS, '0x0000000000000000000000000000000000000001')
+    testEnv.evm.setResolver(addresses.universalResolver, ensName, addresses.resolver1)
+
+    writeSimplePageSite(tempDir, 'published site')
+    await uploadSite({
+      domain: ensName,
+      siteDir: tempDir,
+      testEnv,
+      resolver: addresses.resolver1,
+    })
+
+    const authOutput = await runCliWithAuth({
+      args: ['auth', ensName, '--name', agentName, ...flags],
+      cwd: tempDir,
+      ownerPrivateKey: testEnv.evm.secretKey,
+      dserviceUrl: testEnv.dserviceUrl,
+      chainId: testEnv.evm.chainId,
+    })
+
+    expect(authOutput.code).toBe(0)
+    expect(authOutput.stderr).toBe('')
+    const authorizationUrl = new URL(authOutput.authorizationUrl)
+    expect(authorizationUrl.origin).toBe(`https://${ensName}.link`)
+    expect(authorizationUrl.pathname).toBe('/spg-agents')
+
+    const reviewOutput = await runCliCommand([
+      'drafts',
+      'review',
+      ensName,
+      '--rpc', testEnv.evm.url,
+      '--chain-id', testEnv.evm.chainId,
+      '--universal-resolver', addresses.universalResolver,
+      '--dservice', testEnv.dserviceUrl,
+    ])
+
+    expect(reviewOutput.code).toBe(0)
+    expect(reviewOutput.stderr).toBe('')
+    expect(reviewOutput.stdout.trim()).toBe(`https://${ensName}.link/spg-drafts?domain=${ensName}`)
+
+    const fallbackReviewOutput = await runCliCommand([
+      'drafts',
+      'review',
+      ensName,
+      '--fallback',
+      '--rpc', testEnv.evm.url,
+      '--chain-id', testEnv.evm.chainId,
+      '--universal-resolver', addresses.universalResolver,
+      '--dservice', testEnv.dserviceUrl,
+    ])
+
+    expect(fallbackReviewOutput.code).toBe(0)
+    expect(fallbackReviewOutput.stderr).toBe('')
+    expect(fallbackReviewOutput.stdout.trim()).toBe(`https://new.simplepage.eth.link/spg-drafts?domain=${ensName}`)
+
+    const pushOutput = await runCliWithAuth({
+      args: ['drafts', 'push-raw', ensName, 'site-draft', tempDir, ...flags],
+      cwd: tempDir,
+      ownerPrivateKey: testEnv.evm.secretKey,
+      dserviceUrl: testEnv.dserviceUrl,
+      chainId: testEnv.evm.chainId,
+    })
+
+    expect(pushOutput.code).toBe(0)
+    expect(pushOutput.stderr).toBe('')
+    expect(pushOutput.stdout).toMatch(/Stored draft `site-draft` for draft-site\.eth\./)
+    expect(pushOutput.stdout).toMatch(/Version: 1/)
   })
 })

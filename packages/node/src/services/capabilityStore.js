@@ -3,7 +3,6 @@ import { decodeDomainPathSegment } from './ipfs/mfsStore.js'
 
 const DEFAULT_CAPABILITY_TTL_MS = 30 * 60 * 1000
 const DEFAULT_CAPABILITY_CLEANUP_INTERVAL_MS = 5 * 60 * 1000
-const DOMAIN_OCAPS_DIR_NAME = '_ocaps'
 
 const domainKey = (domain, key) => `${domain}::${key}`
 const encodeCapabilityPathSegment = (value) => encodeURIComponent(value)
@@ -18,7 +17,6 @@ export class CapabilityStore {
   #cleanupTimer
   #ttlMs
   #mfs
-  #client
   #publishRoot
   #verifyCapabilityFn
 
@@ -29,7 +27,6 @@ export class CapabilityStore {
     ttlMs = DEFAULT_CAPABILITY_TTL_MS,
     cleanupIntervalMs = DEFAULT_CAPABILITY_CLEANUP_INTERVAL_MS,
     mfs = null,
-    client = null,
     publishRoot = null,
     verifyCapabilityRecord = null,
   }) {
@@ -41,7 +38,6 @@ export class CapabilityStore {
     this.#cleanupTimer = null
     this.#ttlMs = ttlMs
     this.#mfs = mfs
-    this.#client = client
     this.#publishRoot = publishRoot
     this.#verifyCapabilityFn = verifyCapabilityRecord
   }

@@ -34,7 +34,7 @@ withGlobalOptions(
     .description('Authorize the cli for a specific ENS name')
     .argument('<ens-name>', 'ENS domain name')
     .option('--name <name>', 'Agent name to bind into the capability SIWE')
-    .option('--fallback', 'Use the new.simplepage.eth agents page instead of the ENS name page')
+    .option('--fallback', 'Use the fallback SimplePage app URL')
     .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
     .action(auth)
 );
@@ -50,7 +50,6 @@ withGlobalOptions(
     .argument('<ens-name>', 'ENS domain name')
     .argument('<draft-name>', 'Draft name')
     .argument('<path>', 'Path to directory or file')
-    .option('--fallback', 'Use the new.simplepage.eth agents page in missing-capability instructions')
     .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
     .action(pushRawRef)
 )
@@ -69,7 +68,9 @@ withGlobalOptions(
     .command('review')
     .description('Print the draft review page URL for an ENS name')
     .argument('<ens-name>', 'ENS domain name')
+    .option('--fallback', 'Use the fallback SimplePage app URL')
     .option('--open', 'Open the review page in the default browser')
+    .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
     .action(reviewDrafts)
 )
 
