@@ -209,6 +209,7 @@ describe('simplepage drafts CLI', () => {
     const agentName = 'integration-agent'
     testEnv.evm.mintPage(ensName, YEAR_SECONDS, '0x0000000000000000000000000000000000000001')
     testEnv.evm.setResolver(addresses.universalResolver, ensName, addresses.resolver1)
+    await testEnv.waitUntilBlockIsIndexed(testEnv.evm.getBlockNumber())
 
     fs.writeFileSync(path.join(tempDir, 'index.html'), '<html><body>draft v1</body></html>')
 
@@ -245,7 +246,7 @@ describe('simplepage drafts CLI', () => {
     expect(firstPush.stdout).toMatch(/Agent: integration-agent \(did:key:/)
     expect(firstPush.stdout).toMatch(/CID: ipfs:\/\//)
     expect(firstPush.stdout).toMatch(/Version: 1/)
-    expect(fs.existsSync(path.join(tempDir, '.simplepage', 'refs-agent.json'))).toBe(true)
+    expect(fs.existsSync(path.join(tempDir, '.simplepage', 'identity.json'))).toBe(true)
 
     let response = await fetch(`${testEnv.dserviceUrl}/refs/${encodeURIComponent(ensName)}`)
     expect(response.ok).toBe(true)
@@ -308,6 +309,7 @@ describe('simplepage drafts CLI', () => {
     const agentName = 'site-agent'
     testEnv.evm.mintPage(ensName, YEAR_SECONDS, '0x0000000000000000000000000000000000000001')
     testEnv.evm.setResolver(addresses.universalResolver, ensName, addresses.resolver1)
+    await testEnv.waitUntilBlockIsIndexed(testEnv.evm.getBlockNumber())
 
     writeSimplePageSite(tempDir, 'published site')
     await uploadSite({

@@ -24,8 +24,10 @@
   "dependencies": {
     "@helia/unixfs": "^5.0.3",
     "@simplepg/common": "workspace:*",
+    "@simplepg/repo": "workspace:*",
     "commander": "^14.0.1",
     "it-all": "^3.0.9",
+    "jsdom": "^26.1.0",
     "viem": "^2.46.1"
   },
   "publishConfig": {

@@ -5,6 +5,7 @@ import path from 'node:path'
 import { tmpdir } from 'node:os'
 
 import { encodeAbiParameters } from 'viem'
+import { namehash } from 'viem/ens'
 
 import {
   cidToENSContentHash,
@@ -23,6 +24,7 @@ jest.setTimeout(30000)
 
 const UNIVERSAL_RESOLVER = '0x1111111111111111111111111111111111111111'
 const RESOLVER_ADDRESS = '0x2222222222222222222222222222222222222222'
+const TEMPLATE_DOMAIN = 'new.simplepage.eth'
 
 const makeTempDir = () => nodeFs.mkdtempSync(path.join(tmpdir(), 'simplepage-repo-cli-'))
 const realPath = (targetPath) => nodeFs.realpathSync.native ? nodeFs.realpathSync.native(targetPath) : nodeFs.realpathSync(targetPath)
@@ -81,7 +83,8 @@ const createRpcServer = (getCurrentCid) => http.createServer((req, res) => {
         return { jsonrpc: '2.0', id: entry.id, result: '0x' }
       }
 
-      const currentCid = getCurrentCid()
+      const callData = entry.params?.[0]?.data || ''
+      const currentCid = getCurrentCid(callData)
       const encodedContenthash = cidToENSContentHash(currentCid)
       const contenthashResult = encodeAbiParameters([{ type: 'bytes' }], [encodedContenthash])
       const outerResult = encodeAbiParameters([
@@ -101,29 +104,60 @@ const createRpcServer = (getCurrentCid) => http.createServer((req, res) => {
   })
 })
 
-const createDserviceServer = (carsByCid) => http.createServer((req, res) => {
-  const url = new URL(req.url, 'http://127.0.0.1')
-  if (url.pathname !== '/page') {
+const createDserviceServer = (carsByCid, getRefsForDomain = () => []) => {
+  const blocksByCid = new Map()
+  for (const carBytes of carsByCid.values()) {
+    const car = carFromBytes(carBytes)
+    for (const block of car.blocks) {
+      blocksByCid.set(block.cid.toString(), block.payload)
+    }
+  }
+
+  return http.createServer((req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1')
+    if (url.pathname === '/page') {
+      const cid = url.searchParams.get('cid')
+      if (!cid || !carsByCid.has(cid)) {
+        res.statusCode = 404
+        res.end('missing cid')
+        return
+      }
+
+      res.setHeader('Content-Type', 'application/vnd.ipld.car')
+      res.end(Buffer.from(carsByCid.get(cid)))
+      return
+    }
+
+    if (url.pathname === '/file') {
+      const cid = url.searchParams.get('cid')
+      if (!cid || !blocksByCid.has(cid)) {
+        res.statusCode = 404
+        res.end('missing cid')
+        return
+      }
+
+      res.setHeader('Content-Type', 'application/vnd.ipld.raw')
+      res.end(Buffer.from(blocksByCid.get(cid)))
+      return
+    }
+
+    if (url.pathname.startsWith('/refs/')) {
+      const domain = decodeURIComponent(url.pathname.slice('/refs/'.length))
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ refs: getRefsForDomain(domain) }))
+      return
+    }
+
     res.statusCode = 404
     res.end('not found')
-    return
-  }
-
-  const cid = url.searchParams.get('cid')
-  if (!cid || !carsByCid.has(cid)) {
-    res.statusCode = 404
-    res.end('missing cid')
-    return
-  }
-
-  res.setHeader('Content-Type', 'application/vnd.ipld.car')
-  res.end(Buffer.from(carsByCid.get(cid)))
-})
+  })
+}
 
 describe('simplepage repo CLI command behavior', () => {
   let domain
   let versionA
   let versionB
+  let templateVersion
   let tempDir
   let currentCid
   let rpcServer
@@ -132,6 +166,7 @@ describe('simplepage repo CLI command behavior', () => {
   let dserviceUrl
   let repoFlags
   let statusFlags
+  let refsByDomain
 
   beforeAll(async () => {
     domain = 'repo-test.eth'
@@ -150,13 +185,24 @@ describe('simplepage repo CLI command behavior', () => {
       'docs/api/index.md': '# API v2\n'
     })
 
-    currentCid = versionA.cid
+    templateVersion = await createSiteVersion({
+      'index.html': buildIndexHtml(TEMPLATE_DOMAIN, 'template'),
+      'index.md': '# Template home\n',
+      '_template.html': '<html><body><main id="content-container"></main></body></html>',
+      '_redirects': ''
+    })
 
-    rpcServer = createRpcServer(() => currentCid)
+    currentCid = versionA.cid
+    refsByDomain = new Map()
+
+    rpcServer = createRpcServer((callData) => (
+      callData.includes(namehash(TEMPLATE_DOMAIN).slice(2)) ? templateVersion.cid : currentCid
+    ))
     dserviceServer = createDserviceServer(new Map([
       [versionA.cid.toString(), versionA.carBytes],
       [versionB.cid.toString(), versionB.carBytes],
-    ]))
+      [templateVersion.cid.toString(), templateVersion.carBytes],
+    ]), (domain) => refsByDomain.get(domain) || [])
 
     await Promise.all([
       listen(rpcServer),
@@ -186,6 +232,7 @@ describe('simplepage repo CLI command behavior', () => {
   beforeEach(() => {
     tempDir = makeTempDir()
     currentCid = versionA.cid
+    refsByDomain.clear()
   })
 
   afterEach(() => {
@@ -206,10 +253,42 @@ describe('simplepage repo CLI command behavior', () => {
     expect(nodeFs.readFileSync(path.join(repoDir, 'about', 'index.md'), 'utf8')).toBe('# About v1\n')
     expect(nodeFs.readFileSync(path.join(repoDir, 'docs', 'guides', 'index.md'), 'utf8')).toBe('# Guide v1\n')
 
-    const carBytes = nodeFs.readFileSync(path.join(repoDir, '.simplepage.car'))
+    const carBytes = nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'blocks.car'))
     const car = carFromBytes(carBytes)
     expect(car.roots).toHaveLength(1)
     expect(car.roots[0].toString()).toBe(versionA.cid.toString())
+  })
+
+  it('repo new creates a target repo from the SimplePage template', async () => {
+    const newDomain = 'new-repo.eth'
+    const output = await runCliCommand(['repo', 'new', newDomain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, newDomain)
+    const realRepoDir = realPath(repoDir)
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toMatch(`Created ${newDomain} in ${realRepoDir}`)
+    expect(output.stdout).toMatch(`Based on ${TEMPLATE_DOMAIN} at ${templateVersion.cid.toString()}`)
+    expect(nodeFs.readFileSync(path.join(repoDir, 'index.md'), 'utf8')).toBe('# Template home\n')
+
+    const state = JSON.parse(nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'state.json'), 'utf8'))
+    expect(state.domain).toBe(newDomain)
+    expect(state.sourceDomain).toBe(TEMPLATE_DOMAIN)
+    expect(state.trackedRootCid).toBe(templateVersion.cid.toString())
+
+    const car = carFromBytes(nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'blocks.car')))
+    expect(car.roots).toHaveLength(1)
+    expect(car.roots[0].toString()).toBe(templateVersion.cid.toString())
+  })
+
+  it('repo new refuses to create a repo for an existing SimplePage deployment', async () => {
+    currentCid = templateVersion.cid
+
+    const output = await runCliCommand(['repo', 'new', 'existing-site.eth', ...repoFlags], { cwd: tempDir })
+
+    expect(output.code).toBe(1)
+    expect(output.stderr).toMatch(/already a SimplePage deployment/)
+    expect(nodeFs.existsSync(path.join(tempDir, 'existing-site.eth'))).toBe(false)
   })
 
   it('repo diff shows modified, added, and deleted markdown files', async () => {
@@ -256,6 +335,40 @@ describe('simplepage repo CLI command behavior', () => {
     expect(nodeFs.readFileSync(path.join(repoDir, 'docs', 'guides', 'index.md'), 'utf8')).toBe('# Guide v1\n')
   })
 
+  it('repo reset --hard restores the whole working tree and clears active draft state', async () => {
+    await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, domain)
+    const statePath = path.join(repoDir, '.simplepage', 'state.json')
+    const state = JSON.parse(nodeFs.readFileSync(statePath, 'utf8'))
+
+    nodeFs.writeFileSync(path.join(repoDir, 'about', 'index.md'), '# About local\n')
+    nodeFs.mkdirSync(path.join(repoDir, 'notes'), { recursive: true })
+    nodeFs.writeFileSync(path.join(repoDir, 'notes', 'index.md'), '# Notes\n')
+    nodeFs.rmSync(path.join(repoDir, 'docs', 'guides', 'index.md'))
+    nodeFs.writeFileSync(statePath, `${JSON.stringify({
+      ...state,
+      activeDraft: 'draft',
+      drafts: {
+        draft: {
+          refId: 'draft',
+          sequence: 1,
+          contentCid: versionB.cid.toString(),
+          baseRootCid: versionA.cid.toString(),
+        }
+      }
+    }, null, 2)}\n`)
+
+    const output = await runCliCommand(['repo', 'reset', '--hard'], { cwd: repoDir })
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toContain(`Reset working tree to tracked root (${versionA.cid.toString()}).`)
+    expect(nodeFs.readFileSync(path.join(repoDir, 'about', 'index.md'), 'utf8')).toBe('# About v1\n')
+    expect(nodeFs.existsSync(path.join(repoDir, 'notes', 'index.md'))).toBe(false)
+    expect(nodeFs.readFileSync(path.join(repoDir, 'docs', 'guides', 'index.md'), 'utf8')).toBe('# Guide v1\n')
+    expect(JSON.parse(nodeFs.readFileSync(statePath, 'utf8')).activeDraft).toBe(null)
+  })
+
   it('repo status reports both upstream and local changes', async () => {
     await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
     const repoDir = path.join(tempDir, domain)
@@ -273,6 +386,57 @@ describe('simplepage repo CLI command behavior', () => {
     expect(output.stdout).toMatch(/Upstream changes: available/)
     expect(output.stdout).toMatch(/Local markdown changes:/)
     expect(output.stdout).toMatch(/M about\/index\.md/)
+  })
+
+  it('repo status separates active draft changes from new working tree changes', async () => {
+    await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, domain)
+    const statePath = path.join(repoDir, '.simplepage', 'state.json')
+    const blocksPath = path.join(repoDir, '.simplepage', 'blocks.car')
+    const state = JSON.parse(nodeFs.readFileSync(statePath, 'utf8'))
+    const mergedCar = emptyCar()
+    const seen = new Set()
+    for (const carBytes of [versionA.carBytes, versionB.carBytes]) {
+      const car = carFromBytes(carBytes)
+      for (const block of car.blocks) {
+        const cid = block.cid.toString()
+        if (seen.has(cid)) continue
+        seen.add(cid)
+        mergedCar.blocks.put(block)
+      }
+    }
+    mergedCar.roots.push(versionB.cid)
+    nodeFs.writeFileSync(blocksPath, mergedCar.bytes)
+    nodeFs.writeFileSync(statePath, `${JSON.stringify({
+      ...state,
+      activeDraft: 'draft',
+      drafts: {
+        draft: {
+          refId: 'draft',
+          sequence: 1,
+          contentCid: versionB.cid.toString(),
+          baseRootCid: versionA.cid.toString(),
+        }
+      }
+    }, null, 2)}\n`)
+
+    nodeFs.writeFileSync(path.join(repoDir, 'index.md'), '# Home v2\n')
+    nodeFs.writeFileSync(path.join(repoDir, 'about', 'index.md'), '# About upstream v2\n')
+    nodeFs.rmSync(path.join(repoDir, 'docs', 'guides', 'index.md'))
+    nodeFs.mkdirSync(path.join(repoDir, 'docs', 'api'), { recursive: true })
+    nodeFs.writeFileSync(path.join(repoDir, 'docs', 'api', 'index.md'), '# API v2\n')
+    nodeFs.mkdirSync(path.join(repoDir, 'notes'), { recursive: true })
+    nodeFs.writeFileSync(path.join(repoDir, 'notes', 'index.md'), '# Notes\n')
+
+    const output = await runCliCommand(['repo', 'status', ...statusFlags], { cwd: repoDir })
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toMatch(`Active draft: draft v1 ${versionB.cid.toString()}`)
+    expect(output.stdout).toMatch(/Changes pushed as draft:/)
+    expect(output.stdout).toMatch(/A docs\/api\/index\.md/)
+    expect(output.stdout).toMatch(/Changes not pushed as draft:/)
+    expect(output.stdout).toMatch(/A notes\/index\.md/)
   })
 
   it('repo status stays usable when upstream cannot be reached', async () => {
@@ -296,6 +460,37 @@ describe('simplepage repo CLI command behavior', () => {
     expect(output.stdout).toMatch(/M about\/index\.md/)
   })
 
+  it('repo checkout applies the latest draft and records active draft state', async () => {
+    await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, domain)
+    refsByDomain.set(domain, [{
+      refId: 'draft',
+      sequence: 1,
+      contentCid: versionB.cid.toString(),
+      latest: true,
+      agentName: 'test-agent',
+      didKey: 'did:key:test',
+    }])
+
+    const output = await runCliCommand(['repo', 'checkout', 'draft', ...repoFlags], { cwd: repoDir })
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toMatch(`Checked out draft draft v1 (${versionB.cid.toString()}).`)
+    expect(nodeFs.readFileSync(path.join(repoDir, 'index.md'), 'utf8')).toBe('# Home v2\n')
+    expect(nodeFs.readFileSync(path.join(repoDir, 'about', 'index.md'), 'utf8')).toBe('# About upstream v2\n')
+    expect(nodeFs.readFileSync(path.join(repoDir, 'docs', 'api', 'index.md'), 'utf8')).toBe('# API v2\n')
+    expect(nodeFs.existsSync(path.join(repoDir, 'docs', 'guides', 'index.md'))).toBe(false)
+
+    const state = JSON.parse(nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'state.json'), 'utf8'))
+    expect(state.activeDraft).toBe('draft')
+    expect(state.drafts.draft.contentCid).toBe(versionB.cid.toString())
+
+    const car = carFromBytes(nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'blocks.car')))
+    expect(car.roots).toHaveLength(1)
+    expect(car.roots[0].toString()).toBe(versionB.cid.toString())
+  })
+
   it('repo pull applies upstream changes, preserves conflicts, and keeps old blocks in the CAR file', async () => {
     await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
     const repoDir = path.join(tempDir, domain)
@@ -317,7 +512,7 @@ describe('simplepage repo CLI command behavior', () => {
     expect(nodeFs.readFileSync(path.join(repoDir, 'docs', 'api', 'index.md'), 'utf8')).toBe('# API v2\n')
     expect(nodeFs.existsSync(path.join(repoDir, 'docs', 'guides', 'index.md'))).toBe(false)
 
-    const carBytes = nodeFs.readFileSync(path.join(repoDir, '.simplepage.car'))
+    const carBytes = nodeFs.readFileSync(path.join(repoDir, '.simplepage', 'blocks.car'))
     const car = carFromBytes(carBytes)
     expect(car.roots).toHaveLength(1)
     expect(car.roots[0].toString()).toBe(versionB.cid.toString())

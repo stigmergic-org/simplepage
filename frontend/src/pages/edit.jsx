@@ -1,60 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Renderer } from 'marked';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
+import { renderMarkdownBody } from '@simplepg/repo';
 import { useRepo } from '../hooks/useRepo';
 import Navbar from '../components/navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Notice from '../components/Notice';
 import { usePagePath } from '../hooks/usePagePath';
 import { useNavigation } from '../hooks/useNavigation';
-import { mediaType } from '../utils/file-tools';
 import { updateVirtualLinks } from '../utils/virtual-links';
 import { restorePromotedCssElements } from '../utils/promoted-css-elements';
-import { web3FormIframe, isWeb3Uri } from '../utils/web3Form';
 
 const SIDE_BY_SIDE_PREVIEW_STORAGE_KEY = 'simplepage-edit-side-by-side-preview';
-const FRONTMATTER_REGEX = /^---\s*\n[\s\S]*?\n---\s*\n?/;
 const parser = new DOMParser();
-
-const renderer = new Renderer();
-renderer.image = (href, title, text) => {
-  if (isWeb3Uri(href)) {
-    return web3FormIframe({ uri: href, text });
-  }
-  // Parse width and height from title if it contains '=WxH' format
-  let extraParams = '';
-  if (title) {
-    const sizeMatch = title.match(/=(\d+)x(\d+)/);
-    if (sizeMatch) {
-      let [width, height] = sizeMatch.slice(1);
-      const actualTitle = title.replace(/=\d+x\d+/, '').trim();
-      extraParams = ` title="${actualTitle}" width="${width}" height="${height}"`;
-    } else {
-      extraParams = ` title="${title}"`;
-      if (href.toLowerCase().endsWith('.pdf')) {
-        extraParams += ' width="100%" height="500px"';
-      }
-    }
-  } else if (href.toLowerCase().endsWith('.pdf')) {
-    extraParams = ' width="100%" height="500px"';
-  }
-  switch (mediaType(href)) {
-    case 'video':
-      return `<video src="${href}" controls${extraParams}>${text}</video>`;
-    case 'audio':
-      return `<audio src="${href}" controls${extraParams}>${text}</audio>`;
-    case 'application':
-      // Handle PDF files
-      if (href.toLowerCase().endsWith('.pdf')) {
-        return `<iframe src="${href}"${extraParams}">Your browser does not support PDF viewing. <a href="${href}" target="_blank">Click here to download the PDF</a></iframe>`;
-      }
-      // Fall through for other application types
-    case 'image':
-    default:
-      return `<img src="${href}" alt="${text}"${extraParams} />`;
-  }
-};
 
 // Define a stateless overlay mode for frontmatter
 const frontmatterOverlay = {
@@ -93,15 +51,8 @@ const frontmatterOverlay = {
   }
 };
 
-const renderMarkdown = (markdownEngine, markdownContent) => {
-  return markdownEngine
-    .markdown(markdownContent.replace(FRONTMATTER_REGEX, ''))
-    .replace('<head></head><body>', '')
-    .replace('</body>', '');
-};
-
-const renderPreviewMarkdown = (markdownEngine, markdownContent) => {
-  const renderedHtml = renderMarkdown(markdownEngine, markdownContent);
+const renderPreviewMarkdown = (markdownContent) => {
+  const renderedHtml = renderMarkdownBody(markdownContent);
   const parsedContent = parser.parseFromString(renderedHtml, 'text/html');
 
   restorePromotedCssElements(parsedContent);
@@ -258,11 +209,8 @@ const Edit = () => {
         mode: frontmatterOverlay,
         combine: true
       },
-      renderingConfig: {
-        markedOptions: { renderer }
-      },
       previewRender: function (plainText) {
-        return renderPreviewMarkdown(this.parent, plainText);
+        return renderPreviewMarkdown(plainText);
       },
     });
 
@@ -298,7 +246,7 @@ const Edit = () => {
 
     editor.codemirror.on("change", () => {
       const markdownContent = editor.value();
-      const renderedHTML = renderMarkdown(editor, markdownContent);
+      const renderedHTML = renderMarkdownBody(markdownContent);
       repo.setPageEdit(path, markdownContent, renderedHTML).then(() => {
         repo.getMetadata(path).then(({ title }) => {
           document.title = title

@@ -2,7 +2,7 @@
 
 import { program, Option } from 'commander';
 import { info } from '../commands/info.js';
-import { cloneRepo, diffRepo, resetRepo, statusRepo, pullRepo } from '../commands/repo.js';
+import { checkoutRepoDraft, cloneRepo, diffRepo, newRepo, pullRepo, pushRepoDraft, resetRepo, statusRepo } from '../commands/repo.js';
 import { auth, listRefsCommand, pushRawRef, reviewDrafts } from '../commands/drafts.js';
 import packageJson from '../package.json' with { type: 'json' }
 
@@ -87,6 +87,15 @@ withGlobalOptions(
     .action(cloneRepo)
 )
 
+withGlobalOptions(
+  repoCommand
+    .command('new')
+    .description('Create a new markdown repo from the SimplePage template')
+    .argument('<ens-name>', 'ENS domain name')
+    .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
+    .action(newRepo)
+)
+
 repoCommand
   .command('diff')
   .description('Show local markdown changes')
@@ -96,6 +105,7 @@ repoCommand
   .command('reset')
   .description('Reset markdown files to the tracked root')
   .argument('[files...]', 'Markdown file paths to reset')
+  .option('--hard', 'Reset the whole working tree to the tracked root and clear active draft state')
   .action(resetRepo)
 
 withGlobalOptions(
@@ -111,6 +121,24 @@ withGlobalOptions(
     .description('Fetch and apply upstream markdown changes')
     .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
     .action(pullRepo)
+)
+
+withGlobalOptions(
+  repoCommand
+    .command('push-draft')
+    .description('Push local markdown changes as a signed draft')
+    .argument('<draft-name>', 'Draft name')
+    .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
+    .action(pushRepoDraft)
+)
+
+withGlobalOptions(
+  repoCommand
+    .command('checkout')
+    .description('Check out the latest revision of a draft')
+    .argument('<draft-name>', 'Draft name')
+    .option('-d, --dservice <url>', 'SimplePage DService URL (optional)')
+    .action(checkoutRepoDraft)
 )
 
 program.parse(); 

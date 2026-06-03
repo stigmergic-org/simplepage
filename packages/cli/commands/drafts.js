@@ -25,7 +25,7 @@ const CHAIN_ID = 1
 const DEFAULT_RPC = 'https://ethereum-rpc.publicnode.com'
 const ED25519_SPKI_PREFIX_LENGTH = 12
 const AGENT_STATE_DIR = '.simplepage'
-const AGENT_STATE_FILE = 'refs-agent.json'
+const AGENT_STATE_FILE = 'identity.json'
 const AGENT_ADJECTIVES = ['amber', 'brisk', 'clear', 'copper', 'ember', 'gentle', 'glacial', 'golden', 'granite', 'harbor', 'indigo', 'jade', 'lunar', 'moss', 'north', 'quiet', 'river', 'silver', 'solar', 'wild']
 const AGENT_TRAITS = ['bright', 'calm', 'clever', 'curious', 'daring', 'eager', 'honest', 'kind', 'nimble', 'patient', 'proud', 'quick', 'ready', 'steady', 'tidy', 'warm']
 const AGENT_ANIMALS = ['badger', 'falcon', 'fox', 'gecko', 'heron', 'ibis', 'koala', 'lemur', 'lynx', 'marten', 'narwhal', 'otter', 'owl', 'panda', 'raven', 'seal', 'stoat', 'swift', 'yak', 'wren']
@@ -93,7 +93,7 @@ const resolveAgentIdentity = ({ cwd = process.cwd(), agentName: agentNameOverrid
   }
 }
 
-const createDservice = async (options) => {
+export const createDservice = async (options) => {
   const chainId = Number(options.chainId ?? CHAIN_ID)
   const rpcUrl = options.rpc || DEFAULT_RPC
   const dserviceUrl = options.dservice
@@ -189,7 +189,7 @@ const findMatchingCapability = ({ capabilities, didKey, agentName }) => capabili
   capability.didKey === didKey && normalizeAgentName(capability.agentName) === normalizeAgentName(agentName)
 )) || null
 
-const listRefs = async ({ dservice, domain }) => {
+export const listRefs = async ({ dservice, domain }) => {
   const response = await dservice.fetch(`/refs/${encodeURIComponent(domain)}`, {
     method: 'GET'
   })
@@ -265,6 +265,19 @@ export async function auth(domain, options) {
 
 export async function pushRawRef(domain, refId, path, options) {
   const { dservice } = await createDservice(options)
+  const { root, blocks } = await buildContentDag(path)
+  const { ref, didKey, agentName, statePath } = await storeSignedRef({
+    dservice,
+    domain,
+    refId,
+    contentCid: root,
+    blocks,
+  })
+
+  printStoredRef({ domain, ref, didKey, agentName, statePath })
+}
+
+export async function storeSignedRef({ dservice, domain, refId, contentCid, blocks }) {
   const { privateKey, didKey, agentName, statePath } = resolveAgentIdentity({})
   const refs = await listRefs({ dservice, domain })
   const latestRef = refs.find(entry => entry.refId === refId && entry.latest)
@@ -283,8 +296,6 @@ export async function pushRawRef(domain, refId, path, options) {
     throw new Error(`No capability found for ${agentName} on ${domain}. Run:\n  simplepage auth ${domain}`)
   }
 
-  const { root, blocks } = await buildContentDag(path)
-
   const payload = {
     kind: REF_PAYLOAD_KIND,
     schemaVersion: REF_SCHEMA_VERSION,
@@ -292,13 +303,13 @@ export async function pushRawRef(domain, refId, path, options) {
     refId,
     sequence,
     didKey,
-    contentCid: root,
+    contentCid,
     siweMessage: capability.siweMessage,
     siweSignature: capability.siweSignature,
   }
   const payloadSignature = `0x${signBytes(null, Buffer.from(encodeRefPayload({
     ...payload,
-    contentCid: root.toString(),
+    contentCid: contentCid.toString(),
   })), privateKey).toString('hex')}`
 
   const car = emptyCar()
@@ -336,6 +347,10 @@ export async function pushRawRef(domain, refId, path, options) {
 
   const { ref } = await response.json()
 
+  return { ref, didKey, agentName, statePath }
+}
+
+export function printStoredRef({ domain, ref, didKey, agentName, statePath }) {
   console.log(`\nStored draft \`${ref.refId}\` for ${domain}.`)
   console.log(`Agent: ${agentName} (${didKey})`)
   console.log(`Identity: ${statePath}`)

@@ -30,6 +30,7 @@
     "daisyui": "^5.0.54",
     "idb-keyval": "^6.2.2",
     "it-all": "^3.0.9",
+    "marked": "*",
     "multiformats": "^13.4.1",
     "uint8arrays": "^5.1.0",
     "viem": "^2.46.1"

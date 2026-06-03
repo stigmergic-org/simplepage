@@ -195,12 +195,18 @@ importers:
       '@simplepg/common':
         specifier: workspace:*
         version: link:../common
+      '@simplepg/repo':
+        specifier: workspace:*
+        version: link:../repo
       commander:
         specifier: ^14.0.1
         version: 14.0.1
       it-all:
         specifier: ^3.0.9
         version: 3.0.9
+      jsdom:
+        specifier: ^26.1.0
+        version: 26.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       viem:
         specifier: ^2.46.1
         version: 2.46.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.3.6)
@@ -373,6 +379,9 @@ importers:
       it-all:
         specifier: ^3.0.9
         version: 3.0.9
+      marked:
+        specifier: '*'
+        version: 4.3.0
       multiformats:
         specifier: ^13.4.1
         version: 13.4.1

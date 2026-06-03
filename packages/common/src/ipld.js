@@ -10,6 +10,8 @@ import { CID } from 'multiformats/cid'
 import { HybridBlockstore } from './blockstore.js'
 import { MemoryBlockstore } from 'blockstore-core/memory'
 
+export { CID }
+
 
 const carFactory = new CARFactory()
 carFactory.codecs.add(dagCbor)

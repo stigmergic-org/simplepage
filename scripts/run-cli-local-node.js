@@ -29,7 +29,7 @@ const commandSupportsDservice = (commandArgs) => {
     return true
   }
 
-  if (command === 'repo' && (subcommand === 'clone' || subcommand === 'pull')) {
+  if (command === 'repo' && (subcommand === 'clone' || subcommand === 'new' || subcommand === 'pull' || subcommand === 'push-draft' || subcommand === 'checkout')) {
     return true
   }
 
@@ -51,7 +51,7 @@ const commandSupportsChainId = (commandArgs) => {
     return true
   }
 
-  if (command === 'repo' && (subcommand === 'clone' || subcommand === 'status' || subcommand === 'pull')) {
+  if (command === 'repo' && (subcommand === 'clone' || subcommand === 'new' || subcommand === 'status' || subcommand === 'pull' || subcommand === 'push-draft' || subcommand === 'checkout')) {
     return true
   }
 

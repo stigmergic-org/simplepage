@@ -142,7 +142,7 @@ export class Repo {
     this.storage = storage;
     this.dservice = new DService(TEMPLATE_DOMAIN, options)
 
-    const { fs, blockstore } = browserUnixfs(storage)
+    const { fs, blockstore } = options.unixfs || browserUnixfs(storage)
     this.blockstore = blockstore;
 
     this.unixfs = fs;
@@ -160,7 +160,7 @@ export class Repo {
   }
 
   async close() {
-    await this.blockstore.close()
+    await this.blockstore.close?.()
   }
 
   /**
@@ -534,12 +534,14 @@ export class Repo {
 
 
   /**
-   * Stages the current edits for a commit.
+   * Builds the current edits into a staged commit CAR without uploading it.
    * @param {string} targetDomain - The domain of the target repository.
    * @param {boolean} wantUpdateTemplate - Whether to update the template.
-   * @returns {Promise<{ cid: string, prepTx: object }>} The CID of the new root and the preparation transaction.
+   * @param {object} options - Build options.
+   * @param {boolean} options.prepareTx - Whether to prepare the ENS contenthash transaction.
+   * @returns {Promise<{ cid: CID, car: object, prepTx?: object }>} The CID, CAR, and optional preparation transaction.
    */
-  async stage(targetDomain, wantUpdateTemplate = false) {
+  async buildStagedCommit(targetDomain, wantUpdateTemplate = false, { prepareTx = true } = {}) {
     assert(await this.blockstore.has(this.repoRoot.cid), 'Repo root not in blockstore')
     const edits = await this.getChanges()
     const filesChanged = await this.files.hasChanges()
@@ -668,7 +670,7 @@ export class Repo {
     const { navItems } = buildSidebarNavItems(navMetaItems)
     const sidenavJson = JSON.stringify({ items: navItems }, null, 2)
     rootPointer = await addFile(this.unixfs, rootPointer, 'sidenav.json', sidenavJson)
-    const flushPromise = this.blockstore.flush()
+    const flushPromise = this.blockstore.flush?.() || Promise.resolve()
 
     // create car file with staged changes
     // ignore previous repo root and all files starting with _, except _prev and _redirects
@@ -691,13 +693,23 @@ export class Repo {
     }
     car.roots.push(rootPointer)
 
-    // POST the CAR file to the API using FormData
-    const cid = await this.#postCar(car, targetDomain)
-    assert(cid.equals(rootPointer), `Mismatch between returned CID and expected CID: ${cid.toString()} !== ${rootPointer.toString()}`)
-
-    const prepTx = await this.#prepareCommitTx(cid, targetDomain)
+    const cid = rootPointer
+    const prepTx = prepareTx ? await this.#prepareCommitTx(cid, targetDomain) : undefined
     await flushPromise
-    return { cid, prepTx }
+    return { cid, car, prepTx }
+  }
+
+  /**
+   * Stages the current edits for a commit and uploads the CAR to the DService.
+   * @param {string} targetDomain - The domain of the target repository.
+   * @param {boolean} wantUpdateTemplate - Whether to update the template.
+   * @returns {Promise<{ cid: CID, prepTx: object }>} The CID of the new root and the preparation transaction.
+   */
+  async stage(targetDomain, wantUpdateTemplate = false) {
+    const staged = await this.buildStagedCommit(targetDomain, wantUpdateTemplate)
+    const cid = await this.#postCar(staged.car, targetDomain)
+    assert(cid.equals(staged.cid), `Mismatch between returned CID and expected CID: ${cid.toString()} !== ${staged.cid.toString()}`)
+    return { cid, prepTx: staged.prepTx }
   }
 
   async #postCar(car, targetDomain) {

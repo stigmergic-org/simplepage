@@ -12,7 +12,7 @@ import all from 'it-all'
 import { createPublicClient, createWalletClient, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
-import { resolveEnsDomain, carFromBytes, emptyUnixfs, cat } from '@simplepg/common'
+import { buildCapabilitySiweMessage, resolveEnsDomain, carFromBytes, emptyUnixfs, cat } from '@simplepg/common'
 
 import { TestEnvironmentNode } from '../../test-utils/src/testEnvNode.js'
 import { MockStorage } from '../../test-utils/src/mockStorage.js'
@@ -38,6 +38,7 @@ global.DOMParser = dom.window.DOMParser
 
 const TEMPLATE_FIXTURE_PATH = path.resolve(__dirname, '../../repo/test/__fixtures__/new.simplepage.eth')
 const DOMAIN = 'repo-test.eth'
+const NEW_DOMAIN = 'repo-new.eth'
 const YEAR_SECONDS = 365 * 24 * 60 * 60
 const TO_ADDRESS = '0x0000000000000000000000000000000000000001'
 
@@ -76,6 +77,53 @@ const loadFixtures = async (kuboApi, fixturePath) => {
 }
 
 const realPath = (targetPath) => nodeFs.realpathSync.native ? nodeFs.realpathSync.native(targetPath) : nodeFs.realpathSync(targetPath)
+
+const postCapabilityFromAuthUrl = async ({ authUrl, ownerPrivateKey, dserviceUrl, chainId }) => {
+  const agentsUrl = new URL(authUrl)
+  const domain = agentsUrl.searchParams.get('domain')
+  const didKey = agentsUrl.searchParams.get('key')
+  const agentName = agentsUrl.searchParams.get('agent')
+  const owner = privateKeyToAccount(ownerPrivateKey)
+  const issuedAt = new Date().toISOString()
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+  const siweMessage = buildCapabilitySiweMessage({
+    ownerAddress: owner.address,
+    didKey,
+    domain,
+    agentName: agentName || undefined,
+    chainId: Number(chainId),
+    nonce: `${Date.now()}`,
+    issuedAt,
+    expirationTime: expiresAt,
+  })
+  const siweSignature = await owner.signMessage({ message: siweMessage })
+
+  const response = await fetch(`${dserviceUrl}/capabilities/${encodeURIComponent(domain)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      key: didKey,
+      didKey,
+      agentName: agentName || undefined,
+      siweMessage,
+      siweSignature,
+    })
+  })
+  if (!response.ok) {
+    throw new Error(`Capability POST failed: ${await response.text()}`)
+  }
+}
+
+const authorizeCliAgent = async ({ domain, agentName, cwd, flags, ownerPrivateKey, dserviceUrl, chainId }) => {
+  const output = await runCliCommand(['auth', domain, '--name', agentName, ...flags], { cwd })
+  const authUrl = output.stdout
+    .split(/\s+/)
+    .find(token => (token.startsWith('http://') || token.startsWith('https://')) && token.includes('/spg-agents'))
+  if (output.code === 0 && authUrl) {
+    await postCapabilityFromAuthUrl({ authUrl, ownerPrivateKey, dserviceUrl, chainId })
+  }
+  return { ...output, authorizationUrl: authUrl }
+}
 
 describeIntegration('simplepage repo CLI integration', () => {
   let testEnv
@@ -271,6 +319,74 @@ describeIntegration('simplepage repo CLI integration', () => {
     }
   })
 
+  it('creates a new repo from the template and pushes a draft for the target ENS name', async () => {
+    const tempDir = await nodeFs.promises.mkdtemp(path.join(process.cwd(), 'tmp-repo-new-draft-'))
+    try {
+      testEnv.evm.mintPage(NEW_DOMAIN, YEAR_SECONDS, TO_ADDRESS)
+      testEnv.evm.setResolver(addresses.universalResolver, NEW_DOMAIN, addresses.resolver1)
+      await testEnv.waitUntilBlockIsIndexed(testEnv.evm.getBlockNumber())
+
+      const newOutput = await runCliCommand(['repo', 'new', NEW_DOMAIN, ...flags], { cwd: tempDir })
+      const repoDir = path.join(tempDir, NEW_DOMAIN)
+      const realRepoDir = realPath(repoDir)
+
+      expect(newOutput.code).toBe(0)
+      expect(newOutput.stderr).toBe('')
+      expect(newOutput.stdout).toMatch(`Created ${NEW_DOMAIN} in ${realRepoDir}`)
+      expect(newOutput.stdout).toMatch(/Based on new\.simplepage\.eth at /)
+      expect(await nodeFs.promises.readFile(path.join(repoDir, 'index.md'), 'utf8')).toMatch(/title: Blank Template/)
+      const initialState = JSON.parse(await nodeFs.promises.readFile(path.join(repoDir, '.simplepage', 'state.json'), 'utf8'))
+      expect(initialState.domain).toBe(NEW_DOMAIN)
+      expect(initialState.sourceDomain).toBe('new.simplepage.eth')
+
+      const authOutput = await authorizeCliAgent({
+        domain: NEW_DOMAIN,
+        agentName: 'repo-agent',
+        cwd: repoDir,
+        flags,
+        ownerPrivateKey: testEnv.evm.secretKey,
+        dserviceUrl: testEnv.dserviceUrl,
+        chainId: testEnv.evm.chainId,
+      })
+      expect(authOutput.code).toBe(0)
+      expect(authOutput.stderr).toBe('')
+      expect(authOutput.authorizationUrl).toBeTruthy()
+
+      await nodeFs.promises.writeFile(path.join(repoDir, 'index.md'), '# CLI draft\n')
+      const pushOutput = await runCliCommand(['repo', 'push-draft', 'draft', ...flags], { cwd: repoDir })
+
+      if (pushOutput.code !== 0) {
+        throw new Error(`repo push-draft failed\nstdout:\n${pushOutput.stdout}\nstderr:\n${pushOutput.stderr}`)
+      }
+      expect(pushOutput.code).toBe(0)
+      expect(pushOutput.stderr).toBe('')
+      expect(pushOutput.stdout).toMatch(/Stored draft `draft` for repo-new\.eth\./)
+      expect(pushOutput.stdout).toMatch(/Version: 1/)
+      const refsResponse = await fetch(`${testEnv.dserviceUrl}/refs/${encodeURIComponent(NEW_DOMAIN)}`)
+      expect(refsResponse.ok).toBe(true)
+      const { refs } = await refsResponse.json()
+      expect(refs).toHaveLength(1)
+      expect(refs[0].refId).toBe('draft')
+      expect(refs[0].contentCid).toBeTruthy()
+
+      const state = JSON.parse(await nodeFs.promises.readFile(path.join(repoDir, '.simplepage', 'state.json'), 'utf8'))
+      expect(state.activeDraft).toBe('draft')
+      expect(state.drafts.draft.contentCid).toBe(refs[0].contentCid)
+      const car = carFromBytes(await nodeFs.promises.readFile(path.join(repoDir, '.simplepage', 'blocks.car')))
+      expect(car.roots).toHaveLength(1)
+      expect(car.roots[0].toString()).toBe(refs[0].contentCid)
+
+      const { fs, blockstore } = emptyUnixfs()
+      for (const block of car.blocks) {
+        await blockstore.put(block.cid, block.payload)
+      }
+      await expect(cat(fs, car.roots[0], 'index.md')).resolves.toBe('# CLI draft\n')
+      await expect(cat(fs, car.roots[0], 'index.html')).resolves.toMatch(/<h1[^>]*>CLI draft<\/h1>/)
+    } finally {
+      await nodeFs.promises.rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
   it('shows local changes and detects when upstream has moved', async () => {
     const tempDir = await nodeFs.promises.mkdtemp(path.join(process.cwd(), 'tmp-repo-status-'))
     try {
@@ -316,7 +432,7 @@ describeIntegration('simplepage repo CLI integration', () => {
       expect(await nodeFs.promises.readFile(path.join(repoDir, 'about', 'index.md'), 'utf8')).toBe('# About local\n')
       expect(await nodeFs.promises.readFile(path.join(repoDir, 'docs', 'api', 'index.md'), 'utf8')).toBe('# API v2\n')
 
-      const carBytes = await nodeFs.promises.readFile(path.join(repoDir, '.simplepage.car'))
+      const carBytes = await nodeFs.promises.readFile(path.join(repoDir, '.simplepage', 'blocks.car'))
       const car = carFromBytes(carBytes)
       expect(car.roots).toHaveLength(1)
       expect(car.roots[0].toString()).toBe(versionB.cid.toString())
