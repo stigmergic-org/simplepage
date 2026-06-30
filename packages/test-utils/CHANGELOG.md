@@ -1,5 +1,15 @@
 # @simplepg/test-utils
 
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [d230576]
+- Updated dependencies [3d55d99]
+- Updated dependencies [aa8c1c3]
+  - @simplepg/common@1.3.0
+  - @simplepg/node@1.6.0
+
 ## 1.0.11
 
 ### Patch Changes

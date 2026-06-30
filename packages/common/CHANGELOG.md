@@ -1,5 +1,16 @@
 # @simplepg/common
 
+## 1.3.0
+
+### Minor Changes
+
+- d230576: Add off-chain draft/ref publishing with agent capabilities, including CLI draft commands, shared ref signing utilities, repo ref APIs, node ref/capability endpoints with peer sync, and frontend agents/drafts pages.
+
+### Patch Changes
+
+- 3d55d99: Add markdown repo draft workflows to the CLI, including new repo creation from the SimplePage template, draft push and checkout commands, draft-aware status and reset behavior, shared markdown rendering, and the new local repo state layout under `.simplepage/`.
+- aa8c1c3: Use SimplePage draft auth, review, and frontend flows from the published ENS site when available, keep an explicit fallback option for auth and review commands, and detect SimplePage sites from the root block via the file endpoint.
+
 ## 1.2.5
 
 ### Patch Changes

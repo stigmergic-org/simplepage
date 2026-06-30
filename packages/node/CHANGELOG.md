@@ -1,5 +1,18 @@
 # @simplepg/node
 
+## 1.6.0
+
+### Minor Changes
+
+- d230576: Add off-chain draft/ref publishing with agent capabilities, including CLI draft commands, shared ref signing utilities, repo ref APIs, node ref/capability endpoints with peer sync, and frontend agents/drafts pages.
+
+### Patch Changes
+
+- Updated dependencies [d230576]
+- Updated dependencies [3d55d99]
+- Updated dependencies [aa8c1c3]
+  - @simplepg/common@1.3.0
+
 ## 1.5.0
 
 ### Minor Changes
