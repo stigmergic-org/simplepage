@@ -20,12 +20,15 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60
 
 jest.setTimeout(60000)
 
+const getUrlParams = (url) => new URLSearchParams(url.search || url.hash.replace(/^#/, ''))
+
 const postCapability = async ({ agentsUrl, ownerPrivateKey, fallbackDserviceUrl, fallbackChainId }) => {
-  const domain = agentsUrl.searchParams.get('domain')
-  const didKey = agentsUrl.searchParams.get('key')
-  const agentName = agentsUrl.searchParams.get('agent')
-  const chainId = Number(agentsUrl.searchParams.get('chainId') || fallbackChainId || 1)
-  const dserviceUrl = agentsUrl.searchParams.get('dservice') || fallbackDserviceUrl
+  const params = getUrlParams(agentsUrl)
+  const domain = params.get('domain')
+  const didKey = params.get('key')
+  const agentName = params.get('agent')
+  const chainId = Number(params.get('chainId') || fallbackChainId || 1)
+  const dserviceUrl = params.get('dservice') || fallbackDserviceUrl
 
   const owner = privateKeyToAccount(ownerPrivateKey)
   const issuedAt = new Date().toISOString()
@@ -227,10 +230,14 @@ describe('simplepage drafts CLI', () => {
     const authorizationUrl = new URL(firstAuth.authorizationUrl)
     expect(authorizationUrl.origin).toBe('https://new.simplepage.eth.link')
     expect(authorizationUrl.pathname).toBe('/spg-agents')
-    expect(authorizationUrl.searchParams.has('chainId')).toBe(false)
-    expect(authorizationUrl.searchParams.has('rpc')).toBe(false)
-    expect(authorizationUrl.searchParams.has('dservice')).toBe(false)
-    expect(authorizationUrl.searchParams.has('universalResolver')).toBe(false)
+    expect(authorizationUrl.search).toBe('')
+    const authorizationParams = getUrlParams(authorizationUrl)
+    expect(authorizationParams.get('domain')).toBe(ensName)
+    expect(authorizationParams.get('agent')).toBe(agentName)
+    expect(authorizationParams.has('chainId')).toBe(false)
+    expect(authorizationParams.has('rpc')).toBe(false)
+    expect(authorizationParams.has('dservice')).toBe(false)
+    expect(authorizationParams.has('universalResolver')).toBe(false)
 
     const firstPush = await runCliWithAuth({
       args: ['drafts', 'push-raw', ensName, 'draft', tempDir, ...flags],
@@ -345,7 +352,7 @@ describe('simplepage drafts CLI', () => {
 
     expect(reviewOutput.code).toBe(0)
     expect(reviewOutput.stderr).toBe('')
-    expect(reviewOutput.stdout.trim()).toBe(`https://${ensName}.link/spg-drafts?domain=${ensName}`)
+    expect(reviewOutput.stdout.trim()).toBe(`https://${ensName}.link/spg-drafts#domain=${ensName}`)
 
     const fallbackReviewOutput = await runCliCommand([
       'drafts',
@@ -360,7 +367,7 @@ describe('simplepage drafts CLI', () => {
 
     expect(fallbackReviewOutput.code).toBe(0)
     expect(fallbackReviewOutput.stderr).toBe('')
-    expect(fallbackReviewOutput.stdout.trim()).toBe(`https://new.simplepage.eth.link/spg-drafts?domain=${ensName}`)
+    expect(fallbackReviewOutput.stdout.trim()).toBe(`https://new.simplepage.eth.link/spg-drafts#domain=${ensName}`)
 
     const pushOutput = await runCliWithAuth({
       args: ['drafts', 'push-raw', ensName, 'site-draft', tempDir, ...flags],

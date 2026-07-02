@@ -30,13 +30,15 @@ const trimString = (value, fallback = '') => {
   return value.trim();
 };
 
-const parseAgentsQuery = ({ locationSearch, currentDomain, currentChainId }) => {
-  const params = new URLSearchParams(locationSearch);
+const parseAgentsQuery = ({ locationSearch, locationHash, currentDomain, currentChainId }) => {
+  const searchParams = new URLSearchParams(locationSearch);
+  const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
+  const getParam = (key) => searchParams.get(key) ?? hashParams.get(key);
 
   const query = {
-    domain: trimString(params.get('domain'), currentDomain || ''),
-    didKey: trimString(params.get('key')),
-    agentName: trimString(params.get('agent')),
+    domain: trimString(getParam('domain'), currentDomain || ''),
+    didKey: trimString(getParam('key')),
+    agentName: trimString(getParam('agent')),
     chainId: Number(currentChainId ?? 1),
   };
 
@@ -76,9 +78,10 @@ const Agents = () => {
   const { repo } = useRepo();
   const query = useMemo(() => parseAgentsQuery({
     locationSearch: location.search,
+    locationHash: location.hash,
     currentDomain,
     currentChainId,
-  }), [location.search, currentDomain, currentChainId]);
+  }), [location.search, location.hash, currentDomain, currentChainId]);
   const { address, isConnected } = useAccount();
   const { signMessageAsync, isPending: isSigning } = useSignMessage();
   const [ownerAddress, setOwnerAddress] = useState(null);

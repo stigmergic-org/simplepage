@@ -535,7 +535,9 @@ function markdownPathToPagePath(filePath) {
 function buildDraftsUrl({ domain, chainId }) {
   const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
   const url = new URL(`https://${domain}${gatewaySuffix}/spg-drafts`)
-  url.searchParams.set('domain', domain)
+  const params = new URLSearchParams()
+  params.set('domain', domain)
+  url.hash = params.toString()
   return url.toString()
 }
 

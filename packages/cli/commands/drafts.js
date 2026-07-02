@@ -122,18 +122,22 @@ const buildAgentsUrl = ({
 }) => {
   const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
   const url = new URL(`https://${appDomain}${gatewaySuffix}/spg-agents`)
-  url.searchParams.set('domain', domain)
-  url.searchParams.set('key', didKey)
+  const params = new URLSearchParams()
+  params.set('domain', domain)
+  params.set('key', didKey)
   if (agentName) {
-    url.searchParams.set('agent', agentName)
+    params.set('agent', agentName)
   }
+  url.hash = params.toString()
   return url
 }
 
 const buildDraftsUrl = ({ domain, appDomain, chainId }) => {
   const gatewaySuffix = Number(chainId) === 11155111 ? '.sepoliaens.eth.link' : '.link'
   const url = new URL(`https://${appDomain}${gatewaySuffix}/spg-drafts`)
-  url.searchParams.set('domain', domain)
+  const params = new URLSearchParams()
+  params.set('domain', domain)
+  url.hash = params.toString()
   return url
 }
 

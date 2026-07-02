@@ -36,7 +36,7 @@ const formatTimestamp = (revision) => {
 
 const Drafts = () => {
   const domain = useDomain();
-  const queryDomain = useDomainQueryParam();
+  const queryDomain = useDomainQueryParam({ includeHash: true });
   const targetDomain = queryDomain || domain;
   const chainId = useChainId();
   const viemClient = usePublicClient();

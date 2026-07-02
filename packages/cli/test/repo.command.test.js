@@ -347,8 +347,9 @@ describe('simplepage repo CLI command behavior', () => {
 
     expect(output.code).toBe(0)
     expect(output.stderr).toBe('')
-    expect(output.stdout).toMatch(/\x1b\[[0-9;]+m-# About v1/)
-    expect(output.stdout).toMatch(/\x1b\[[0-9;]+m\+# About local/)
+    const ansiSequence = `${String.fromCharCode(27)}\\[[0-9;]+m`
+    expect(output.stdout).toMatch(new RegExp(`${ansiSequence}-# About v1`))
+    expect(output.stdout).toMatch(new RegExp(`${ansiSequence}\\+# About local`))
   })
 
   it('repo reset restores requested markdown files to the tracked root', async () => {

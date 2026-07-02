@@ -78,11 +78,14 @@ const loadFixtures = async (kuboApi, fixturePath) => {
 
 const realPath = (targetPath) => nodeFs.realpathSync.native ? nodeFs.realpathSync.native(targetPath) : nodeFs.realpathSync(targetPath)
 
+const getUrlParams = (url) => new URLSearchParams(url.search || url.hash.replace(/^#/, ''))
+
 const postCapabilityFromAuthUrl = async ({ authUrl, ownerPrivateKey, dserviceUrl, chainId }) => {
   const agentsUrl = new URL(authUrl)
-  const domain = agentsUrl.searchParams.get('domain')
-  const didKey = agentsUrl.searchParams.get('key')
-  const agentName = agentsUrl.searchParams.get('agent')
+  const params = getUrlParams(agentsUrl)
+  const domain = params.get('domain')
+  const didKey = params.get('key')
+  const agentName = params.get('agent')
   const owner = privateKeyToAccount(ownerPrivateKey)
   const issuedAt = new Date().toISOString()
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
