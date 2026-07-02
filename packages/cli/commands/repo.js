@@ -1,5 +1,6 @@
 import nodeFs from 'node:fs'
 import path from 'node:path'
+import { styleText } from 'node:util'
 
 import { JSDOM } from 'jsdom'
 import { createPublicClient, http } from 'viem'
@@ -101,6 +102,13 @@ const changeTypeLabel = (change) => {
   return 'M'
 }
 
+function colorDiffLine(line) {
+  if (line.startsWith('diff -- ')) return styleText(['bold', 'cyan'], line)
+  if (line.startsWith('--- ') || line.startsWith('-')) return styleText('red', line)
+  if (line.startsWith('+++ ') || line.startsWith('+')) return styleText('green', line)
+  return line
+}
+
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 function getChainId(options) {
@@ -172,25 +180,21 @@ function formatDiff(change) {
 
   if (change.before === null) {
     splitLines(change.after).forEach(line => lines.push(`+${line}`))
-    return lines.join('\n')
-  }
-
-  if (change.after === null) {
+  } else if (change.after === null) {
     splitLines(change.before).forEach(line => lines.push(`-${line}`))
-    return lines.join('\n')
+  } else {
+    buildLineDiff(change.before, change.after).forEach((operation) => {
+      if (operation.type === 'context') {
+        lines.push(` ${operation.line}`)
+      } else if (operation.type === 'delete') {
+        lines.push(`-${operation.line}`)
+      } else {
+        lines.push(`+${operation.line}`)
+      }
+    })
   }
 
-  buildLineDiff(change.before, change.after).forEach((operation) => {
-    if (operation.type === 'context') {
-      lines.push(` ${operation.line}`)
-    } else if (operation.type === 'delete') {
-      lines.push(`-${operation.line}`)
-    } else {
-      lines.push(`+${operation.line}`)
-    }
-  })
-
-  return lines.join('\n')
+  return lines.map(colorDiffLine).join('\n')
 }
 
 function collectErrorText(error, seen = new Set()) {
@@ -228,7 +232,7 @@ function toFriendlyUpstreamError(error) {
   return error
 }
 
-function normalizeMarkdownPathInput(value) {
+function normalizeMarkdownPathInput(value, action = 'reset') {
   let normalized = normalizeRelativePath(String(value || '').trim())
   normalized = normalized.replace(/^\.\//, '').replace(/^\/+/, '')
 
@@ -240,7 +244,7 @@ function normalizeMarkdownPathInput(value) {
     normalized = `${normalized}index.md`
   } else if (path.posix.basename(normalized) !== 'index.md') {
     if (path.posix.extname(normalized)) {
-      throw new Error(`Only markdown page paths can be reset: ${value}`)
+      throw new Error(`Only markdown page paths can be ${action}: ${value}`)
     }
     normalized = `${normalized}/index.md`
   }
@@ -255,7 +259,7 @@ function normalizeMarkdownPathInput(value) {
   }
 
   if (path.posix.basename(normalized) !== 'index.md') {
-    throw new Error(`Only markdown page paths can be reset: ${value}`)
+    throw new Error(`Only markdown page paths can be ${action}: ${value}`)
   }
 
   return normalized
@@ -655,13 +659,26 @@ async function newRepoInternal(domain, options) {
   console.log(`Fetched ${markdownMap.size} markdown file${markdownMap.size === 1 ? '' : 's'}`)
 }
 
-async function diffRepoInternal() {
+async function diffRepoInternal(fileInputs = []) {
   const trackedRepo = await loadTrackedRepo()
   const localMarkdownMap = await readLocalMarkdownMap(trackedRepo.repoRoot)
-  const changes = compareMarkdownMaps(trackedRepo.markdownMap, localMarkdownMap)
+  let changes = compareMarkdownMaps(trackedRepo.markdownMap, localMarkdownMap)
+
+  if (fileInputs.length > 0) {
+    const knownPaths = new Set([...trackedRepo.markdownMap.keys(), ...localMarkdownMap.keys()])
+    const changesByPath = new Map(changes.map(change => [change.path, change]))
+    const targetPaths = [...new Set(fileInputs.map(fileInput => normalizeMarkdownPathInput(fileInput, 'diffed')))]
+
+    const unknownPaths = targetPaths.filter(filePath => !knownPaths.has(filePath))
+    if (unknownPaths.length > 0) {
+      throw new Error(`No markdown page found for ${unknownPaths[0]}`)
+    }
+
+    changes = targetPaths.map(filePath => changesByPath.get(filePath)).filter(Boolean)
+  }
 
   if (changes.length === 0) {
-    console.log('No local markdown changes.')
+    console.log(fileInputs.length > 0 ? 'No local markdown changes for specified files.' : 'No local markdown changes.')
     return
   }
 
@@ -981,8 +998,8 @@ export async function newRepo(domain, options) {
   await runCommand(() => newRepoInternal(domain, options))
 }
 
-export async function diffRepo() {
-  await runCommand(() => diffRepoInternal())
+export async function diffRepo(files = []) {
+  await runCommand(() => diffRepoInternal(files))
 }
 
 export async function resetRepo(files, options) {

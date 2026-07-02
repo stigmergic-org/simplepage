@@ -12,7 +12,8 @@ export async function runCliCommand(args, options = {}) {
       path.resolve(__dirname, '../bin/simplepage.js'),
       ...args
     ], {
-      cwd: options.cwd
+      cwd: options.cwd,
+      env: { ...process.env, ...options.env }
     });
 
     let stdout = '';

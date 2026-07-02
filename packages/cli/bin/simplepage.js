@@ -99,6 +99,7 @@ withGlobalOptions(
 repoCommand
   .command('diff')
   .description('Show local markdown changes')
+  .argument('[files...]', 'Markdown file paths to diff')
   .action(diffRepo)
 
 repoCommand

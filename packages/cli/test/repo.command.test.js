@@ -313,6 +313,44 @@ describe('simplepage repo CLI command behavior', () => {
     expect(output.stdout).toMatch(/-# Guide v1/)
   })
 
+  it('repo diff shows only requested markdown files', async () => {
+    await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, domain)
+
+    nodeFs.writeFileSync(path.join(repoDir, 'about', 'index.md'), '# About local\n')
+    nodeFs.mkdirSync(path.join(repoDir, 'notes'), { recursive: true })
+    nodeFs.writeFileSync(path.join(repoDir, 'notes', 'index.md'), '# Notes\n')
+    nodeFs.rmSync(path.join(repoDir, 'docs', 'guides', 'index.md'))
+
+    const output = await runCliCommand(['repo', 'diff', 'about/index.md', 'docs/guides/'], { cwd: repoDir })
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toMatch(/diff -- about\/index\.md/)
+    expect(output.stdout).toMatch(/-# About v1/)
+    expect(output.stdout).toMatch(/\+# About local/)
+    expect(output.stdout).not.toMatch(/diff -- notes\/index\.md/)
+    expect(output.stdout).toMatch(/diff -- docs\/guides\/index\.md/)
+    expect(output.stdout).toMatch(/-# Guide v1/)
+  })
+
+  it('repo diff colorizes changed lines when color is forced', async () => {
+    await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
+    const repoDir = path.join(tempDir, domain)
+
+    nodeFs.writeFileSync(path.join(repoDir, 'about', 'index.md'), '# About local\n')
+
+    const output = await runCliCommand(['repo', 'diff'], {
+      cwd: repoDir,
+      env: { FORCE_COLOR: '1' }
+    })
+
+    expect(output.code).toBe(0)
+    expect(output.stderr).toBe('')
+    expect(output.stdout).toMatch(/\x1b\[[0-9;]+m-# About v1/)
+    expect(output.stdout).toMatch(/\x1b\[[0-9;]+m\+# About local/)
+  })
+
   it('repo reset restores requested markdown files to the tracked root', async () => {
     await runCliCommand(['repo', 'clone', domain, ...repoFlags], { cwd: tempDir })
     const repoDir = path.join(tempDir, domain)
