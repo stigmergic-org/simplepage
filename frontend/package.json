@@ -8,7 +8,7 @@
     "build": "webpack --mode=production",
     "build:ipfs": "webpack --mode=production; ipfs add -r --cid-version=1 -Q dist",
     "build:analyze": "webpack --mode=production --env analyze=true",
-    "stage": "node ../packages/cli/bin/simplepage.js publish new.simplepage.eth dist",
+    "stage": "node ../packages/cli/bin/simplepage.js drafts push-raw new.simplepage.eth draft dist",
     "stage-sepolia": "node ../packages/cli/bin/simplepage.js publish new.simplepage.eth dist --chain-id 11155111 --rpc https://ethereum-sepolia-rpc.publicnode.com",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "validate-html": "node validate-html.js",

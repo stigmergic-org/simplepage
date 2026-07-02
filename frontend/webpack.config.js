@@ -52,6 +52,9 @@ module.exports = (env, argv) => {
       extensions: ['.js', '.jsx'],
       alias: {
         '@react-native-async-storage/async-storage': false,
+        '@coinbase/wallet-sdk$': false,
+        'porto$': false,
+        'porto/internal$': false,
       },
       fallback: {
         "process": require.resolve("process/browser"),
@@ -150,6 +153,10 @@ module.exports = (env, argv) => {
         '...', // Keep existing minimizers
         ...(isProduction ? [new CssMinimizerPlugin()] : []),
       ],
+    },
+    performance: {
+      maxAssetSize: 750 * 1024,
+      maxEntrypointSize: 2500 * 1024,
     },
     module: {
       rules: [

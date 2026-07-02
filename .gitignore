@@ -2,3 +2,4 @@ node_modules
 packages/.DS_Store
 .pnpm-store
 simplepage.eth/
+frontend/.simplepage/
