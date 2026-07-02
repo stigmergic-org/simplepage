@@ -1,5 +1,11 @@
 # @simplepg/frontend
 
+## 1.9.1
+
+### Patch Changes
+
+- 44a07c8: Use hash parameters for agent authorization and draft review links so ENS gateways do not drop required link data.
+
 ## 1.9.0
 
 ### Minor Changes
